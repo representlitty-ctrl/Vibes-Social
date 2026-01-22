@@ -1,6 +1,4 @@
-import vibesLogoDark from "../assets/vibes-logo-dark.png";
-import vibesLogoLight from "../assets/vibes-logo-light.png";
-import { useEffect, useState } from "react";
+import vibesLogo from "../assets/vibes-logo.png";
 
 interface VibesLogoProps {
   className?: string;
@@ -8,27 +6,9 @@ interface VibesLogoProps {
 }
 
 export function VibesLogo({ className = "h-8 w-8", alt = "Vibes" }: VibesLogoProps) {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const checkTheme = () => {
-      setIsDark(document.documentElement.classList.contains("dark"));
-    };
-    
-    checkTheme();
-    
-    const observer = new MutationObserver(checkTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <img
-      src={isDark ? vibesLogoDark : vibesLogoLight}
+      src={vibesLogo}
       alt={alt}
       className={className}
       data-testid="img-vibes-logo"
