@@ -23,7 +23,7 @@ export default function DiscoverPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const { data: projects, isLoading } = useQuery<ProjectWithDetails[]>({
-    queryKey: ["/api/projects", { search: searchQuery, tag: selectedTag }],
+    queryKey: ["/api/projects"],
   });
 
   const filteredProjects = projects?.filter((project) => {
