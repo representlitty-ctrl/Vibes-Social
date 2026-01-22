@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Rocket, Users, Trophy, ArrowRight, Github, Code2, MessageCircle, TrendingUp, BookOpen } from "lucide-react";
 import { Link } from "wouter";
-import vibesLogo from "../assets/vibes-logo-generated.png";
+import { VibesLogo } from "@/components/vibes-logo";
 
 const features = [
   {
@@ -40,7 +40,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <img src={vibesLogo} alt="Vibes" className="h-8 w-8" />
+            <VibesLogo className="h-8 w-8" />
             <span className="text-xl font-bold">Vibes</span>
           </div>
 
@@ -77,7 +77,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4">
             <div className="mx-auto max-w-2xl text-center">
               <div className="mb-8 flex justify-center">
-                <img src={vibesLogo} alt="Vibes" className="h-20 w-20 sm:h-24 sm:w-24" />
+                <VibesLogo className="h-20 w-20 sm:h-24 sm:w-24" />
               </div>
               
               <h1 className="text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
@@ -266,7 +266,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <img src={vibesLogo} alt="Vibes" className="h-6 w-6" />
+              <VibesLogo className="h-6 w-6" />
               <span className="font-semibold">Vibes</span>
             </div>
             <p className="text-xs text-muted-foreground">

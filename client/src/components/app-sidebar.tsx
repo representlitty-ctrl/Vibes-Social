@@ -9,7 +9,7 @@ import {
   LogOut,
   Plus,
 } from "lucide-react";
-import vibesLogo from "../assets/vibes-logo-generated.png";
+import { VibesLogo } from "@/components/vibes-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -64,7 +64,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-2">
-          <img src={vibesLogo} alt="Vibes" className="h-8 w-8" />
+          <VibesLogo className="h-8 w-8" />
           <span className="text-xl font-bold">Vibes</span>
         </Link>
       </SidebarHeader>
