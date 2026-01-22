@@ -6,11 +6,10 @@ import {
   Trophy,
   Bell,
   User,
-  Settings,
   LogOut,
   Plus,
-  Sparkles,
 } from "lucide-react";
+import vibesLogo from "../assets/vibes-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -65,10 +64,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">Vibes</span>
+          <img src={vibesLogo} alt="Vibes" className="h-8 w-8" />
+          <span className="text-xl font-bold">Vibes</span>
         </Link>
       </SidebarHeader>
 
