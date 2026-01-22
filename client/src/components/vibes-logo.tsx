@@ -5,12 +5,12 @@ interface VibesLogoProps {
   alt?: string;
 }
 
-export function VibesLogo({ className = "h-8 w-8", alt = "Vibes" }: VibesLogoProps) {
+export function VibesLogo({ className = "h-8", alt = "Vibes" }: VibesLogoProps) {
   return (
     <img
       src={vibesLogo}
       alt={alt}
-      className={className}
+      className={`${className} object-contain`}
       data-testid="img-vibes-logo"
     />
   );
