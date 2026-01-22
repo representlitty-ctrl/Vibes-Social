@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectCard } from "@/components/project-card";
-import { Search, Rocket, Filter, Plus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Search, Rocket, Plus, Bookmark } from "lucide-react";
 import type { Project, User, Profile } from "@shared/schema";
 
 type ProjectWithDetails = Project & {
@@ -14,16 +16,23 @@ type ProjectWithDetails = Project & {
   upvoteCount: number;
   commentCount: number;
   hasUpvoted: boolean;
+  hasBookmarked?: boolean;
 };
 
 const popularTags = ["ai", "react", "game", "tool", "automation", "design", "mobile", "web3"];
 
 export default function DiscoverPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const { data: projects, isLoading } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/projects"],
+  });
+
+  const { data: bookmarkedProjects, isLoading: isLoadingBookmarks } = useQuery<ProjectWithDetails[]>({
+    queryKey: ["/api/projects/bookmarked"],
+    enabled: !!user,
   });
 
   const filteredProjects = projects?.filter((project) => {
@@ -63,68 +72,112 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Badge
-          variant={selectedTag === null ? "default" : "secondary"}
-          className="cursor-pointer"
-          onClick={() => setSelectedTag(null)}
-          data-testid="tag-all"
-        >
-          All
-        </Badge>
-        {popularTags.map((tag) => (
-          <Badge
-            key={tag}
-            variant={selectedTag === tag ? "default" : "secondary"}
-            className="cursor-pointer"
-            onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-            data-testid={`tag-${tag}`}
-          >
-            {tag}
-          </Badge>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex gap-4 rounded-lg border bg-card p-4">
-              <Skeleton className="h-10 w-10 rounded-lg" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-1/3" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : filteredProjects && filteredProjects.length > 0 ? (
-        <div className="space-y-4">
-          {filteredProjects.map((project, index) => (
-            <ProjectCard key={project.id} project={project} rank={index + 1} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Rocket className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold">No projects found</h3>
-          <p className="mt-2 max-w-sm text-muted-foreground">
-            {searchQuery || selectedTag
-              ? "Try adjusting your search or filters."
-              : "Be the first to submit a project!"}
-          </p>
-          {!searchQuery && !selectedTag && (
-            <Link href="/submit">
-              <Button className="mt-6 gap-2">
-                <Plus className="h-4 w-4" />
-                Submit Your Project
-              </Button>
-            </Link>
+      <Tabs defaultValue="all" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="all" data-testid="tab-all-projects">All Projects</TabsTrigger>
+          {user && (
+            <TabsTrigger value="saved" data-testid="tab-saved-projects">
+              <Bookmark className="mr-2 h-4 w-4" />
+              Saved
+            </TabsTrigger>
           )}
+        </TabsList>
+
+        <div className="flex flex-wrap gap-2">
+          <Badge
+            variant={selectedTag === null ? "default" : "secondary"}
+            className="cursor-pointer"
+            onClick={() => setSelectedTag(null)}
+            data-testid="tag-all"
+          >
+            All
+          </Badge>
+          {popularTags.map((tag) => (
+            <Badge
+              key={tag}
+              variant={selectedTag === tag ? "default" : "secondary"}
+              className="cursor-pointer"
+              onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+              data-testid={`tag-${tag}`}
+            >
+              {tag}
+            </Badge>
+          ))}
         </div>
-      )}
+
+        <TabsContent value="all" className="mt-6">
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex gap-4 rounded-lg border bg-card p-4">
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-1/3" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProjects && filteredProjects.length > 0 ? (
+            <div className="space-y-4">
+              {filteredProjects.map((project, index) => (
+                <ProjectCard key={project.id} project={project} rank={index + 1} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Rocket className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold">No projects found</h3>
+              <p className="mt-2 max-w-sm text-muted-foreground">
+                {searchQuery || selectedTag
+                  ? "Try adjusting your search or filters."
+                  : "Be the first to submit a project!"}
+              </p>
+              {!searchQuery && !selectedTag && (
+                <Link href="/submit">
+                  <Button className="mt-6 gap-2">
+                    <Plus className="h-4 w-4" />
+                    Submit Your Project
+                  </Button>
+                </Link>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="saved" className="mt-6">
+          {isLoadingBookmarks ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-4 rounded-lg border bg-card p-4">
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-1/3" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : bookmarkedProjects && bookmarkedProjects.length > 0 ? (
+            <div className="space-y-4">
+              {bookmarkedProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+              <Bookmark className="mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">No saved projects</h3>
+              <p className="mt-2 text-muted-foreground">
+                Bookmark projects to save them for later.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

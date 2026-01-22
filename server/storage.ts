@@ -5,14 +5,18 @@ import {
   profiles,
   projects,
   projectUpvotes,
+  projectDownvotes,
+  projectBookmarks,
   projectComments,
   follows,
   resources,
   resourceUpvotes,
+  resourceDownvotes,
   resourceBookmarks,
   resourceComments,
   grants,
   grantSubmissions,
+  grantApplications,
   notifications,
   type User,
   type Profile,
@@ -28,6 +32,8 @@ import {
   type InsertGrant,
   type GrantSubmission,
   type InsertGrantSubmission,
+  type GrantApplication,
+  type InsertGrantApplication,
   type Notification,
 } from "@shared/schema";
 
@@ -54,6 +60,15 @@ export interface IStorage {
   upvoteProject(projectId: string, userId: string): Promise<void>;
   removeProjectUpvote(projectId: string, userId: string): Promise<void>;
   
+  // Project Downvotes
+  downvoteProject(projectId: string, userId: string): Promise<void>;
+  removeProjectDownvote(projectId: string, userId: string): Promise<void>;
+  
+  // Project Bookmarks
+  bookmarkProject(projectId: string, userId: string): Promise<void>;
+  removeProjectBookmark(projectId: string, userId: string): Promise<void>;
+  getBookmarkedProjects(userId: string): Promise<any[]>;
+  
   // Project Comments
   getProjectComments(projectId: string): Promise<any[]>;
   createProjectComment(projectId: string, userId: string, content: string): Promise<ProjectComment>;
@@ -66,14 +81,29 @@ export interface IStorage {
   // Resources
   getResources(currentUserId?: string): Promise<any[]>;
   getBookmarkedResources(userId: string): Promise<any[]>;
+  getResourcesByUser(userId: string): Promise<any[]>;
+  createResource(userId: string, data: InsertResource): Promise<Resource>;
   upvoteResource(resourceId: string, userId: string): Promise<void>;
   removeResourceUpvote(resourceId: string, userId: string): Promise<void>;
+  downvoteResource(resourceId: string, userId: string): Promise<void>;
+  removeResourceDownvote(resourceId: string, userId: string): Promise<void>;
   bookmarkResource(resourceId: string, userId: string): Promise<void>;
   removeResourceBookmark(resourceId: string, userId: string): Promise<void>;
   
   // Grants
   getGrants(currentUserId?: string): Promise<any[]>;
+  getGrantById(id: string, currentUserId?: string): Promise<any>;
+  getGrantsByUser(userId: string): Promise<any[]>;
+  createGrant(userId: string, data: InsertGrant): Promise<Grant>;
+  updateGrant(id: string, userId: string, data: Partial<InsertGrant>): Promise<Grant>;
+  deleteGrant(id: string, userId: string): Promise<void>;
   submitToGrant(grantId: string, projectId: string, userId: string): Promise<GrantSubmission>;
+  
+  // Grant Applications
+  applyToGrant(grantId: string, userId: string, data: InsertGrantApplication): Promise<GrantApplication>;
+  getGrantApplications(grantId: string, userId: string): Promise<any[]>;
+  getUserApplications(userId: string): Promise<any[]>;
+  updateApplicationStatus(applicationId: string, userId: string, status: string): Promise<GrantApplication>;
   
   // Notifications
   getNotifications(userId: string): Promise<Notification[]>;
@@ -207,26 +237,49 @@ export class DatabaseStorage implements IStorage {
       .from(projectUpvotes)
       .where(eq(projectUpvotes.projectId, project.id));
 
+    const [downvoteResult] = await db
+      .select({ count: count() })
+      .from(projectDownvotes)
+      .where(eq(projectDownvotes.projectId, project.id));
+
     const [commentResult] = await db
       .select({ count: count() })
       .from(projectComments)
       .where(eq(projectComments.projectId, project.id));
 
     let hasUpvoted = false;
+    let hasDownvoted = false;
+    let hasBookmarked = false;
+
     if (currentUserId) {
       const [upvote] = await db
         .select()
         .from(projectUpvotes)
         .where(and(eq(projectUpvotes.projectId, project.id), eq(projectUpvotes.userId, currentUserId)));
       hasUpvoted = !!upvote;
+
+      const [downvote] = await db
+        .select()
+        .from(projectDownvotes)
+        .where(and(eq(projectDownvotes.projectId, project.id), eq(projectDownvotes.userId, currentUserId)));
+      hasDownvoted = !!downvote;
+
+      const [bookmark] = await db
+        .select()
+        .from(projectBookmarks)
+        .where(and(eq(projectBookmarks.projectId, project.id), eq(projectBookmarks.userId, currentUserId)));
+      hasBookmarked = !!bookmark;
     }
 
     return {
       ...project,
       user: { ...user, profile },
       upvoteCount: upvoteResult?.count || 0,
+      downvoteCount: downvoteResult?.count || 0,
       commentCount: commentResult?.count || 0,
       hasUpvoted,
+      hasDownvoted,
+      hasBookmarked,
     };
   }
 
@@ -279,6 +332,63 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(projectUpvotes)
       .where(and(eq(projectUpvotes.projectId, projectId), eq(projectUpvotes.userId, userId)));
+  }
+
+  // Project Downvotes
+  async downvoteProject(projectId: string, userId: string): Promise<void> {
+    await db.delete(projectUpvotes).where(and(eq(projectUpvotes.projectId, projectId), eq(projectUpvotes.userId, userId)));
+    
+    const [existing] = await db
+      .select()
+      .from(projectDownvotes)
+      .where(and(eq(projectDownvotes.projectId, projectId), eq(projectDownvotes.userId, userId)));
+
+    if (!existing) {
+      await db.insert(projectDownvotes).values({ projectId, userId });
+    }
+  }
+
+  async removeProjectDownvote(projectId: string, userId: string): Promise<void> {
+    await db
+      .delete(projectDownvotes)
+      .where(and(eq(projectDownvotes.projectId, projectId), eq(projectDownvotes.userId, userId)));
+  }
+
+  // Project Bookmarks
+  async bookmarkProject(projectId: string, userId: string): Promise<void> {
+    const [existing] = await db
+      .select()
+      .from(projectBookmarks)
+      .where(and(eq(projectBookmarks.projectId, projectId), eq(projectBookmarks.userId, userId)));
+
+    if (!existing) {
+      await db.insert(projectBookmarks).values({ projectId, userId });
+    }
+  }
+
+  async removeProjectBookmark(projectId: string, userId: string): Promise<void> {
+    await db
+      .delete(projectBookmarks)
+      .where(and(eq(projectBookmarks.projectId, projectId), eq(projectBookmarks.userId, userId)));
+  }
+
+  async getBookmarkedProjects(userId: string): Promise<any[]> {
+    const bookmarks = await db
+      .select()
+      .from(projectBookmarks)
+      .where(eq(projectBookmarks.userId, userId));
+
+    const bookmarkedProjects = await Promise.all(
+      bookmarks.map(async (b) => {
+        const [project] = await db.select().from(projects).where(eq(projects.id, b.projectId));
+        if (project) {
+          return this.enrichProject(project, userId);
+        }
+        return null;
+      })
+    );
+
+    return bookmarkedProjects.filter(Boolean);
   }
 
   // Project Comments
@@ -390,7 +500,13 @@ export class DatabaseStorage implements IStorage {
       .from(resourceUpvotes)
       .where(eq(resourceUpvotes.resourceId, resource.id));
 
+    const [downvoteResult] = await db
+      .select({ count: count() })
+      .from(resourceDownvotes)
+      .where(eq(resourceDownvotes.resourceId, resource.id));
+
     let hasUpvoted = false;
+    let hasDownvoted = false;
     let hasBookmarked = false;
 
     if (currentUserId) {
@@ -400,6 +516,12 @@ export class DatabaseStorage implements IStorage {
         .where(and(eq(resourceUpvotes.resourceId, resource.id), eq(resourceUpvotes.userId, currentUserId)));
       hasUpvoted = !!upvote;
 
+      const [downvote] = await db
+        .select()
+        .from(resourceDownvotes)
+        .where(and(eq(resourceDownvotes.resourceId, resource.id), eq(resourceDownvotes.userId, currentUserId)));
+      hasDownvoted = !!downvote;
+
       const [bookmark] = await db
         .select()
         .from(resourceBookmarks)
@@ -407,10 +529,20 @@ export class DatabaseStorage implements IStorage {
       hasBookmarked = !!bookmark;
     }
 
+    const [user] = resource.userId 
+      ? await db.select().from(users).where(eq(users.id, resource.userId))
+      : [null];
+    const [profile] = resource.userId
+      ? await db.select().from(profiles).where(eq(profiles.userId, resource.userId))
+      : [null];
+
     return {
       ...resource,
+      user: user ? { ...user, profile } : null,
       upvoteCount: upvoteResult?.count || 0,
+      downvoteCount: downvoteResult?.count || 0,
       hasUpvoted,
+      hasDownvoted,
       hasBookmarked,
     };
   }
@@ -430,6 +562,45 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(resourceUpvotes)
       .where(and(eq(resourceUpvotes.resourceId, resourceId), eq(resourceUpvotes.userId, userId)));
+  }
+
+  // Resource Downvotes
+  async downvoteResource(resourceId: string, userId: string): Promise<void> {
+    await db.delete(resourceUpvotes).where(and(eq(resourceUpvotes.resourceId, resourceId), eq(resourceUpvotes.userId, userId)));
+    
+    const [existing] = await db
+      .select()
+      .from(resourceDownvotes)
+      .where(and(eq(resourceDownvotes.resourceId, resourceId), eq(resourceDownvotes.userId, userId)));
+
+    if (!existing) {
+      await db.insert(resourceDownvotes).values({ resourceId, userId });
+    }
+  }
+
+  async removeResourceDownvote(resourceId: string, userId: string): Promise<void> {
+    await db
+      .delete(resourceDownvotes)
+      .where(and(eq(resourceDownvotes.resourceId, resourceId), eq(resourceDownvotes.userId, userId)));
+  }
+
+  // User-submitted Resources
+  async createResource(userId: string, data: InsertResource): Promise<Resource> {
+    const [resource] = await db
+      .insert(resources)
+      .values({ ...data, userId })
+      .returning();
+    return resource;
+  }
+
+  async getResourcesByUser(userId: string): Promise<any[]> {
+    const userResources = await db
+      .select()
+      .from(resources)
+      .where(eq(resources.userId, userId))
+      .orderBy(desc(resources.createdAt));
+
+    return Promise.all(userResources.map((r) => this.enrichResource(r, userId)));
   }
 
   async bookmarkResource(resourceId: string, userId: string): Promise<void> {
@@ -488,6 +659,173 @@ export class DatabaseStorage implements IStorage {
       .values({ grantId, projectId, userId })
       .returning();
     return submission;
+  }
+
+  // User-created Grants
+  async createGrant(userId: string, data: InsertGrant): Promise<Grant> {
+    const [grant] = await db
+      .insert(grants)
+      .values({ ...data, userId })
+      .returning();
+    return grant;
+  }
+
+  async getGrantById(id: string, currentUserId?: string): Promise<any> {
+    const [grant] = await db.select().from(grants).where(eq(grants.id, id));
+    if (!grant) return undefined;
+    return this.enrichGrant(grant, currentUserId);
+  }
+
+  async getGrantsByUser(userId: string): Promise<any[]> {
+    const userGrants = await db
+      .select()
+      .from(grants)
+      .where(eq(grants.userId, userId))
+      .orderBy(desc(grants.createdAt));
+
+    return Promise.all(userGrants.map((g) => this.enrichGrant(g, userId)));
+  }
+
+  async updateGrant(id: string, userId: string, data: Partial<InsertGrant>): Promise<Grant> {
+    const [grant] = await db
+      .update(grants)
+      .set(data)
+      .where(and(eq(grants.id, id), eq(grants.userId, userId)))
+      .returning();
+    return grant;
+  }
+
+  async deleteGrant(id: string, userId: string): Promise<void> {
+    await db.delete(grants).where(and(eq(grants.id, id), eq(grants.userId, userId)));
+  }
+
+  private async enrichGrant(grant: Grant, currentUserId?: string): Promise<any> {
+    const [user] = await db.select().from(users).where(eq(users.id, grant.userId));
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, grant.userId));
+    
+    const [submissionResult] = await db
+      .select({ count: count() })
+      .from(grantSubmissions)
+      .where(eq(grantSubmissions.grantId, grant.id));
+
+    const [applicationResult] = await db
+      .select({ count: count() })
+      .from(grantApplications)
+      .where(eq(grantApplications.grantId, grant.id));
+
+    let hasSubmitted = false;
+    let hasApplied = false;
+    let userSubmission = undefined;
+    let userApplication = undefined;
+
+    if (currentUserId) {
+      const [submission] = await db
+        .select()
+        .from(grantSubmissions)
+        .where(and(eq(grantSubmissions.grantId, grant.id), eq(grantSubmissions.userId, currentUserId)));
+      hasSubmitted = !!submission;
+      userSubmission = submission;
+
+      const [application] = await db
+        .select()
+        .from(grantApplications)
+        .where(and(eq(grantApplications.grantId, grant.id), eq(grantApplications.userId, currentUserId)));
+      hasApplied = !!application;
+      userApplication = application;
+    }
+
+    return {
+      ...grant,
+      user: { ...user, profile },
+      submissionCount: submissionResult?.count || 0,
+      applicationCount: applicationResult?.count || 0,
+      hasSubmitted,
+      hasApplied,
+      userSubmission,
+      userApplication,
+    };
+  }
+
+  // Grant Applications
+  async applyToGrant(grantId: string, userId: string, data: InsertGrantApplication): Promise<GrantApplication> {
+    const [application] = await db
+      .insert(grantApplications)
+      .values({ ...data, grantId, userId })
+      .returning();
+
+    const [grant] = await db.select().from(grants).where(eq(grants.id, grantId));
+    if (grant && grant.userId !== userId) {
+      const [applicant] = await db.select().from(users).where(eq(users.id, userId));
+      await this.createNotification(
+        grant.userId,
+        "application",
+        "New grant application",
+        `${applicant?.firstName || "Someone"} applied to "${grant.title}"`,
+        grantId,
+        "grant"
+      );
+    }
+
+    return application;
+  }
+
+  async getGrantApplications(grantId: string, userId: string): Promise<any[]> {
+    const [grant] = await db.select().from(grants).where(eq(grants.id, grantId));
+    if (!grant || grant.userId !== userId) return [];
+
+    const allApplications = await db
+      .select()
+      .from(grantApplications)
+      .where(eq(grantApplications.grantId, grantId))
+      .orderBy(desc(grantApplications.createdAt));
+
+    return Promise.all(
+      allApplications.map(async (app) => {
+        const [user] = await db.select().from(users).where(eq(users.id, app.userId));
+        const [profile] = await db.select().from(profiles).where(eq(profiles.userId, app.userId));
+        return { ...app, user: { ...user, profile } };
+      })
+    );
+  }
+
+  async getUserApplications(userId: string): Promise<any[]> {
+    const userApps = await db
+      .select()
+      .from(grantApplications)
+      .where(eq(grantApplications.userId, userId))
+      .orderBy(desc(grantApplications.createdAt));
+
+    return Promise.all(
+      userApps.map(async (app) => {
+        const [grant] = await db.select().from(grants).where(eq(grants.id, app.grantId));
+        return { ...app, grant };
+      })
+    );
+  }
+
+  async updateApplicationStatus(applicationId: string, userId: string, status: string): Promise<GrantApplication> {
+    const [application] = await db.select().from(grantApplications).where(eq(grantApplications.id, applicationId));
+    if (!application) throw new Error("Application not found");
+
+    const [grant] = await db.select().from(grants).where(eq(grants.id, application.grantId));
+    if (!grant || grant.userId !== userId) throw new Error("Unauthorized");
+
+    const [updated] = await db
+      .update(grantApplications)
+      .set({ status })
+      .where(eq(grantApplications.id, applicationId))
+      .returning();
+
+    await this.createNotification(
+      application.userId,
+      "application_update",
+      `Your application was ${status}`,
+      `Your application to "${grant.title}" has been ${status}`,
+      grant.id,
+      "grant"
+    );
+
+    return updated;
   }
 
   // Notifications

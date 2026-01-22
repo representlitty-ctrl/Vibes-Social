@@ -18,6 +18,8 @@ import NotificationsPage from "@/pages/notifications";
 import ProfilePage from "@/pages/profile";
 import ProfileEditPage from "@/pages/profile-edit";
 import SubmitProjectPage from "@/pages/submit-project";
+import SubmitResourcePage from "@/pages/submit-resource";
+import CreateGrantPage from "@/pages/create-grant";
 import ProjectDetailPage from "@/pages/project-detail";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -80,7 +82,9 @@ function Router() {
         <Route path="/" component={HomePage} />
         <Route path="/discover" component={DiscoverPage} />
         <Route path="/learn" component={LearnPage} />
+        <Route path="/learn/submit" component={SubmitResourcePage} />
         <Route path="/grants" component={GrantsPage} />
+        <Route path="/grants/create" component={CreateGrantPage} />
         <Route path="/notifications" component={NotificationsPage} />
         <Route path="/profile/edit" component={ProfileEditPage} />
         <Route path="/profile/:id" component={ProfilePage} />

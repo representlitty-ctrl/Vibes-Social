@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
-import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema } from "@shared/schema";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -12,6 +13,9 @@ export async function registerRoutes(
   // Setup authentication
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Setup object storage routes
+  registerObjectStorageRoutes(app);
 
   // Helper to get user ID from request
   const getUserId = (req: any): string | undefined => {
@@ -198,6 +202,77 @@ export async function registerRoutes(
     }
   });
 
+  // Project downvote routes
+  app.post("/api/projects/:id/downvote", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.downvoteProject(id, userId);
+      res.status(201).json({ message: "Downvoted" });
+    } catch (error) {
+      console.error("Error downvoting project:", error);
+      res.status(500).json({ message: "Failed to downvote project" });
+    }
+  });
+
+  app.delete("/api/projects/:id/downvote", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.removeProjectDownvote(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing downvote:", error);
+      res.status(500).json({ message: "Failed to remove downvote" });
+    }
+  });
+
+  // Project bookmark routes
+  app.post("/api/projects/:id/bookmark", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.bookmarkProject(id, userId);
+      res.status(201).json({ message: "Bookmarked" });
+    } catch (error) {
+      console.error("Error bookmarking project:", error);
+      res.status(500).json({ message: "Failed to bookmark project" });
+    }
+  });
+
+  app.delete("/api/projects/:id/bookmark", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.removeProjectBookmark(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing bookmark:", error);
+      res.status(500).json({ message: "Failed to remove bookmark" });
+    }
+  });
+
+  app.get("/api/projects/bookmarked", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const projects = await storage.getBookmarkedProjects(userId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching bookmarked projects:", error);
+      res.status(500).json({ message: "Failed to fetch bookmarked projects" });
+    }
+  });
+
   // Project comment routes
   app.get("/api/projects/:id/comments", async (req, res) => {
     try {
@@ -339,6 +414,66 @@ export async function registerRoutes(
     }
   });
 
+  // Resource downvote routes
+  app.post("/api/resources/:id/downvote", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.downvoteResource(id, userId);
+      res.status(201).json({ message: "Downvoted" });
+    } catch (error) {
+      console.error("Error downvoting resource:", error);
+      res.status(500).json({ message: "Failed to downvote resource" });
+    }
+  });
+
+  app.delete("/api/resources/:id/downvote", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.removeResourceDownvote(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing resource downvote:", error);
+      res.status(500).json({ message: "Failed to remove downvote" });
+    }
+  });
+
+  // User-submitted resources
+  app.post("/api/resources", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const data = insertResourceSchema.parse(req.body);
+      const resource = await storage.createResource(userId, data);
+      res.status(201).json(resource);
+    } catch (error) {
+      console.error("Error creating resource:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create resource" });
+    }
+  });
+
+  app.get("/api/resources/mine", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const resources = await storage.getResourcesByUser(userId);
+      res.json(resources);
+    } catch (error) {
+      console.error("Error fetching user resources:", error);
+      res.status(500).json({ message: "Failed to fetch resources" });
+    }
+  });
+
   app.post("/api/resources/:id/bookmark", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -376,6 +511,146 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching grants:", error);
       res.status(500).json({ message: "Failed to fetch grants" });
+    }
+  });
+
+  app.get("/api/grants/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const currentUserId = getUserId(req);
+      const grant = await storage.getGrantById(id, currentUserId);
+      if (!grant) {
+        return res.status(404).json({ message: "Grant not found" });
+      }
+      res.json(grant);
+    } catch (error) {
+      console.error("Error fetching grant:", error);
+      res.status(500).json({ message: "Failed to fetch grant" });
+    }
+  });
+
+  // User-created grants
+  app.post("/api/grants", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const data = insertGrantSchema.parse(req.body);
+      const grant = await storage.createGrant(userId, data);
+      res.status(201).json(grant);
+    } catch (error) {
+      console.error("Error creating grant:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create grant" });
+    }
+  });
+
+  app.get("/api/grants/mine", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const grants = await storage.getGrantsByUser(userId);
+      res.json(grants);
+    } catch (error) {
+      console.error("Error fetching user grants:", error);
+      res.status(500).json({ message: "Failed to fetch grants" });
+    }
+  });
+
+  app.put("/api/grants/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const data = insertGrantSchema.partial().parse(req.body);
+      const grant = await storage.updateGrant(id, userId, data);
+      res.json(grant);
+    } catch (error) {
+      console.error("Error updating grant:", error);
+      res.status(500).json({ message: "Failed to update grant" });
+    }
+  });
+
+  app.delete("/api/grants/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.deleteGrant(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting grant:", error);
+      res.status(500).json({ message: "Failed to delete grant" });
+    }
+  });
+
+  // Grant applications
+  app.post("/api/grants/:id/apply", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const data = insertGrantApplicationSchema.parse({ ...req.body, grantId: id });
+      const application = await storage.applyToGrant(id, userId, data);
+      res.status(201).json(application);
+    } catch (error) {
+      console.error("Error applying to grant:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to apply to grant" });
+    }
+  });
+
+  app.get("/api/grants/:id/applications", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const applications = await storage.getGrantApplications(id, userId);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching grant applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  app.get("/api/applications/mine", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const applications = await storage.getUserApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching user applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  app.put("/api/applications/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!status || !["pending", "approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const application = await storage.updateApplicationStatus(id, userId, status);
+      res.json(application);
+    } catch (error) {
+      console.error("Error updating application status:", error);
+      res.status(500).json({ message: "Failed to update application status" });
     }
   });
 

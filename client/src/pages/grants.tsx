@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,13 +42,25 @@ import {
   Send,
   Sparkles,
   ArrowRight,
+  Plus,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import type { Grant, Project, GrantSubmission } from "@shared/schema";
 
+type GrantApplication = {
+  id: string;
+  status: string;
+  title: string;
+};
+
 type GrantWithDetails = Grant & {
   submissionCount: number;
+  applicationCount: number;
   hasSubmitted: boolean;
+  hasApplied: boolean;
   userSubmission?: GrantSubmission;
+  userApplication?: GrantApplication;
 };
 
 type ProjectForSubmission = Pick<Project, "id" | "title">;
@@ -57,11 +77,21 @@ export default function GrantsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Grants</h1>
-        <p className="text-muted-foreground">
-          Submit your projects to grant programs and compete for funding
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Grants</h1>
+          <p className="text-muted-foreground">
+            Submit your projects to grant programs and compete for funding
+          </p>
+        </div>
+        {user && (
+          <Link href="/grants/create">
+            <Button className="gap-2" data-testid="button-create-grant">
+              <Plus className="h-4 w-4" />
+              Create Grant
+            </Button>
+          </Link>
+        )}
       </div>
 
       <section>
@@ -114,6 +144,8 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [applicationTitle, setApplicationTitle] = useState("");
+  const [applicationPitch, setApplicationPitch] = useState("");
 
   const { data: projects } = useQuery<ProjectForSubmission[]>({
     queryKey: ["/api/projects/mine"],
@@ -144,6 +176,32 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
     },
   });
 
+  const applyMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/grants/${grant.id}/apply`, {
+        title: applicationTitle,
+        pitch: applicationPitch,
+      });
+    },
+    onSuccess: () => {
+      setOpen(false);
+      setApplicationTitle("");
+      setApplicationPitch("");
+      queryClient.invalidateQueries({ queryKey: ["/api/grants"] });
+      toast({
+        title: "Application submitted!",
+        description: "Your application has been submitted for review.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const isOpen = grant.status === "open";
   const isPastDeadline = grant.deadline && new Date(grant.deadline) < new Date();
 
@@ -166,6 +224,23 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
   };
 
   const getSubmissionStatus = () => {
+    if (grant.userApplication) {
+      if (grant.userApplication.status === "approved") {
+        return (
+          <Badge variant="default" className="gap-1 bg-green-600">
+            <Trophy className="h-3 w-3" />
+            Approved!
+          </Badge>
+        );
+      }
+      if (grant.userApplication.status === "pending") {
+        return <Badge variant="outline">Application Pending</Badge>;
+      }
+      if (grant.userApplication.status === "rejected") {
+        return <Badge variant="secondary">Application Rejected</Badge>;
+      }
+    }
+
     if (!grant.userSubmission) return null;
     
     if (grant.userSubmission.isWinner) {
@@ -184,6 +259,8 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
     }
     return null;
   };
+
+  const hasAlreadyAppliedOrSubmitted = grant.hasApplied || grant.hasSubmitted;
 
   return (
     <Card className="flex flex-col p-6" data-testid={`grant-${grant.id}`}>
@@ -224,10 +301,10 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
 
       <div className="mt-4">
         {isOpen && !isPastDeadline ? (
-          grant.hasSubmitted ? (
-            <Button variant="outline" disabled className="w-full gap-2">
+          hasAlreadyAppliedOrSubmitted ? (
+            <Button variant="outline" disabled className="w-full gap-2" data-testid={`button-already-applied-${grant.id}`}>
               <CheckCircle className="h-4 w-4" />
-              Already Submitted
+              {grant.hasApplied ? "Already Applied" : "Already Submitted"}
             </Button>
           ) : (
             <Dialog open={open} onOpenChange={setOpen}>
@@ -239,53 +316,105 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
                       window.location.href = "/api/login";
                     }
                   }}
-                  data-testid={`button-submit-grant-${grant.id}`}
+                  data-testid={`button-apply-grant-${grant.id}`}
                 >
                   <ArrowRight className="h-4 w-4" />
-                  Submit Project
+                  Apply Now
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Submit to {grant.title}</DialogTitle>
+                  <DialogTitle>Apply to {grant.title}</DialogTitle>
                   <DialogDescription>
-                    Select one of your projects to submit to this grant.
+                    Submit your application or an existing project.
                   </DialogDescription>
                 </DialogHeader>
 
-                {projects && projects.length > 0 ? (
-                  <div className="space-y-4">
-                    <Select value={selectedProject} onValueChange={setSelectedProject}>
-                      <SelectTrigger data-testid="select-project">
-                        <SelectValue placeholder="Select a project" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      onClick={() => submitMutation.mutate()}
-                      disabled={!selectedProject || submitMutation.isPending}
-                      className="w-full"
-                      data-testid="button-confirm-submit"
-                    >
+                <Tabs defaultValue="apply" className="mt-4">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="apply" className="flex-1 gap-2" data-testid="tab-apply-pitch">
+                      <FileText className="h-4 w-4" />
+                      Apply with Pitch
+                    </TabsTrigger>
+                    <TabsTrigger value="project" className="flex-1 gap-2" data-testid="tab-submit-project">
+                      <Send className="h-4 w-4" />
                       Submit Project
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="apply" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Project Title</label>
+                      <Input
+                        placeholder="Your project idea title"
+                        value={applicationTitle}
+                        onChange={(e) => setApplicationTitle(e.target.value)}
+                        data-testid="input-application-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Your Pitch</label>
+                      <Textarea
+                        placeholder="Describe your project idea, what you want to build, and why you'd be a great fit for this grant..."
+                        value={applicationPitch}
+                        onChange={(e) => setApplicationPitch(e.target.value)}
+                        className="min-h-[150px] resize-none"
+                        data-testid="input-application-pitch"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => applyMutation.mutate()}
+                      disabled={!applicationTitle || !applicationPitch || applicationPitch.length < 50 || applyMutation.isPending}
+                      className="w-full"
+                      data-testid="button-confirm-apply"
+                    >
+                      {applyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Submit Application
                     </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground">
-                      You don't have any projects yet.
-                    </p>
-                    <Link href="/submit">
-                      <Button className="mt-4">Create a Project</Button>
-                    </Link>
-                  </div>
-                )}
+                    {applicationPitch && applicationPitch.length < 50 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Pitch must be at least 50 characters
+                      </p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="project" className="space-y-4 mt-4">
+                    {projects && projects.length > 0 ? (
+                      <>
+                        <Select value={selectedProject} onValueChange={setSelectedProject}>
+                          <SelectTrigger data-testid="select-project">
+                            <SelectValue placeholder="Select a project" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {projects.map((project) => (
+                              <SelectItem key={project.id} value={project.id}>
+                                {project.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={() => submitMutation.mutate()}
+                          disabled={!selectedProject || submitMutation.isPending}
+                          className="w-full"
+                          data-testid="button-confirm-submit"
+                        >
+                          {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Submit Project
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground">
+                          You don't have any projects yet.
+                        </p>
+                        <Link href="/submit">
+                          <Button className="mt-4">Create a Project</Button>
+                        </Link>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           )

@@ -17,6 +17,7 @@ export const profiles = pgTable("profiles", {
   githubUrl: varchar("github_url"),
   websiteUrl: varchar("website_url"),
   linkedinUrl: varchar("linkedin_url"),
+  profileImageUrl: varchar("profile_image_url"),
   isAdmin: boolean("is_admin").default(false),
 });
 
@@ -40,6 +41,22 @@ export const projects = pgTable("projects", {
 
 // Project Upvotes
 export const projectUpvotes = pgTable("project_upvotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Project Downvotes
+export const projectDownvotes = pgTable("project_downvotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Project Bookmarks
+export const projectBookmarks = pgTable("project_bookmarks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -71,14 +88,25 @@ export const resources = pgTable("resources", {
   description: text("description").notNull(),
   url: varchar("url").notNull(),
   category: varchar("category", { length: 100 }).notNull(),
+  type: varchar("type", { length: 50 }).default("article"),
   tags: text("tags").array(),
   imageUrl: varchar("image_url"),
+  userId: varchar("user_id").references(() => users.id),
+  isApproved: boolean("is_approved").default(false),
   isFeatured: boolean("is_featured").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Resource Upvotes
 export const resourceUpvotes = pgTable("resource_upvotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceId: varchar("resource_id").notNull().references(() => resources.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Resource Downvotes
+export const resourceDownvotes = pgTable("resource_downvotes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   resourceId: varchar("resource_id").notNull().references(() => resources.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -109,7 +137,21 @@ export const grants = pgTable("grants", {
   description: text("description").notNull(),
   amount: varchar("amount"),
   deadline: timestamp("deadline"),
+  requirements: text("requirements"),
+  imageUrl: varchar("image_url"),
+  userId: varchar("user_id").notNull().references(() => users.id),
   status: varchar("status", { length: 50 }).default("open"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Grant Applications (users apply to grants)
+export const grantApplications = pgTable("grant_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  grantId: varchar("grant_id").notNull().references(() => grants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  pitch: text("pitch").notNull(),
+  projectUrl: varchar("project_url"),
+  status: varchar("status", { length: 50 }).default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -155,7 +197,19 @@ export const profilesRelations = relations(profiles, ({ one }) => ({
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   user: one(users, { fields: [projects.userId], references: [users.id] }),
   upvotes: many(projectUpvotes),
+  downvotes: many(projectDownvotes),
   comments: many(projectComments),
+  bookmarks: many(projectBookmarks),
+}));
+
+export const projectDownvotesRelations = relations(projectDownvotes, ({ one }) => ({
+  project: one(projects, { fields: [projectDownvotes.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectDownvotes.userId], references: [users.id] }),
+}));
+
+export const projectBookmarksRelations = relations(projectBookmarks, ({ one }) => ({
+  project: one(projects, { fields: [projectBookmarks.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectBookmarks.userId], references: [users.id] }),
 }));
 
 export const projectUpvotesRelations = relations(projectUpvotes, ({ one }) => ({
@@ -173,10 +227,17 @@ export const followsRelations = relations(follows, ({ one }) => ({
   following: one(users, { fields: [follows.followingId], references: [users.id], relationName: "following" }),
 }));
 
-export const resourcesRelations = relations(resources, ({ many }) => ({
+export const resourcesRelations = relations(resources, ({ one, many }) => ({
+  user: one(users, { fields: [resources.userId], references: [users.id] }),
   upvotes: many(resourceUpvotes),
+  downvotes: many(resourceDownvotes),
   bookmarks: many(resourceBookmarks),
   comments: many(resourceComments),
+}));
+
+export const resourceDownvotesRelations = relations(resourceDownvotes, ({ one }) => ({
+  resource: one(resources, { fields: [resourceDownvotes.resourceId], references: [resources.id] }),
+  user: one(users, { fields: [resourceDownvotes.userId], references: [users.id] }),
 }));
 
 export const resourceUpvotesRelations = relations(resourceUpvotes, ({ one }) => ({
@@ -194,8 +255,15 @@ export const resourceCommentsRelations = relations(resourceComments, ({ one }) =
   user: one(users, { fields: [resourceComments.userId], references: [users.id] }),
 }));
 
-export const grantsRelations = relations(grants, ({ many }) => ({
+export const grantsRelations = relations(grants, ({ one, many }) => ({
+  user: one(users, { fields: [grants.userId], references: [users.id] }),
   submissions: many(grantSubmissions),
+  applications: many(grantApplications),
+}));
+
+export const grantApplicationsRelations = relations(grantApplications, ({ one }) => ({
+  grant: one(grants, { fields: [grantApplications.grantId], references: [grants.id] }),
+  user: one(users, { fields: [grantApplications.userId], references: [users.id] }),
 }));
 
 export const grantSubmissionsRelations = relations(grantSubmissions, ({ one }) => ({
@@ -212,9 +280,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 export const insertProfileSchema = createInsertSchema(profiles).omit({ userId: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, userId: true, createdAt: true, updatedAt: true, isFeatured: true });
 export const insertProjectCommentSchema = createInsertSchema(projectComments).omit({ id: true, userId: true, createdAt: true });
-export const insertResourceSchema = createInsertSchema(resources).omit({ id: true, createdAt: true, isFeatured: true });
+export const insertResourceSchema = createInsertSchema(resources).omit({ id: true, userId: true, createdAt: true, isFeatured: true, isApproved: true });
 export const insertResourceCommentSchema = createInsertSchema(resourceComments).omit({ id: true, userId: true, createdAt: true });
-export const insertGrantSchema = createInsertSchema(grants).omit({ id: true, createdAt: true, status: true });
+export const insertGrantSchema = createInsertSchema(grants).omit({ id: true, userId: true, createdAt: true, status: true });
+export const insertGrantApplicationSchema = createInsertSchema(grantApplications).omit({ id: true, userId: true, createdAt: true, status: true });
 export const insertGrantSubmissionSchema = createInsertSchema(grantSubmissions).omit({ id: true, userId: true, createdAt: true, status: true, isWinner: true });
 
 // Types
@@ -243,5 +312,12 @@ export type InsertGrant = z.infer<typeof insertGrantSchema>;
 
 export type GrantSubmission = typeof grantSubmissions.$inferSelect;
 export type InsertGrantSubmission = z.infer<typeof insertGrantSubmissionSchema>;
+
+export type GrantApplication = typeof grantApplications.$inferSelect;
+export type InsertGrantApplication = z.infer<typeof insertGrantApplicationSchema>;
+
+export type ProjectDownvote = typeof projectDownvotes.$inferSelect;
+export type ProjectBookmark = typeof projectBookmarks.$inferSelect;
+export type ResourceDownvote = typeof resourceDownvotes.$inferSelect;
 
 export type Notification = typeof notifications.$inferSelect;

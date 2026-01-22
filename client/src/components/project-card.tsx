@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles } from "lucide-react";
+import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ type ProjectWithDetails = Project & {
   upvoteCount: number;
   commentCount: number;
   hasUpvoted: boolean;
+  hasBookmarked?: boolean;
 };
 
 interface ProjectCardProps {
@@ -40,11 +41,34 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/bookmarked"] });
     },
     onError: () => {
       toast({
         title: "Error",
         description: "Failed to update upvote. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bookmarkMutation = useMutation({
+    mutationFn: async () => {
+      if (project.hasBookmarked) {
+        return apiRequest("DELETE", `/api/projects/${project.id}/bookmark`);
+      }
+      return apiRequest("POST", `/api/projects/${project.id}/bookmark`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/bookmarked"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update bookmark. Please try again.",
         variant: "destructive",
       });
     },
@@ -58,6 +82,16 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
       return;
     }
     upvoteMutation.mutate();
+  };
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      window.location.href = "/api/login";
+      return;
+    }
+    bookmarkMutation.mutate();
   };
 
   const getInitials = () => {
@@ -103,17 +137,32 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                 </Avatar>
                 <span className="text-sm text-muted-foreground">{displayName}</span>
               </div>
-              <Button
-                variant={project.hasUpvoted ? "default" : "outline"}
-                size="sm"
-                onClick={handleUpvote}
-                disabled={upvoteMutation.isPending}
-                className="gap-1"
-                data-testid={`button-upvote-${project.id}`}
-              >
-                <ChevronUp className="h-4 w-4" />
-                {project.upvoteCount}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBookmark}
+                  disabled={bookmarkMutation.isPending}
+                  data-testid={`button-bookmark-${project.id}`}
+                >
+                  {project.hasBookmarked ? (
+                    <BookmarkCheck className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant={project.hasUpvoted ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleUpvote}
+                  disabled={upvoteMutation.isPending}
+                  className="gap-1"
+                  data-testid={`button-upvote-${project.id}`}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  {project.upvoteCount}
+                </Button>
+              </div>
             </div>
           </div>
         </Card>
@@ -150,17 +199,32 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                 </p>
               </div>
               
-              <Button
-                variant={project.hasUpvoted ? "default" : "outline"}
-                size="sm"
-                onClick={handleUpvote}
-                disabled={upvoteMutation.isPending}
-                className="flex-shrink-0 flex-col gap-0 px-3 py-2 h-auto"
-                data-testid={`button-upvote-${project.id}`}
-              >
-                <ChevronUp className="h-4 w-4" />
-                <span className="text-xs font-bold">{project.upvoteCount}</span>
-              </Button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBookmark}
+                  disabled={bookmarkMutation.isPending}
+                  data-testid={`button-bookmark-${project.id}`}
+                >
+                  {project.hasBookmarked ? (
+                    <BookmarkCheck className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant={project.hasUpvoted ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleUpvote}
+                  disabled={upvoteMutation.isPending}
+                  className="flex-col gap-0 px-3 py-2 h-auto"
+                  data-testid={`button-upvote-${project.id}`}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  <span className="text-xs font-bold">{project.upvoteCount}</span>
+                </Button>
+              </div>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">

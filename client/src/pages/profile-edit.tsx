@@ -16,11 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useUpload } from "@/hooks/use-upload";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { ArrowLeft, Loader2, Camera } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import type { Profile } from "@shared/schema";
 
 const editProfileSchema = z.object({
@@ -41,6 +43,25 @@ export default function ProfileEditPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { uploadFile, isUploading: isUploadingImage } = useUpload({
+    onSuccess: (response) => {
+      setProfileImageUrl(response.objectPath);
+      toast({
+        title: "Image uploaded",
+        description: "Your profile picture has been uploaded.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
     queryKey: ["/api/profile"],
@@ -73,6 +94,9 @@ export default function ProfileEditPage() {
         websiteUrl: profile.websiteUrl || "",
         linkedinUrl: profile.linkedinUrl || "",
       });
+      if (profile.profileImageUrl) {
+        setProfileImageUrl(profile.profileImageUrl);
+      }
     }
   }, [profile, form]);
 
@@ -81,6 +105,29 @@ export default function ProfileEditPage() {
       window.location.href = "/api/login";
     }
   }, [user, authLoading]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file",
+          description: "Please select an image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image must be less than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await uploadFile(file);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async (data: EditProfileForm) => {
@@ -99,6 +146,7 @@ export default function ProfileEditPage() {
         githubUrl: data.githubUrl || null,
         websiteUrl: data.websiteUrl || null,
         linkedinUrl: data.linkedinUrl || null,
+        profileImageUrl: profileImageUrl || null,
       });
     },
     onSuccess: () => {
@@ -150,6 +198,41 @@ export default function ProfileEditPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="flex flex-col items-center gap-4 pb-4 border-b">
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={profileImageUrl || ""} alt="Profile" />
+                    <AvatarFallback className="text-2xl">
+                      {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                    className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-primary-foreground shadow-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    data-testid="button-upload-avatar"
+                  >
+                    {isUploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    data-testid="input-avatar-file"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Click the camera icon to upload a profile picture
+                </p>
+              </div>
+
               <FormField
                 control={form.control}
                 name="username"

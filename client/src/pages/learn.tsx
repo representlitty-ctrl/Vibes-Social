@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import {
   BookmarkCheck,
   Search,
   Sparkles,
+  Plus,
 } from "lucide-react";
 import type { Resource, User, Profile } from "@shared/schema";
 
@@ -54,9 +56,19 @@ export default function LearnPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Learning Hub</h1>
-        <p className="text-muted-foreground">Curated resources to level up your vibecoding skills</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Learning Hub</h1>
+          <p className="text-muted-foreground">Curated resources to level up your vibecoding skills</p>
+        </div>
+        {user && (
+          <Link href="/learn/submit">
+            <Button className="gap-2" data-testid="button-submit-resource">
+              <Plus className="h-4 w-4" />
+              Submit Resource
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

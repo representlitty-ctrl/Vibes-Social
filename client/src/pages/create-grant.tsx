@@ -23,18 +23,17 @@ import { apiRequest } from "@/lib/queryClient";
 import { ArrowLeft, Loader2, ImagePlus, X } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 
-const submitProjectSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters").max(100, "Title must be less than 100 characters"),
-  description: z.string().min(20, "Description must be at least 20 characters").max(2000, "Description must be less than 2000 characters"),
-  demoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  githubUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  tags: z.string().optional(),
+const createGrantSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters").max(100),
+  description: z.string().min(50, "Description must be at least 50 characters").max(2000),
+  amount: z.string().optional(),
+  requirements: z.string().optional(),
+  deadline: z.string().optional(),
 });
 
-type SubmitProjectForm = z.infer<typeof submitProjectSchema>;
+type CreateGrantForm = z.infer<typeof createGrantSchema>;
 
-export default function SubmitProjectPage() {
+export default function CreateGrantPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -88,51 +87,46 @@ export default function SubmitProjectPage() {
     }
   }, [user, authLoading]);
 
-  const form = useForm<SubmitProjectForm>({
-    resolver: zodResolver(submitProjectSchema),
+  const form = useForm<CreateGrantForm>({
+    resolver: zodResolver(createGrantSchema),
     defaultValues: {
       title: "",
       description: "",
-      demoUrl: "",
-      githubUrl: "",
-      imageUrl: "",
-      tags: "",
+      amount: "",
+      requirements: "",
+      deadline: "",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: SubmitProjectForm) => {
-      const tags = data.tags
-        ? data.tags.split(",").map((t) => t.trim()).filter(Boolean)
-        : [];
-      const response = await apiRequest("POST", "/api/projects", {
+    mutationFn: async (data: CreateGrantForm) => {
+      return apiRequest("POST", "/api/grants", {
         title: data.title,
         description: data.description,
-        demoUrl: data.demoUrl || null,
-        githubUrl: data.githubUrl || null,
-        imageUrl: coverImageUrl || data.imageUrl || null,
-        tags,
+        amount: data.amount || null,
+        requirements: data.requirements || null,
+        deadline: data.deadline ? new Date(data.deadline).toISOString() : null,
+        imageUrl: coverImageUrl || null,
       });
-      return response.json();
     },
-    onSuccess: (data: { id: string }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/grants"] });
       toast({
-        title: "Project submitted!",
-        description: "Your project is now live for the community to see.",
+        title: "Grant created!",
+        description: "Your grant program is now live for applications.",
       });
-      setLocation(`/projects/${data.id}`);
+      setLocation("/grants");
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to submit project. Please try again.",
+        description: "Failed to create grant. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: SubmitProjectForm) => {
+  const onSubmit = (data: CreateGrantForm) => {
     mutation.mutate(data);
   };
 
@@ -146,19 +140,19 @@ export default function SubmitProjectPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link href="/">
+      <Link href="/grants">
         <Button variant="ghost" className="gap-2" data-testid="button-back">
           <ArrowLeft className="h-4 w-4" />
-          Back to projects
+          Back to Grants
         </Button>
       </Link>
 
       <Card>
         <CardHeader>
-          <CardTitle>Submit Your Project</CardTitle>
+          <CardTitle>Create a Grant Program</CardTitle>
           <CardDescription>
-            Share your vibecoded creation with the community. Fill out the details below
-            and let others discover your work.
+            Create a grant program to fund vibecoded projects. Users can apply 
+            with their pitch and you can review applications.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -169,10 +163,10 @@ export default function SubmitProjectPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project Title *</FormLabel>
+                    <FormLabel>Grant Title *</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="My Awesome Project"
+                        placeholder="Vibecoder Innovation Grant"
                         {...field}
                         data-testid="input-title"
                       />
@@ -190,14 +184,14 @@ export default function SubmitProjectPage() {
                     <FormLabel>Description *</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Describe what your project does, the technologies used, and what inspired you to build it..."
+                        placeholder="Describe your grant program, what you're looking for, and who should apply..."
                         className="min-h-[150px] resize-none"
                         {...field}
                         data-testid="input-description"
                       />
                     </FormControl>
                     <FormDescription>
-                      Minimum 20 characters. Be descriptive!
+                      Minimum 50 characters
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -207,17 +201,20 @@ export default function SubmitProjectPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="demoUrl"
+                  name="amount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Demo URL</FormLabel>
+                      <FormLabel>Grant Amount</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="https://myproject.com"
+                          placeholder="$1,000 - $5,000"
                           {...field}
-                          data-testid="input-demo-url"
+                          data-testid="input-amount"
                         />
                       </FormControl>
+                      <FormDescription>
+                        Prize or funding amount
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -225,15 +222,15 @@ export default function SubmitProjectPage() {
 
                 <FormField
                   control={form.control}
-                  name="githubUrl"
+                  name="deadline"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>GitHub URL</FormLabel>
+                      <FormLabel>Application Deadline</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="https://github.com/user/repo"
+                          type="date"
                           {...field}
-                          data-testid="input-github-url"
+                          data-testid="input-deadline"
                         />
                       </FormControl>
                       <FormMessage />
@@ -241,6 +238,25 @@ export default function SubmitProjectPage() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="requirements"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Requirements</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="List any specific requirements, eligibility criteria, or things you're looking for..."
+                        className="min-h-[100px] resize-none"
+                        {...field}
+                        data-testid="input-requirements"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="space-y-2">
                 <FormLabel>Cover Image</FormLabel>
@@ -279,9 +295,6 @@ export default function SubmitProjectPage() {
                         <p className="text-sm text-muted-foreground">
                           Click to upload a cover image
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          PNG, JPG up to 10MB
-                        </p>
                       </div>
                     )}
                   </div>
@@ -294,48 +307,10 @@ export default function SubmitProjectPage() {
                   className="hidden"
                   data-testid="input-cover-file"
                 />
-                <FormDescription>
-                  Or paste a URL directly:
-                </FormDescription>
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormControl>
-                      <Input
-                        placeholder="https://example.com/image.png"
-                        {...field}
-                        disabled={!!coverImageUrl}
-                        data-testid="input-image-url"
-                      />
-                    </FormControl>
-                  )}
-                />
               </div>
 
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="react, ai, game, tool"
-                        {...field}
-                        data-testid="input-tags"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Comma-separated list of tags to help others discover your project.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <div className="flex justify-end gap-3">
-                <Link href="/">
+                <Link href="/grants">
                   <Button type="button" variant="outline">
                     Cancel
                   </Button>
@@ -343,10 +318,10 @@ export default function SubmitProjectPage() {
                 <Button
                   type="submit"
                   disabled={mutation.isPending}
-                  data-testid="button-submit"
+                  data-testid="button-create"
                 >
                   {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit Project
+                  Create Grant
                 </Button>
               </div>
             </form>
