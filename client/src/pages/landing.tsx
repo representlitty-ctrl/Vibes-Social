@@ -77,7 +77,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4">
             <div className="mx-auto max-w-2xl text-center">
               <div className="mb-8 flex justify-center">
-                <VibesLogo className="h-20 sm:h-24" />
+                <VibesLogo className="h-12 sm:h-16" />
               </div>
               
               <h1 className="text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
