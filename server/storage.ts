@@ -81,6 +81,9 @@ export interface IStorage {
   markNotificationRead(notificationId: string, userId: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
   createNotification(userId: string, type: string, title: string, message?: string, referenceId?: string, referenceType?: string): Promise<void>;
+  
+  // Stats
+  getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -534,6 +537,19 @@ export class DatabaseStorage implements IStorage {
       referenceId,
       referenceType,
     });
+  }
+
+  // Stats
+  async getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }> {
+    const [projectResult] = await db.select({ count: count() }).from(projects);
+    const [userResult] = await db.select({ count: count() }).from(users);
+    const [grantResult] = await db.select({ count: count() }).from(grants).where(eq(grants.status, "open"));
+    
+    return {
+      projectCount: projectResult?.count || 0,
+      userCount: userResult?.count || 0,
+      grantCount: grantResult?.count || 0,
+    };
   }
 }
 

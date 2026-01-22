@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,13 +23,17 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: "10K+", label: "Projects" },
-  { value: "5K+", label: "Builders" },
-  { value: "$500K", label: "In Grants" },
-];
+type Stats = {
+  projectCount: number;
+  userCount: number;
+  grantCount: number;
+};
 
 export default function LandingPage() {
+  const { data: stats } = useQuery<Stats>({
+    queryKey: ["/api/stats"],
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-md">
@@ -113,14 +118,22 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-20 grid grid-cols-3 gap-8 border-t pt-10">
-              {stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="text-3xl font-bold text-primary sm:text-4xl">{stat.value}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+            {stats && (stats.projectCount > 0 || stats.userCount > 0 || stats.grantCount > 0) && (
+              <div className="mt-20 grid grid-cols-3 gap-8 border-t pt-10">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary sm:text-4xl">{stats.projectCount}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">Projects</div>
                 </div>
-              ))}
-            </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary sm:text-4xl">{stats.userCount}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">Builders</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary sm:text-4xl">{stats.grantCount}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">Active Grants</div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -244,7 +257,7 @@ export default function LandingPage() {
               Ready to start your vibecoding journey?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg opacity-90">
-              Join thousands of creative developers who are building, learning, 
+              Join creative developers who are building, learning, 
               and growing together on Vibes.
             </p>
             <div className="mt-8">

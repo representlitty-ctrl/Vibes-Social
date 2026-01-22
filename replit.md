@@ -57,8 +57,12 @@ Vibes is a social community platform built for vibecoders - creative developers 
 ## Running the App
 1. Database is automatically provisioned via Replit
 2. Run `npm run db:push` to apply schema changes
-3. Run `npx tsx server/seed.ts` to seed sample data
-4. The app runs on port 5000
+3. The app runs on port 5000
+
+## Data Policy
+- All statistics on the landing page are real-time counts from the database
+- No mock or placeholder data is used
+- Resources and grants should be added by admins through the platform
 
 ## User Preferences
 - Purple/indigo theme with vibrant accents

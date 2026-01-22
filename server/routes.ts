@@ -18,6 +18,17 @@ export async function registerRoutes(
     return req.user?.claims?.sub;
   };
 
+  // Stats route (public)
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const stats = await storage.getStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
   // Profile routes
   app.get("/api/profile", isAuthenticated, async (req, res) => {
     try {
