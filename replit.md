@@ -65,7 +65,9 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Resources and grants should be added by admins through the platform
 
 ## User Preferences
-- Purple/indigo theme with vibrant accents
-- Dark mode support
+- Cyan/teal primary color (matching rainbow logo)
+- Twitter/X-style social media aesthetic
+- Pure black dark mode (#000)
+- Rainbow gradient accents for key text
 - Inter font family for sans-serif
-- Playfair Display for headings
+- Clean, minimal card-based layout
