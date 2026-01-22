@@ -1,12 +1,12 @@
 interface VibesLogoProps {
   className?: string;
-  showText?: boolean;
 }
 
-export function VibesLogo({ className = "text-2xl", showText = false }: VibesLogoProps) {
+export function VibesLogo({ className = "text-2xl" }: VibesLogoProps) {
   return (
-    <span className={`font-mono font-bold rainbow-gradient-text ${className}`} data-testid="logo-vibes">
-      &lt;/$
+    <span className={`font-bold tracking-tight ${className}`} data-testid="logo-vibes">
+      <span className="rainbow-gradient-text">~</span>
+      <span className="text-foreground">vibes</span>
     </span>
   );
 }
