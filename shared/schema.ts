@@ -1,18 +1,247 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm";
+import { pgTable, text, varchar, timestamp, integer, boolean, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
+// Re-export auth models
+export * from "./models/auth";
+
+// User Profiles - extends the auth user
+export const profiles = pgTable("profiles", {
+  userId: varchar("user_id").primaryKey().references(() => users.id),
+  username: varchar("username").unique(),
+  bio: text("bio"),
+  skills: text("skills").array(),
+  tools: text("tools").array(),
+  twitterUrl: varchar("twitter_url"),
+  githubUrl: varchar("github_url"),
+  websiteUrl: varchar("website_url"),
+  linkedinUrl: varchar("linkedin_url"),
+  isAdmin: boolean("is_admin").default(false),
+});
+
+// Import users from auth for relations
+import { users } from "./models/auth";
+
+// Projects
+export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  demoUrl: varchar("demo_url"),
+  githubUrl: varchar("github_url"),
+  imageUrl: varchar("image_url"),
+  tags: text("tags").array(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+// Project Upvotes
+export const projectUpvotes = pgTable("project_upvotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+// Project Comments
+export const projectComments = pgTable("project_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Follows
+export const follows = pgTable("follows", {
+  followerId: varchar("follower_id").notNull().references(() => users.id),
+  followingId: varchar("following_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.followerId, table.followingId] })
+]);
+
+// Learning Resources
+export const resources = pgTable("resources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  url: varchar("url").notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  tags: text("tags").array(),
+  imageUrl: varchar("image_url"),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Resource Upvotes
+export const resourceUpvotes = pgTable("resource_upvotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceId: varchar("resource_id").notNull().references(() => resources.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Resource Bookmarks
+export const resourceBookmarks = pgTable("resource_bookmarks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceId: varchar("resource_id").notNull().references(() => resources.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Resource Comments
+export const resourceComments = pgTable("resource_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceId: varchar("resource_id").notNull().references(() => resources.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Grants
+export const grants = pgTable("grants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  amount: varchar("amount"),
+  deadline: timestamp("deadline"),
+  status: varchar("status", { length: 50 }).default("open"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Grant Submissions
+export const grantSubmissions = pgTable("grant_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  grantId: varchar("grant_id").notNull().references(() => grants.id, { onDelete: "cascade" }),
+  projectId: varchar("project_id").notNull().references(() => projects.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  status: varchar("status", { length: 50 }).default("pending"),
+  isWinner: boolean("is_winner").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type", { length: 50 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message"),
+  referenceId: varchar("reference_id"),
+  referenceType: varchar("reference_type", { length: 50 }),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  profile: one(profiles, { fields: [users.id], references: [profiles.userId] }),
+  projects: many(projects),
+  projectUpvotes: many(projectUpvotes),
+  projectComments: many(projectComments),
+  notifications: many(notifications),
+  followers: many(follows, { relationName: "following" }),
+  following: many(follows, { relationName: "follower" }),
+}));
+
+export const profilesRelations = relations(profiles, ({ one }) => ({
+  user: one(users, { fields: [profiles.userId], references: [users.id] }),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(users, { fields: [projects.userId], references: [users.id] }),
+  upvotes: many(projectUpvotes),
+  comments: many(projectComments),
+}));
+
+export const projectUpvotesRelations = relations(projectUpvotes, ({ one }) => ({
+  project: one(projects, { fields: [projectUpvotes.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectUpvotes.userId], references: [users.id] }),
+}));
+
+export const projectCommentsRelations = relations(projectComments, ({ one }) => ({
+  project: one(projects, { fields: [projectComments.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectComments.userId], references: [users.id] }),
+}));
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  follower: one(users, { fields: [follows.followerId], references: [users.id], relationName: "follower" }),
+  following: one(users, { fields: [follows.followingId], references: [users.id], relationName: "following" }),
+}));
+
+export const resourcesRelations = relations(resources, ({ many }) => ({
+  upvotes: many(resourceUpvotes),
+  bookmarks: many(resourceBookmarks),
+  comments: many(resourceComments),
+}));
+
+export const resourceUpvotesRelations = relations(resourceUpvotes, ({ one }) => ({
+  resource: one(resources, { fields: [resourceUpvotes.resourceId], references: [resources.id] }),
+  user: one(users, { fields: [resourceUpvotes.userId], references: [users.id] }),
+}));
+
+export const resourceBookmarksRelations = relations(resourceBookmarks, ({ one }) => ({
+  resource: one(resources, { fields: [resourceBookmarks.resourceId], references: [resources.id] }),
+  user: one(users, { fields: [resourceBookmarks.userId], references: [users.id] }),
+}));
+
+export const resourceCommentsRelations = relations(resourceComments, ({ one }) => ({
+  resource: one(resources, { fields: [resourceComments.resourceId], references: [resources.id] }),
+  user: one(users, { fields: [resourceComments.userId], references: [users.id] }),
+}));
+
+export const grantsRelations = relations(grants, ({ many }) => ({
+  submissions: many(grantSubmissions),
+}));
+
+export const grantSubmissionsRelations = relations(grantSubmissions, ({ one }) => ({
+  grant: one(grants, { fields: [grantSubmissions.grantId], references: [grants.id] }),
+  project: one(projects, { fields: [grantSubmissions.projectId], references: [projects.id] }),
+  user: one(users, { fields: [grantSubmissions.userId], references: [users.id] }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));
+
+// Insert Schemas
+export const insertProfileSchema = createInsertSchema(profiles).omit({ userId: true });
+export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, userId: true, createdAt: true, updatedAt: true, isFeatured: true });
+export const insertProjectCommentSchema = createInsertSchema(projectComments).omit({ id: true, userId: true, createdAt: true });
+export const insertResourceSchema = createInsertSchema(resources).omit({ id: true, createdAt: true, isFeatured: true });
+export const insertResourceCommentSchema = createInsertSchema(resourceComments).omit({ id: true, userId: true, createdAt: true });
+export const insertGrantSchema = createInsertSchema(grants).omit({ id: true, createdAt: true, status: true });
+export const insertGrantSubmissionSchema = createInsertSchema(grantSubmissions).omit({ id: true, userId: true, createdAt: true, status: true, isWinner: true });
+
+// Types
+export type Profile = typeof profiles.$inferSelect;
+export type InsertProfile = z.infer<typeof insertProfileSchema>;
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+
+export type ProjectUpvote = typeof projectUpvotes.$inferSelect;
+export type ProjectComment = typeof projectComments.$inferSelect;
+export type InsertProjectComment = z.infer<typeof insertProjectCommentSchema>;
+
+export type Follow = typeof follows.$inferSelect;
+
+export type Resource = typeof resources.$inferSelect;
+export type InsertResource = z.infer<typeof insertResourceSchema>;
+
+export type ResourceUpvote = typeof resourceUpvotes.$inferSelect;
+export type ResourceBookmark = typeof resourceBookmarks.$inferSelect;
+export type ResourceComment = typeof resourceComments.$inferSelect;
+export type InsertResourceComment = z.infer<typeof insertResourceCommentSchema>;
+
+export type Grant = typeof grants.$inferSelect;
+export type InsertGrant = z.infer<typeof insertGrantSchema>;
+
+export type GrantSubmission = typeof grantSubmissions.$inferSelect;
+export type InsertGrantSubmission = z.infer<typeof insertGrantSubmissionSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
