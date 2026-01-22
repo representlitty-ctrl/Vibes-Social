@@ -1,12 +1,17 @@
+import vibesLogo from "../assets/vibes-logo.png";
+
 interface VibesLogoProps {
   className?: string;
+  alt?: string;
 }
 
-export function VibesLogo({ className = "text-2xl" }: VibesLogoProps) {
+export function VibesLogo({ className = "h-8", alt = "Vibes" }: VibesLogoProps) {
   return (
-    <span className={`font-bold tracking-tight ${className}`} data-testid="logo-vibes">
-      <span className="rainbow-gradient-text">~</span>
-      <span className="text-foreground">vibes</span>
-    </span>
+    <img
+      src={vibesLogo}
+      alt={alt}
+      className={`${className} object-contain`}
+      data-testid="img-vibes-logo"
+    />
   );
 }

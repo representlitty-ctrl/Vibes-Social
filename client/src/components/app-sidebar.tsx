@@ -64,7 +64,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-2">
-          <VibesLogo className="text-xl" />
+          <VibesLogo className="h-8" />
+          <span className="text-xl font-bold">Vibes</span>
         </Link>
       </SidebarHeader>
 
