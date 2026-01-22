@@ -9,7 +9,7 @@ import {
   LogOut,
   Plus,
 } from "lucide-react";
-import vibesLogo from "../assets/vibes-logo.png";
+import vibesLogo from "../assets/vibes-logo-generated.png";
 import {
   Sidebar,
   SidebarContent,

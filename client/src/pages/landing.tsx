@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Rocket, Users, Trophy, ArrowRight, Github, Code2, MessageCircle, TrendingUp, BookOpen } from "lucide-react";
 import { Link } from "wouter";
-import vibesLogo from "../assets/vibes-logo.png";
+import vibesLogo from "../assets/vibes-logo-generated.png";
 
 const features = [
   {
