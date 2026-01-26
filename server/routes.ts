@@ -112,6 +112,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/projects/bookmarked", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const projects = await storage.getBookmarkedProjects(userId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching bookmarked projects:", error);
+      res.status(500).json({ message: "Failed to fetch bookmarked projects" });
+    }
+  });
+
   app.get("/api/projects/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -257,19 +270,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error removing bookmark:", error);
       res.status(500).json({ message: "Failed to remove bookmark" });
-    }
-  });
-
-  app.get("/api/projects/bookmarked", isAuthenticated, async (req, res) => {
-    try {
-      const userId = getUserId(req);
-      if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-      const projects = await storage.getBookmarkedProjects(userId);
-      res.json(projects);
-    } catch (error) {
-      console.error("Error fetching bookmarked projects:", error);
-      res.status(500).json({ message: "Failed to fetch bookmarked projects" });
     }
   });
 
@@ -725,6 +725,158 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error marking notifications read:", error);
       res.status(500).json({ message: "Failed to mark notifications read" });
+    }
+  });
+
+  // ===== Messaging Routes =====
+  
+  // Get all conversations for current user
+  app.get("/api/conversations", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const convos = await storage.getConversations(userId);
+      res.json(convos);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  // Get or create a conversation with another user
+  app.post("/api/conversations", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { userId: otherUserId } = req.body;
+      if (!otherUserId || otherUserId === userId) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const convo = await storage.getOrCreateConversation(userId, otherUserId);
+      res.json(convo);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
+
+  // Get unread message count
+  app.get("/api/messages/unread-count", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const count = await storage.getUnreadMessageCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      res.status(500).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
+  // Get messages for a conversation
+  app.get("/api/conversations/:id/messages", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const msgs = await storage.getMessages(id, userId);
+      res.json(msgs);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Send a message
+  app.post("/api/conversations/:id/messages", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const { content, messageType, voiceNoteUrl } = req.body;
+      
+      if (!content && !voiceNoteUrl) {
+        return res.status(400).json({ message: "Message content required" });
+      }
+
+      const msg = await storage.sendMessage(id, userId, content, messageType || "text", voiceNoteUrl);
+      res.json(msg);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Mark messages as read
+  app.post("/api/conversations/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.markMessagesRead(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error marking messages read:", error);
+      res.status(500).json({ message: "Failed to mark messages read" });
+    }
+  });
+
+  // ===== Reactions Routes =====
+
+  // Get reactions for a target (project or comment)
+  app.get("/api/reactions/:targetType/:targetId", async (req, res) => {
+    try {
+      const { targetType, targetId } = req.params;
+      const rxns = await storage.getReactions(targetType, targetId);
+      res.json(rxns);
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      res.status(500).json({ message: "Failed to fetch reactions" });
+    }
+  });
+
+  // Add a reaction
+  app.post("/api/reactions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { emoji, targetType, targetId } = req.body;
+      if (!emoji || !targetType || !targetId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      await storage.addReaction(userId, emoji, targetType, targetId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      res.status(500).json({ message: "Failed to add reaction" });
+    }
+  });
+
+  // Remove a reaction
+  app.delete("/api/reactions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { emoji, targetType, targetId } = req.body;
+      if (!emoji || !targetType || !targetId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      await storage.removeReaction(userId, emoji, targetType, targetId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing reaction:", error);
+      res.status(500).json({ message: "Failed to remove reaction" });
     }
   });
 

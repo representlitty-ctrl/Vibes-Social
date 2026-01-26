@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmojiReactions } from "@/components/emoji-reactions";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -240,6 +241,11 @@ export default function ProjectDetailPage() {
               <MessageCircle className="h-4 w-4" />
               {project.commentCount} comment{project.commentCount !== 1 ? "s" : ""}
             </div>
+
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">Reactions</p>
+              <EmojiReactions targetType="project" targetId={project.id} />
+            </div>
           </Card>
         </div>
       </div>
@@ -366,6 +372,7 @@ function CommentCard({ comment, projectId }: { comment: CommentWithUser; project
           )}
         </div>
         <p className="mt-1 whitespace-pre-wrap text-sm">{comment.content}</p>
+        <EmojiReactions targetType="comment" targetId={comment.id} className="mt-2" />
       </div>
     </div>
   );

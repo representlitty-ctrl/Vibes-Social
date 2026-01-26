@@ -175,7 +175,39 @@ export const notifications = pgTable("notifications", {
   message: text("message"),
   referenceId: varchar("reference_id"),
   referenceType: varchar("reference_type", { length: 50 }),
+  fromUserId: varchar("from_user_id").references(() => users.id),
   isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Direct Messages - Conversations
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user1Id: varchar("user1_id").notNull().references(() => users.id),
+  user2Id: varchar("user2_id").notNull().references(() => users.id),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Messages
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content"),
+  messageType: varchar("message_type", { length: 20 }).default("text"),
+  voiceNoteUrl: varchar("voice_note_url"),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Emoji Reactions (for projects and comments)
+export const reactions = pgTable("reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  emoji: varchar("emoji", { length: 10 }).notNull(),
+  targetType: varchar("target_type", { length: 20 }).notNull(),
+  targetId: varchar("target_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -274,6 +306,22 @@ export const grantSubmissionsRelations = relations(grantSubmissions, ({ one }) =
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userId], references: [users.id] }),
+  fromUser: one(users, { fields: [notifications.fromUserId], references: [users.id] }),
+}));
+
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  user1: one(users, { fields: [conversations.user1Id], references: [users.id], relationName: "conversationUser1" }),
+  user2: one(users, { fields: [conversations.user2Id], references: [users.id], relationName: "conversationUser2" }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, { fields: [messages.conversationId], references: [conversations.id] }),
+  sender: one(users, { fields: [messages.senderId], references: [users.id] }),
+}));
+
+export const reactionsRelations = relations(reactions, ({ one }) => ({
+  user: one(users, { fields: [reactions.userId], references: [users.id] }),
 }));
 
 // Insert Schemas
@@ -285,6 +333,8 @@ export const insertResourceCommentSchema = createInsertSchema(resourceComments).
 export const insertGrantSchema = createInsertSchema(grants).omit({ id: true, userId: true, createdAt: true, status: true });
 export const insertGrantApplicationSchema = createInsertSchema(grantApplications).omit({ id: true, userId: true, createdAt: true, status: true });
 export const insertGrantSubmissionSchema = createInsertSchema(grantSubmissions).omit({ id: true, userId: true, createdAt: true, status: true, isWinner: true });
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, senderId: true, createdAt: true, isRead: true });
+export const insertReactionSchema = createInsertSchema(reactions).omit({ id: true, userId: true, createdAt: true });
 
 // Types
 export type Profile = typeof profiles.$inferSelect;
@@ -321,3 +371,10 @@ export type ProjectBookmark = typeof projectBookmarks.$inferSelect;
 export type ResourceDownvote = typeof resourceDownvotes.$inferSelect;
 
 export type Notification = typeof notifications.$inferSelect;
+
+export type Conversation = typeof conversations.$inferSelect;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type Reaction = typeof reactions.$inferSelect;
+export type InsertReaction = z.infer<typeof insertReactionSchema>;

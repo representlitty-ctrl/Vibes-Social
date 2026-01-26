@@ -21,7 +21,9 @@ import {
   Grid3X3,
   UserPlus,
   UserMinus,
+  MessageCircle,
 } from "lucide-react";
+import { useLocation } from "wouter";
 import type { User, Profile, Project } from "@shared/schema";
 
 type ProfileWithUser = Profile & {
@@ -44,6 +46,7 @@ export default function ProfilePage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const { data: profile, isLoading } = useQuery<ProfileWithUser>({
     queryKey: ["/api/profiles", userId],
@@ -75,6 +78,22 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: "Failed to update follow status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const messageMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/conversations", { userId });
+    },
+    onSuccess: () => {
+      setLocation("/messages");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to start conversation",
         variant: "destructive",
       });
     },
@@ -148,25 +167,37 @@ export default function ProfilePage() {
                     </Button>
                   </Link>
                 ) : (
-                  <Button
-                    variant={profile.isFollowing ? "outline" : "default"}
-                    onClick={handleFollow}
-                    disabled={followMutation.isPending}
-                    className="gap-2"
-                    data-testid="button-follow"
-                  >
-                    {profile.isFollowing ? (
-                      <>
-                        <UserMinus className="h-4 w-4" />
-                        Unfollow
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="h-4 w-4" />
-                        Follow
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => messageMutation.mutate()}
+                      disabled={messageMutation.isPending}
+                      className="gap-2"
+                      data-testid="button-message"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Message
+                    </Button>
+                    <Button
+                      variant={profile.isFollowing ? "outline" : "default"}
+                      onClick={handleFollow}
+                      disabled={followMutation.isPending}
+                      className="gap-2"
+                      data-testid="button-follow"
+                    >
+                      {profile.isFollowing ? (
+                        <>
+                          <UserMinus className="h-4 w-4" />
+                          Unfollow
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4" />
+                          Follow
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

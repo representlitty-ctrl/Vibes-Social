@@ -8,6 +8,7 @@ import {
   User,
   LogOut,
   Plus,
+  MessageCircle,
 } from "lucide-react";
 import { VibesLogo } from "@/components/vibes-logo";
 import {
@@ -37,6 +38,7 @@ const mainNavItems = [
 ];
 
 const secondaryNavItems = [
+  { title: "Messages", url: "/messages", icon: MessageCircle },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Profile", url: "/profile", icon: User },
 ];
@@ -47,6 +49,11 @@ export function AppSidebar() {
 
   const { data: unreadCount } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
+    enabled: !!user,
+  });
+
+  const { data: unreadMessages } = useQuery<{ count: number }>({
+    queryKey: ["/api/messages/unread-count"],
     enabled: !!user,
   });
 
@@ -121,6 +128,11 @@ export function AppSidebar() {
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
+                      {item.title === "Messages" && unreadMessages && unreadMessages.count > 0 && (
+                        <Badge variant="default" className="ml-auto">
+                          {unreadMessages.count > 99 ? "99+" : unreadMessages.count}
+                        </Badge>
+                      )}
                       {item.title === "Notifications" && unreadCount && unreadCount.count > 0 && (
                         <Badge variant="default" className="ml-auto">
                           {unreadCount.count > 99 ? "99+" : unreadCount.count}

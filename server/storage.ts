@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, sql, count, or, ilike } from "drizzle-orm";
+import { eq, desc, and, sql, count, or, ilike, ne } from "drizzle-orm";
 import {
   users,
   profiles,
@@ -18,6 +18,9 @@ import {
   grantSubmissions,
   grantApplications,
   notifications,
+  conversations,
+  messages,
+  reactions,
   type User,
   type Profile,
   type InsertProfile,
@@ -35,6 +38,9 @@ import {
   type GrantApplication,
   type InsertGrantApplication,
   type Notification,
+  type Message,
+  type Conversation,
+  type Reaction,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -106,11 +112,24 @@ export interface IStorage {
   updateApplicationStatus(applicationId: string, userId: string, status: string): Promise<GrantApplication>;
   
   // Notifications
-  getNotifications(userId: string): Promise<Notification[]>;
+  getNotifications(userId: string): Promise<any[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
   markNotificationRead(notificationId: string, userId: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
-  createNotification(userId: string, type: string, title: string, message?: string, referenceId?: string, referenceType?: string): Promise<void>;
+  createNotification(userId: string, type: string, title: string, message?: string, referenceId?: string, referenceType?: string, fromUserId?: string): Promise<void>;
+  
+  // Conversations & Messages
+  getConversations(userId: string): Promise<any[]>;
+  getOrCreateConversation(user1Id: string, user2Id: string): Promise<any>;
+  getMessages(conversationId: string, userId: string): Promise<any[]>;
+  sendMessage(conversationId: string, senderId: string, content: string, messageType?: string, voiceNoteUrl?: string): Promise<any>;
+  markMessagesRead(conversationId: string, userId: string): Promise<void>;
+  getUnreadMessageCount(userId: string): Promise<number>;
+  
+  // Reactions
+  getReactions(targetType: string, targetId: string): Promise<any[]>;
+  addReaction(userId: string, emoji: string, targetType: string, targetId: string): Promise<void>;
+  removeReaction(userId: string, emoji: string, targetType: string, targetId: string): Promise<void>;
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
@@ -829,12 +848,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Notifications
-  async getNotifications(userId: string): Promise<Notification[]> {
-    return db
+  async getNotifications(userId: string): Promise<any[]> {
+    const notifs = await db
       .select()
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
+    
+    const result = [];
+    for (const notif of notifs) {
+      let fromUser = null;
+      if (notif.fromUserId) {
+        const [user] = await db.select().from(users).where(eq(users.id, notif.fromUserId));
+        const [profile] = await db.select().from(profiles).where(eq(profiles.userId, notif.fromUserId));
+        if (user) {
+          fromUser = { ...user, profileImageUrl: profile?.profileImageUrl };
+        }
+      }
+      result.push({ ...notif, fromUser });
+    }
+    return result;
   }
 
   async getUnreadNotificationCount(userId: string): Promise<number> {
@@ -865,7 +898,8 @@ export class DatabaseStorage implements IStorage {
     title: string,
     message?: string,
     referenceId?: string,
-    referenceType?: string
+    referenceType?: string,
+    fromUserId?: string
   ): Promise<void> {
     await db.insert(notifications).values({
       userId,
@@ -874,7 +908,232 @@ export class DatabaseStorage implements IStorage {
       message,
       referenceId,
       referenceType,
+      fromUserId,
     });
+  }
+
+  // Conversations & Messages
+  async getConversations(userId: string): Promise<any[]> {
+    const convos = await db
+      .select()
+      .from(conversations)
+      .where(or(eq(conversations.user1Id, userId), eq(conversations.user2Id, userId)))
+      .orderBy(desc(conversations.lastMessageAt));
+    
+    const result = [];
+    for (const convo of convos) {
+      const otherUserId = convo.user1Id === userId ? convo.user2Id : convo.user1Id;
+      const [otherUser] = await db.select().from(users).where(eq(users.id, otherUserId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, otherUserId));
+      
+      const [unreadCount] = await db
+        .select({ count: count() })
+        .from(messages)
+        .where(and(
+          eq(messages.conversationId, convo.id),
+          ne(messages.senderId, userId),
+          eq(messages.isRead, false)
+        ));
+      
+      const [lastMessage] = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, convo.id))
+        .orderBy(desc(messages.createdAt))
+        .limit(1);
+      
+      result.push({
+        ...convo,
+        otherUser: otherUser ? {
+          ...otherUser,
+          profileImageUrl: profile?.profileImageUrl
+        } : null,
+        unreadCount: unreadCount?.count || 0,
+        lastMessage
+      });
+    }
+    return result;
+  }
+
+  async getOrCreateConversation(user1Id: string, user2Id: string): Promise<any> {
+    const [sortedId1, sortedId2] = [user1Id, user2Id].sort();
+    
+    const [existing] = await db
+      .select()
+      .from(conversations)
+      .where(or(
+        and(eq(conversations.user1Id, sortedId1), eq(conversations.user2Id, sortedId2)),
+        and(eq(conversations.user1Id, sortedId2), eq(conversations.user2Id, sortedId1))
+      ));
+    
+    if (existing) {
+      const otherUserId = existing.user1Id === user1Id ? existing.user2Id : existing.user1Id;
+      const [otherUser] = await db.select().from(users).where(eq(users.id, otherUserId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, otherUserId));
+      return {
+        ...existing,
+        otherUser: otherUser ? { ...otherUser, profileImageUrl: profile?.profileImageUrl } : null
+      };
+    }
+    
+    const [newConvo] = await db.insert(conversations).values({
+      user1Id: sortedId1,
+      user2Id: sortedId2,
+    }).returning();
+    
+    const otherUserId = newConvo.user1Id === user1Id ? newConvo.user2Id : newConvo.user1Id;
+    const [otherUser] = await db.select().from(users).where(eq(users.id, otherUserId));
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, otherUserId));
+    
+    return {
+      ...newConvo,
+      otherUser: otherUser ? { ...otherUser, profileImageUrl: profile?.profileImageUrl } : null
+    };
+  }
+
+  async getMessages(conversationId: string, userId: string): Promise<any[]> {
+    const [convo] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, conversationId));
+    
+    if (!convo || (convo.user1Id !== userId && convo.user2Id !== userId)) {
+      return [];
+    }
+    
+    const msgs = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
+    
+    const result = [];
+    for (const msg of msgs) {
+      const [sender] = await db.select().from(users).where(eq(users.id, msg.senderId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, msg.senderId));
+      result.push({
+        ...msg,
+        sender: sender ? { ...sender, profileImageUrl: profile?.profileImageUrl } : null
+      });
+    }
+    return result;
+  }
+
+  async sendMessage(
+    conversationId: string,
+    senderId: string,
+    content: string,
+    messageType: string = "text",
+    voiceNoteUrl?: string
+  ): Promise<any> {
+    const [convo] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, conversationId));
+    
+    if (!convo || (convo.user1Id !== senderId && convo.user2Id !== senderId)) {
+      throw new Error("Not authorized");
+    }
+    
+    const [msg] = await db.insert(messages).values({
+      conversationId,
+      senderId,
+      content,
+      messageType,
+      voiceNoteUrl,
+    }).returning();
+    
+    await db.update(conversations).set({ lastMessageAt: new Date() }).where(eq(conversations.id, conversationId));
+    
+    const recipientId = convo.user1Id === senderId ? convo.user2Id : convo.user1Id;
+    const [sender] = await db.select().from(users).where(eq(users.id, senderId));
+    
+    await this.createNotification(
+      recipientId,
+      "message",
+      `${sender?.firstName || "Someone"} sent you a message`,
+      content?.substring(0, 100),
+      conversationId,
+      "conversation",
+      senderId
+    );
+    
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, senderId));
+    return {
+      ...msg,
+      sender: sender ? { ...sender, profileImageUrl: profile?.profileImageUrl } : null
+    };
+  }
+
+  async markMessagesRead(conversationId: string, userId: string): Promise<void> {
+    await db
+      .update(messages)
+      .set({ isRead: true })
+      .where(and(
+        eq(messages.conversationId, conversationId),
+        ne(messages.senderId, userId)
+      ));
+  }
+
+  async getUnreadMessageCount(userId: string): Promise<number> {
+    const convos = await db
+      .select()
+      .from(conversations)
+      .where(or(eq(conversations.user1Id, userId), eq(conversations.user2Id, userId)));
+    
+    let total = 0;
+    for (const convo of convos) {
+      const [result] = await db
+        .select({ count: count() })
+        .from(messages)
+        .where(and(
+          eq(messages.conversationId, convo.id),
+          ne(messages.senderId, userId),
+          eq(messages.isRead, false)
+        ));
+      total += result?.count || 0;
+    }
+    return total;
+  }
+
+  // Reactions
+  async getReactions(targetType: string, targetId: string): Promise<any[]> {
+    const rxns = await db
+      .select()
+      .from(reactions)
+      .where(and(eq(reactions.targetType, targetType), eq(reactions.targetId, targetId)));
+    
+    const result = [];
+    for (const rxn of rxns) {
+      const [user] = await db.select().from(users).where(eq(users.id, rxn.userId));
+      result.push({ ...rxn, user });
+    }
+    return result;
+  }
+
+  async addReaction(userId: string, emoji: string, targetType: string, targetId: string): Promise<void> {
+    const [existing] = await db
+      .select()
+      .from(reactions)
+      .where(and(
+        eq(reactions.userId, userId),
+        eq(reactions.emoji, emoji),
+        eq(reactions.targetType, targetType),
+        eq(reactions.targetId, targetId)
+      ));
+    
+    if (!existing) {
+      await db.insert(reactions).values({ userId, emoji, targetType, targetId });
+    }
+  }
+
+  async removeReaction(userId: string, emoji: string, targetType: string, targetId: string): Promise<void> {
+    await db.delete(reactions).where(and(
+      eq(reactions.userId, userId),
+      eq(reactions.emoji, emoji),
+      eq(reactions.targetType, targetType),
+      eq(reactions.targetId, targetId)
+    ));
   }
 
   // Stats

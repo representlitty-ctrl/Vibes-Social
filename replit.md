@@ -12,11 +12,13 @@ Vibes is a social community platform built for vibecoders - creative developers 
 
 ## Key Features
 1. **Authentication**: Replit Auth with OAuth support
-2. **User Profiles**: Bio, skills, tools, social links, follow/unfollow
-3. **Projects**: Submit, view, upvote, comment on vibecoded projects
+2. **User Profiles**: Bio, skills, tools, social links, follow/unfollow, profile pictures
+3. **Projects**: Submit, view, upvote, comment, bookmark, emoji reactions on projects
 4. **Learning Hub**: Curated resources with categories, upvotes, bookmarks
 5. **Grants**: Submit projects to grant programs for funding
-6. **Notifications**: Real-time notifications for interactions
+6. **Notifications**: Real-time notifications for interactions with user avatars
+7. **Direct Messaging**: Private conversations with voice note support
+8. **Emoji Reactions**: React to projects and comments with emojis (❤️ 🔥 🚀 👏 👀 💯)
 
 ## Project Architecture
 
@@ -39,20 +41,25 @@ Vibes is a social community platform built for vibecoders - creative developers 
 ## Database Tables
 - users, sessions (auth)
 - profiles
-- projects, project_upvotes, project_comments
+- projects, project_upvotes, project_downvotes, project_comments, project_bookmarks
 - follows
 - resources, resource_upvotes, resource_bookmarks, resource_comments
 - grants, grant_submissions
 - notifications
+- conversations, messages (DMs with voice notes)
+- reactions (emoji reactions on projects and comments)
 
 ## API Endpoints
 - `/api/auth/user` - Get current user
 - `/api/profile` - User profile CRUD
-- `/api/projects` - Project CRUD + upvotes + comments
+- `/api/projects` - Project CRUD + upvotes + comments + bookmarks
 - `/api/resources` - Learning resources + upvotes + bookmarks
 - `/api/grants` - Grant programs + submissions
 - `/api/notifications` - User notifications
 - `/api/users/:id/follow` - Follow/unfollow users
+- `/api/conversations` - Direct messaging conversations
+- `/api/messages` - Messages within conversations (text + voice notes)
+- `/api/reactions` - Emoji reactions on projects and comments
 
 ## Running the App
 1. Database is automatically provisioned via Replit

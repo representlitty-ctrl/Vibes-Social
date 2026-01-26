@@ -21,6 +21,7 @@ import SubmitProjectPage from "@/pages/submit-project";
 import SubmitResourcePage from "@/pages/submit-resource";
 import CreateGrantPage from "@/pages/create-grant";
 import ProjectDetailPage from "@/pages/project-detail";
+import MessagesPage from "@/pages/messages";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -86,6 +87,7 @@ function Router() {
         <Route path="/grants" component={GrantsPage} />
         <Route path="/grants/create" component={CreateGrantPage} />
         <Route path="/notifications" component={NotificationsPage} />
+        <Route path="/messages" component={MessagesPage} />
         <Route path="/profile/edit" component={ProfileEditPage} />
         <Route path="/profile/:id" component={ProfilePage} />
         <Route path="/profile" component={() => {

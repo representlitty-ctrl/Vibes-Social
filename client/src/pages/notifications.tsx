@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -15,8 +16,13 @@ import {
   Trophy,
   CheckCheck,
   Sparkles,
+  Mail,
 } from "lucide-react";
-import type { Notification } from "@shared/schema";
+import type { Notification, User } from "@shared/schema";
+
+type NotificationWithFromUser = Notification & {
+  fromUser?: (User & { profileImageUrl?: string | null }) | null;
+};
 
 export default function NotificationsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -28,7 +34,7 @@ export default function NotificationsPage() {
     }
   }, [user, authLoading]);
 
-  const { data: notifications, isLoading } = useQuery<Notification[]>({
+  const { data: notifications, isLoading } = useQuery<NotificationWithFromUser[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
   });
@@ -105,7 +111,7 @@ export default function NotificationsPage() {
   );
 }
 
-function NotificationItem({ notification }: { notification: Notification }) {
+function NotificationItem({ notification }: { notification: NotificationWithFromUser }) {
   const queryClient = useQueryClient();
 
   const markReadMutation = useMutation({
@@ -121,16 +127,24 @@ function NotificationItem({ notification }: { notification: Notification }) {
   const getIcon = () => {
     switch (notification.type) {
       case "comment":
-        return <MessageCircle className="h-5 w-5 text-blue-500" />;
+        return <MessageCircle className="h-4 w-4 text-blue-500" />;
       case "upvote":
-        return <ChevronUp className="h-5 w-5 text-green-500" />;
+        return <ChevronUp className="h-4 w-4 text-green-500" />;
       case "follow":
-        return <UserPlus className="h-5 w-5 text-purple-500" />;
+        return <UserPlus className="h-4 w-4 text-purple-500" />;
       case "grant_winner":
-        return <Trophy className="h-5 w-5 text-yellow-500" />;
+        return <Trophy className="h-4 w-4 text-yellow-500" />;
+      case "message":
+        return <Mail className="h-4 w-4 text-cyan-500" />;
       default:
-        return <Sparkles className="h-5 w-5 text-primary" />;
+        return <Sparkles className="h-4 w-4 text-primary" />;
     }
+  };
+
+  const getInitials = () => {
+    if (notification.fromUser?.firstName) return notification.fromUser.firstName[0].toUpperCase();
+    if (notification.fromUser?.email) return notification.fromUser.email[0].toUpperCase();
+    return "?";
   };
 
   const getLink = () => {
@@ -158,9 +172,21 @@ function NotificationItem({ notification }: { notification: Notification }) {
       data-testid={`notification-${notification.id}`}
     >
       <div className="flex gap-3">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
-          {getIcon()}
-        </div>
+        {notification.fromUser ? (
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={notification.fromUser.profileImageUrl || undefined} />
+              <AvatarFallback>{getInitials()}</AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background border">
+              {getIcon()}
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+            {getIcon()}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className={`text-sm ${!notification.isRead ? "font-medium" : ""}`}>
             {notification.title}
