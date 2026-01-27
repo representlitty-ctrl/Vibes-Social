@@ -22,6 +22,63 @@ export async function registerRoutes(
     return req.user?.claims?.sub;
   };
 
+  // Module lessons mapping for vibecoding curriculum (matches frontend lesson IDs)
+  const MODULE_LESSONS: Record<string, string[]> = {
+    "module-1": ["1-1", "1-2", "1-3", "1-4"],
+    "module-2": ["2-1", "2-2", "2-3", "2-4", "2-5"],
+    "module-3": ["3-1", "3-2", "3-3", "3-4", "3-5"],
+    "module-4": ["4-1", "4-2", "4-3", "4-4"],
+    "module-5": ["5-1", "5-2", "5-3", "5-4", "5-5"],
+  };
+
+  const getModuleLessons = (moduleId: string): string[] => {
+    return MODULE_LESSONS[moduleId] || [];
+  };
+
+  // Quiz questions with correct answers for server-side validation
+  // These MUST match the correctIndex values in the frontend MODULE_QUIZZES exactly
+  const MODULE_QUIZ_QUESTIONS: Record<string, { id: string; correctIndex: number }[]> = {
+    "module-1": [
+      { id: "q1-1", correctIndex: 1 }, // Andrej Karpathy
+      { id: "q1-2", correctIndex: 1 }, // Using natural language
+      { id: "q1-3", correctIndex: 1 }, // Rapid prototyping
+      { id: "q1-4", correctIndex: 2 }, // Speed and iteration
+      { id: "q1-5", correctIndex: 3 }, // 95%+
+    ],
+    "module-2": [
+      { id: "q2-1", correctIndex: 1 }, // Being specific
+      { id: "q2-2", correctIndex: 1 }, // Iteratively refine
+      { id: "q2-3", correctIndex: 1 }, // Asking without examples
+      { id: "q2-4", correctIndex: 1 }, // Few-shot = providing examples
+      { id: "q2-5", correctIndex: 1 }, // Template/example
+    ],
+    "module-3": [
+      { id: "q3-1", correctIndex: 1 }, // Describe overall goal
+      { id: "q3-2", correctIndex: 1 }, // Break into smaller steps
+      { id: "q3-3", correctIndex: 1 }, // Provide context
+      { id: "q3-4", correctIndex: 1 }, // Context management
+      { id: "q3-5", correctIndex: 1 }, // After each working milestone
+    ],
+    "module-4": [
+      { id: "q4-1", correctIndex: 0 }, // Something you'd actually use
+      { id: "q4-2", correctIndex: 1 }, // MVP - minimum viable product
+      { id: "q4-3", correctIndex: 1 }, // Share error with AI
+      { id: "q4-4", correctIndex: 1 }, // Critical for validating AI output
+      { id: "q4-5", correctIndex: 1 }, // After it works, for maintainability
+    ],
+    "module-5": [
+      { id: "q5-1", correctIndex: 1 }, // Multiple AI tools working together
+      { id: "q5-2", correctIndex: 1 }, // Security, performance, edge cases
+      { id: "q5-3", correctIndex: 1 }, // Continuously improve and integrate
+      { id: "q5-4", correctIndex: 1 }, // AI skills with strong fundamentals
+      { id: "q5-5", correctIndex: 1 }, // Vibecoding is a tool, not magic
+    ],
+  };
+
+  const getModuleQuizQuestions = (moduleId: string): { id: string; correctIndex: number }[] => {
+    return MODULE_QUIZ_QUESTIONS[moduleId] || [];
+  };
+
   // Stats route (public)
   app.get("/api/stats", async (req, res) => {
     try {
@@ -1638,11 +1695,16 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       const completedLessons = await storage.getVibecodingProgress(id);
+      const passedQuizzes = await storage.getVibecodingQuizProgress(id);
+      const certificate = await storage.getVibecodingCertificate(id);
+      const badges = await storage.getUserBadges(id);
+      
       res.json({
         completedLessons,
-        passedQuizzes: [],
-        hasCertificate: false,
-        badges: [],
+        passedQuizzes,
+        hasCertificate: !!certificate,
+        certificateNumber: certificate?.certificateNumber,
+        badges: badges.filter((b: any) => b.badgeType === "vibecoding"),
       });
     } catch (error) {
       console.error("Error fetching vibecoding progress:", error);
@@ -1661,6 +1723,82 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error marking lesson complete:", error);
       res.status(500).json({ message: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Vibecoding Quiz submission with server-side validation
+  app.post("/api/vibecoding/quizzes/:moduleId/submit", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { moduleId } = req.params;
+      const { answers } = req.body;
+      
+      // Verify all lessons for this module are completed
+      const completedLessons = await storage.getVibecodingCompletedLessons(userId);
+      const moduleLessons = getModuleLessons(moduleId);
+      const allLessonsComplete = moduleLessons.every(lessonId => completedLessons.includes(lessonId));
+      
+      if (!allLessonsComplete) {
+        return res.status(400).json({ message: "Complete all lessons in this module first" });
+      }
+      
+      // Calculate score server-side using answer key
+      const quizQuestions = getModuleQuizQuestions(moduleId);
+      let correctCount = 0;
+      quizQuestions.forEach(q => {
+        if (answers && answers[q.id] === q.correctIndex) {
+          correctCount++;
+        }
+      });
+      
+      const totalQuestions = quizQuestions.length;
+      const result = await storage.submitVibecodingQuiz(userId, moduleId, correctCount, totalQuestions);
+      res.json(result);
+    } catch (error) {
+      console.error("Error submitting quiz:", error);
+      res.status(500).json({ message: "Failed to submit quiz" });
+    }
+  });
+
+  // Vibecoding Certificate
+  app.get("/api/vibecoding/certificate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const certificate = await storage.getVibecodingCertificate(userId);
+      res.json(certificate);
+    } catch (error) {
+      console.error("Error getting certificate:", error);
+      res.status(500).json({ message: "Failed to get certificate" });
+    }
+  });
+
+  app.post("/api/vibecoding/claim-certificate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      // Verify completion server-side from database
+      const completedLessons = await storage.getVibecodingCompletedLessons(userId);
+      const passedQuizzes = await storage.getVibecodingPassedQuizzes(userId);
+      
+      const TOTAL_LESSONS = 23;
+      const TOTAL_QUIZZES = 5;
+      
+      if (completedLessons.length < TOTAL_LESSONS || passedQuizzes.length < TOTAL_QUIZZES) {
+        return res.status(400).json({ 
+          message: `Complete all ${TOTAL_LESSONS} lessons and pass all ${TOTAL_QUIZZES} quizzes to earn your certificate. Current: ${completedLessons.length} lessons, ${passedQuizzes.length} quizzes.`
+        });
+      }
+
+      const certificate = await storage.issueVibecodingCertificate(userId);
+      res.json({ certificate, message: "Congratulations! You've earned your Vibecoder Certificate!" });
+    } catch (error) {
+      console.error("Error claiming certificate:", error);
+      res.status(500).json({ message: "Failed to claim certificate" });
     }
   });
 

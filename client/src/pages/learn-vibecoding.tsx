@@ -151,7 +151,7 @@ By 2025, 25% of Y Combinator startups have codebases that are 95% AI-generated. 
 Open Replit and ask the AI to "Create a simple to-do list app with the ability to add, complete, and delete tasks." Watch how it generates the complete application.`
       },
     ],
-    quizCount: 4,
+    quizCount: 5,
   },
   {
     id: "module-2",
@@ -695,7 +695,7 @@ In Replit, use the Secrets tab to store sensitive data.
 You've vibecoded a complete application from idea to deployment.`
       },
     ],
-    quizCount: 4,
+    quizCount: 5,
   },
   {
     id: "module-5",
@@ -914,8 +914,320 @@ Congratulations on completing the Vibecoding curriculum!`
   },
 ];
 
+// Quiz questions for each module
+interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+const MODULE_QUIZZES: Record<string, QuizQuestion[]> = {
+  "module-1": [
+    {
+      id: "q1-1",
+      question: "Who coined the term 'vibecoding'?",
+      options: ["Elon Musk", "Andrej Karpathy", "Sam Altman", "Dario Amodei"],
+      correctIndex: 1,
+      explanation: "Andrej Karpathy, former OpenAI co-founder and Tesla AI director, coined 'vibecoding' in February 2025."
+    },
+    {
+      id: "q1-2", 
+      question: "What is the main characteristic of vibecoding?",
+      options: [
+        "Writing code manually line by line",
+        "Using natural language to describe what you want",
+        "Only using Python programming language",
+        "Avoiding AI tools completely"
+      ],
+      correctIndex: 1,
+      explanation: "Vibecoding focuses on describing WHAT you want in natural language, letting AI handle the HOW."
+    },
+    {
+      id: "q1-3",
+      question: "What type of projects is vibecoding best suited for?",
+      options: [
+        "Only enterprise applications",
+        "Rapid prototyping and personal tools",
+        "Operating system kernels",
+        "Financial trading systems"
+      ],
+      correctIndex: 1,
+      explanation: "Vibecoding excels at rapid prototyping, personal tools, and experimental projects."
+    },
+    {
+      id: "q1-4",
+      question: "Which mindset is essential for vibecoding?",
+      options: [
+        "Perfectionism from the start",
+        "Avoiding AI assistance",
+        "Speed and iteration",
+        "Manual code optimization"
+      ],
+      correctIndex: 2,
+      explanation: "Vibecoding embraces speed, iteration, and 'good enough' over perfect first attempts."
+    },
+    {
+      id: "q1-5",
+      question: "What percentage of code can AI write in vibecoding according to Karpathy?",
+      options: ["10%", "50%", "75%", "95%+"],
+      correctIndex: 3,
+      explanation: "Karpathy describes scenarios where AI writes 95%+ of the code in vibecoding workflows."
+    }
+  ],
+  "module-2": [
+    {
+      id: "q2-1",
+      question: "What is the most important element of a good AI prompt?",
+      options: [
+        "Using technical jargon",
+        "Being specific about what you want",
+        "Making it as short as possible",
+        "Including emojis"
+      ],
+      correctIndex: 1,
+      explanation: "Specificity is key - the more detail you provide about desired outcomes, the better the results."
+    },
+    {
+      id: "q2-2",
+      question: "What should you do when AI gives incorrect output?",
+      options: [
+        "Give up and write code manually",
+        "Iteratively refine your prompt with more context",
+        "Use a different programming language",
+        "Restart from scratch every time"
+      ],
+      correctIndex: 1,
+      explanation: "Iterative refinement through conversation is core to vibecoding - treat errors as feedback to improve prompts."
+    },
+    {
+      id: "q2-3",
+      question: "What does 'zero-shot' prompting mean?",
+      options: [
+        "Giving no instructions at all",
+        "Asking without providing examples",
+        "Using camera-based AI",
+        "Only one attempt allowed"
+      ],
+      correctIndex: 1,
+      explanation: "Zero-shot prompting means asking AI to complete a task without providing examples of the desired output."
+    },
+    {
+      id: "q2-4",
+      question: "What is 'few-shot' prompting?",
+      options: [
+        "Taking multiple screenshots",
+        "Providing examples in your prompt",
+        "Using minimal words",
+        "Quick coding sessions"
+      ],
+      correctIndex: 1,
+      explanation: "Few-shot prompting involves giving the AI examples of the desired input-output pattern."
+    },
+    {
+      id: "q2-5",
+      question: "Which technique helps AI understand the format you want?",
+      options: [
+        "Writing in all caps",
+        "Providing a template or example",
+        "Using complex vocabulary",
+        "Repeating the same question"
+      ],
+      correctIndex: 1,
+      explanation: "Providing templates or examples helps AI understand exactly the format and style you expect."
+    }
+  ],
+  "module-3": [
+    {
+      id: "q3-1",
+      question: "What is the recommended first step in a vibecoding workflow?",
+      options: [
+        "Start coding immediately",
+        "Describe the overall goal and architecture",
+        "Set up the database",
+        "Deploy to production"
+      ],
+      correctIndex: 1,
+      explanation: "Starting with a clear description of your goal helps AI understand context for all subsequent requests."
+    },
+    {
+      id: "q3-2",
+      question: "How should you handle complex features in vibecoding?",
+      options: [
+        "Build everything in one prompt",
+        "Break into smaller, incremental steps",
+        "Avoid complex features entirely",
+        "Write them manually"
+      ],
+      correctIndex: 1,
+      explanation: "Breaking complex features into smaller steps allows for better AI understanding and easier debugging."
+    },
+    {
+      id: "q3-3",
+      question: "What should you do before asking AI to modify existing code?",
+      options: [
+        "Delete the existing code",
+        "Provide context about the current codebase",
+        "Ignore the existing code",
+        "Start a new project"
+      ],
+      correctIndex: 1,
+      explanation: "Giving AI context about existing code structure helps it make compatible modifications."
+    },
+    {
+      id: "q3-4",
+      question: "What is 'context management' in vibecoding?",
+      options: [
+        "Managing file permissions",
+        "Keeping AI aware of relevant project information",
+        "Organizing your desktop",
+        "Scheduling work time"
+      ],
+      correctIndex: 1,
+      explanation: "Context management means ensuring AI has all the relevant information about your project structure and goals."
+    },
+    {
+      id: "q3-5",
+      question: "When should you commit code in a vibecoding workflow?",
+      options: [
+        "Only at the end of the project",
+        "After each working milestone",
+        "Never - version control is obsolete",
+        "Only when deploying"
+      ],
+      correctIndex: 1,
+      explanation: "Frequent commits after working milestones let you easily rollback if AI introduces issues."
+    }
+  ],
+  "module-4": [
+    {
+      id: "q4-1",
+      question: "What makes a good project for vibecoding practice?",
+      options: [
+        "Something you'd actually use",
+        "Only enterprise apps",
+        "Theoretical exercises",
+        "Copying existing apps exactly"
+      ],
+      correctIndex: 0,
+      explanation: "Building something you'll actually use keeps you motivated and helps you understand real requirements."
+    },
+    {
+      id: "q4-2",
+      question: "What should you focus on when starting a project?",
+      options: [
+        "Perfect code from the start",
+        "MVP - minimum viable product",
+        "All possible features",
+        "Documentation first"
+      ],
+      correctIndex: 1,
+      explanation: "Starting with an MVP lets you get something working quickly, then iterate and improve."
+    },
+    {
+      id: "q4-3",
+      question: "How should you handle errors from AI-generated code?",
+      options: [
+        "Ignore them",
+        "Share the error with AI and ask for fixes",
+        "Always rewrite manually",
+        "Delete the project"
+      ],
+      correctIndex: 1,
+      explanation: "Sharing errors with AI is part of the iterative process - AI can often fix its own mistakes with error context."
+    },
+    {
+      id: "q4-4",
+      question: "What role does testing play in vibecoded projects?",
+      options: [
+        "Testing is unnecessary with AI",
+        "Critical for validating AI output",
+        "Only manual testing matters",
+        "AI handles all testing"
+      ],
+      correctIndex: 1,
+      explanation: "Testing remains essential to validate that AI-generated code actually works as intended."
+    },
+    {
+      id: "q4-5",
+      question: "When should you refactor vibecoded code?",
+      options: [
+        "Never - AI code is perfect",
+        "After it works, for maintainability",
+        "Before testing",
+        "Only with production issues"
+      ],
+      correctIndex: 1,
+      explanation: "Refactoring after achieving working functionality improves maintainability while preserving behavior."
+    }
+  ],
+  "module-5": [
+    {
+      id: "q5-1",
+      question: "What is a multi-agent workflow?",
+      options: [
+        "Using multiple keyboards",
+        "Multiple AI tools working together",
+        "Hiring multiple developers",
+        "Running code on multiple servers"
+      ],
+      correctIndex: 1,
+      explanation: "Multi-agent workflows involve using different AI tools that complement each other for complex tasks."
+    },
+    {
+      id: "q5-2",
+      question: "What should you always review in AI-generated code?",
+      options: [
+        "Only the comments",
+        "Security, performance, and edge cases",
+        "Just the formatting",
+        "Nothing - trust AI completely"
+      ],
+      correctIndex: 1,
+      explanation: "Human review for security, performance, and edge cases is essential - AI can make subtle mistakes."
+    },
+    {
+      id: "q5-3",
+      question: "How will AI tools evolve according to the curriculum?",
+      options: [
+        "They will remain the same",
+        "They will continuously improve and integrate deeper",
+        "They will disappear",
+        "They will only work offline"
+      ],
+      correctIndex: 1,
+      explanation: "AI tools are rapidly improving and integrating more deeply into development workflows."
+    },
+    {
+      id: "q5-4",
+      question: "What makes a 'future-proof' vibecoder?",
+      options: [
+        "Only learning one tool",
+        "Combining AI skills with strong fundamentals",
+        "Avoiding new technologies",
+        "Focusing only on syntax"
+      ],
+      correctIndex: 1,
+      explanation: "The best vibecoders combine AI collaboration skills with strong programming fundamentals."
+    },
+    {
+      id: "q5-5",
+      question: "What is the 'final thought' about vibecoding?",
+      options: [
+        "AI will replace all developers",
+        "Vibecoding is a tool, not magic",
+        "Only experts can vibecode",
+        "Vibecoding is a temporary fad"
+      ],
+      correctIndex: 1,
+      explanation: "Vibecoding is a powerful tool, but human creativity, judgment, and user understanding always matter."
+    }
+  ]
+};
+
 const TOTAL_LESSONS = VIBECODING_SYLLABUS.reduce((acc, m) => acc + m.lessons.length, 0);
-const TOTAL_QUIZZES = VIBECODING_SYLLABUS.reduce((acc, m) => acc + m.quizCount, 0);
+const TOTAL_QUIZZES = VIBECODING_SYLLABUS.length; // One quiz per module
 
 interface UserProgress {
   completedLessons: string[];
@@ -935,6 +1247,16 @@ export default function LearnVibecodingPage() {
   const { toast } = useToast();
   const [activeModule, setActiveModule] = useState<string | null>("module-1");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [selectedQuizModule, setSelectedQuizModule] = useState<string | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizScore, setQuizScore] = useState<{ correct: number; total: number } | null>(null);
+
+  // Fetch progress FIRST before using it in other functions
+  const { data: progress, isLoading: progressLoading } = useQuery<UserProgress>({
+    queryKey: ["/api/users", user?.id, "vibecoding-progress"],
+    enabled: !!user,
+  });
 
   const allLessons = VIBECODING_SYLLABUS.flatMap(m => m.lessons);
   const currentLessonIndex = selectedLesson ? allLessons.findIndex(l => l.id === selectedLesson.id) : -1;
@@ -980,6 +1302,93 @@ export default function LearnVibecodingPage() {
     },
   });
 
+  // Mutation to submit quiz (sends answers for server-side scoring)
+  const submitQuiz = useMutation({
+    mutationFn: async ({ moduleId, answers }: { moduleId: string; answers: Record<string, number> }) => {
+      return apiRequest("POST", `/api/vibecoding/quizzes/${moduleId}/submit`, { answers });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "vibecoding-progress"] });
+      if (data.passed) {
+        toast({
+          title: "Quiz Passed!",
+          description: "Congratulations! You've passed this module quiz.",
+        });
+      }
+    },
+  });
+
+  // Mutation to claim certificate (backend verifies completion server-side)
+  const claimCertificate = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/vibecoding/claim-certificate", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "vibecoding-progress"] });
+      toast({
+        title: "Congratulations!",
+        description: "You've earned your Vibecoder Certificate and Badge!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cannot claim certificate",
+        description: error.message || "Complete all lessons and quizzes first",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Quiz functions
+  const startQuiz = (moduleId: string) => {
+    setSelectedQuizModule(moduleId);
+    setQuizAnswers({});
+    setQuizSubmitted(false);
+    setQuizScore(null);
+  };
+
+  const selectAnswer = (questionId: string, optionIndex: number) => {
+    if (quizSubmitted) return;
+    setQuizAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
+  };
+
+  const handleSubmitQuiz = () => {
+    if (!selectedQuizModule) return;
+    const questions = MODULE_QUIZZES[selectedQuizModule] || [];
+    let correct = 0;
+    questions.forEach(q => {
+      if (quizAnswers[q.id] === q.correctIndex) correct++;
+    });
+    setQuizScore({ correct, total: questions.length });
+    setQuizSubmitted(true);
+    
+    // Submit answers to backend for server-side scoring
+    if (user) {
+      submitQuiz.mutate({ moduleId: selectedQuizModule, answers: quizAnswers });
+    }
+  };
+
+  const closeQuiz = () => {
+    setSelectedQuizModule(null);
+    setQuizAnswers({});
+    setQuizSubmitted(false);
+    setQuizScore(null);
+  };
+
+  const isQuizPassed = (moduleId: string) => {
+    return progress?.passedQuizzes?.includes(moduleId) || false;
+  };
+
+  const canTakeQuiz = (moduleId: string) => {
+    // Can take quiz if all lessons in the module are completed
+    const module = VIBECODING_SYLLABUS.find(m => m.id === moduleId);
+    if (!module) return false;
+    return module.lessons.every(l => progress?.completedLessons?.includes(l.id));
+  };
+
+  const allCompleted = (progress?.completedLessons?.length || 0) >= TOTAL_LESSONS && 
+                       (progress?.passedQuizzes?.length || 0) >= TOTAL_QUIZZES;
+
   const formatContent = (content: string) => {
     return content.split('\n').map((line, i) => {
       if (line.startsWith('**') && line.endsWith('**')) {
@@ -1016,11 +1425,6 @@ export default function LearnVibecodingPage() {
       return <p key={i} className="mb-2">{line}</p>;
     });
   };
-
-  const { data: progress, isLoading: progressLoading } = useQuery<UserProgress>({
-    queryKey: ["/api/users", user?.id, "vibecoding-progress"],
-    enabled: !!user,
-  });
 
   const { data: certificates } = useQuery<any[]>({
     queryKey: ["/api/users", user?.id, "certificates"],
@@ -1268,20 +1672,60 @@ export default function LearnVibecodingPage() {
                             );
                           })}
                           
-                          <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed bg-muted/50">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20">
-                              <Star className="h-3 w-3 text-primary" />
+                          <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            isQuizPassed(module.id) 
+                              ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                              : canTakeQuiz(module.id)
+                              ? "border-dashed bg-primary/5 border-primary/30"
+                              : "border-dashed bg-muted/50"
+                          }`}>
+                            <div className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                              isQuizPassed(module.id) 
+                                ? "bg-green-500 text-white" 
+                                : canTakeQuiz(module.id)
+                                ? "bg-primary text-white"
+                                : "bg-muted text-muted-foreground"
+                            }`}>
+                              {isQuizPassed(module.id) ? (
+                                <CheckCircle className="h-3 w-3" />
+                              ) : canTakeQuiz(module.id) ? (
+                                <Star className="h-3 w-3" />
+                              ) : (
+                                <Lock className="h-3 w-3" />
+                              )}
                             </div>
                             <div className="flex-1">
                               <div className="text-sm font-medium">Module Quiz</div>
                               <div className="text-xs text-muted-foreground">
-                                {module.quizCount} questions to test your knowledge
+                                {isQuizPassed(module.id) 
+                                  ? "Passed!" 
+                                  : canTakeQuiz(module.id)
+                                  ? `${module.quizCount} questions - Ready to take!`
+                                  : `Complete all ${module.lessons.length} lessons first`}
                               </div>
                             </div>
-                            <Button variant="outline" size="sm" className="gap-1">
-                              Take Quiz
-                              <ChevronRight className="h-3 w-3" />
-                            </Button>
+                            {isQuizPassed(module.id) ? (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Passed
+                              </Badge>
+                            ) : canTakeQuiz(module.id) ? (
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="gap-1"
+                                onClick={() => startQuiz(module.id)}
+                                data-testid={`button-take-quiz-${module.id}`}
+                              >
+                                Take Quiz
+                                <ChevronRight className="h-3 w-3" />
+                              </Button>
+                            ) : (
+                              <Button variant="outline" size="sm" className="gap-1" disabled>
+                                <Lock className="h-3 w-3" />
+                                Locked
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </AccordionContent>
@@ -1302,19 +1746,36 @@ export default function LearnVibecodingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {vibecodingCertificates.length > 0 ? (
+              {progress?.hasCertificate ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
                     <Award className="h-8 w-8 text-amber-500" />
                     <div>
                       <div className="font-medium text-sm">Vibecoder Certified</div>
                       <div className="text-xs text-muted-foreground">
-                        Earned on {new Date(vibecodingCertificates[0].earnedAt).toLocaleDateString()}
+                        Certificate #{progress.certificateNumber}
                       </div>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    View Certificate
+                </div>
+              ) : allCompleted ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                    <div>
+                      <div className="font-medium text-sm">All Complete!</div>
+                      <div className="text-xs text-muted-foreground">
+                        You're ready to claim your certificate
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => claimCertificate.mutate()}
+                    disabled={claimCertificate.isPending}
+                    data-testid="button-claim-certificate"
+                  >
+                    {claimCertificate.isPending ? "Claiming..." : "Claim Certificate & Badge"}
                   </Button>
                 </div>
               ) : (
@@ -1322,9 +1783,19 @@ export default function LearnVibecodingPage() {
                   <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
                     <Lock className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Complete all lessons and pass all quizzes to earn your Vibecoder Certificate
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Complete all {TOTAL_LESSONS} lessons and pass all {TOTAL_QUIZZES} quizzes to earn your Vibecoder Certificate
                   </p>
+                  <div className="flex justify-center gap-4 text-xs">
+                    <div>
+                      <span className="font-medium">{progress?.completedLessons?.length || 0}</span>
+                      <span className="text-muted-foreground">/{TOTAL_LESSONS} lessons</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">{progress?.passedQuizzes?.length || 0}</span>
+                      <span className="text-muted-foreground">/{TOTAL_QUIZZES} quizzes</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1485,6 +1956,136 @@ export default function LearnVibecodingPage() {
               Next
               <ArrowRight className="h-4 w-4" />
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quiz Dialog */}
+      <Dialog open={!!selectedQuizModule} onOpenChange={(open) => !open && closeQuiz()}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Star className="h-5 w-5 text-primary" />
+              {VIBECODING_SYLLABUS.find(m => m.id === selectedQuizModule)?.title} Quiz
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-6">
+            {selectedQuizModule && MODULE_QUIZZES[selectedQuizModule]?.map((question, qIndex) => {
+              const userAnswer = quizAnswers[question.id];
+              const isCorrect = userAnswer === question.correctIndex;
+              const showResult = quizSubmitted;
+              
+              return (
+                <div key={question.id} className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium shrink-0 ${
+                      showResult 
+                        ? (isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white")
+                        : userAnswer !== undefined 
+                        ? "bg-primary text-white" 
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {showResult ? (isCorrect ? <CheckCircle className="h-4 w-4" /> : <X className="h-4 w-4" />) : qIndex + 1}
+                    </div>
+                    <p className="font-medium pt-0.5">{question.question}</p>
+                  </div>
+                  
+                  <div className="space-y-2 pl-10">
+                    {question.options.map((option, optIndex) => {
+                      const isSelected = userAnswer === optIndex;
+                      const isCorrectOption = question.correctIndex === optIndex;
+                      
+                      return (
+                        <button
+                          key={optIndex}
+                          onClick={() => selectAnswer(question.id, optIndex)}
+                          disabled={quizSubmitted}
+                          className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                            showResult
+                              ? isCorrectOption
+                                ? "bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-800"
+                                : isSelected && !isCorrect
+                                ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800"
+                                : "border-muted"
+                              : isSelected
+                              ? "bg-primary/10 border-primary"
+                              : "border-muted hover:border-primary/50 hover:bg-muted/50"
+                          }`}
+                          data-testid={`quiz-option-${question.id}-${optIndex}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                              showResult
+                                ? isCorrectOption
+                                  ? "border-green-500 bg-green-500"
+                                  : isSelected
+                                  ? "border-red-500 bg-red-500"
+                                  : "border-muted-foreground"
+                                : isSelected
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground"
+                            }`}>
+                              {(isSelected || (showResult && isCorrectOption)) && (
+                                <CheckCircle className="h-3 w-3 text-white" />
+                              )}
+                            </div>
+                            <span className={showResult && isCorrectOption ? "font-medium" : ""}>{option}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {showResult && (
+                    <div className={`ml-10 p-3 rounded-lg text-sm ${
+                      isCorrect 
+                        ? "bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200"
+                        : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200"
+                    }`}>
+                      {question.explanation}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t mt-4">
+            <Button variant="outline" onClick={closeQuiz}>
+              {quizSubmitted ? "Close" : "Cancel"}
+            </Button>
+            
+            <div className="flex items-center gap-3">
+              {quizSubmitted && quizScore && (
+                <div className={`text-sm font-medium ${
+                  quizScore.correct >= Math.ceil(quizScore.total * 0.8)
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}>
+                  Score: {quizScore.correct}/{quizScore.total} 
+                  {quizScore.correct >= Math.ceil(quizScore.total * 0.8) ? " - Passed!" : " - Try again"}
+                </div>
+              )}
+              
+              {!quizSubmitted ? (
+                <Button 
+                  onClick={handleSubmitQuiz}
+                  disabled={!selectedQuizModule || Object.keys(quizAnswers).length < (MODULE_QUIZZES[selectedQuizModule || ""]?.length || 0)}
+                  data-testid="button-submit-quiz"
+                >
+                  Submit Quiz
+                </Button>
+              ) : quizScore && quizScore.correct < Math.ceil(quizScore.total * 0.8) ? (
+                <Button onClick={() => {
+                  setQuizAnswers({});
+                  setQuizSubmitted(false);
+                  setQuizScore(null);
+                }}>
+                  Try Again
+                </Button>
+              ) : null}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

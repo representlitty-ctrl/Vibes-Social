@@ -38,6 +38,8 @@ import {
   courseCertificates,
   userBadges,
   vibecodingProgress,
+  vibecodingQuizProgress,
+  vibecodingCertificates,
   type User,
   type Profile,
   type InsertProfile,
@@ -210,6 +212,12 @@ export interface IStorage {
   // Vibecoding Progress
   getVibecodingProgress(userId: string): Promise<string[]>;
   markVibecodingLessonComplete(userId: string, lessonId: string): Promise<void>;
+  getVibecodingQuizProgress(userId: string): Promise<string[]>;
+  getVibecodingCompletedLessons(userId: string): Promise<string[]>;
+  getVibecodingPassedQuizzes(userId: string): Promise<string[]>;
+  submitVibecodingQuiz(userId: string, moduleId: string, score: number, totalQuestions: number): Promise<{ passed: boolean }>;
+  getVibecodingCertificate(userId: string): Promise<any | null>;
+  issueVibecodingCertificate(userId: string): Promise<any>;
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
@@ -1366,6 +1374,82 @@ export class DatabaseStorage implements IStorage {
         lessonId,
       });
     }
+  }
+
+  async getVibecodingQuizProgress(userId: string): Promise<string[]> {
+    const progress = await db.select()
+      .from(vibecodingQuizProgress)
+      .where(and(
+        eq(vibecodingQuizProgress.userId, userId),
+        eq(vibecodingQuizProgress.passed, true)
+      ));
+    return progress.map(p => p.moduleId);
+  }
+
+  async getVibecodingCompletedLessons(userId: string): Promise<string[]> {
+    return this.getVibecodingProgress(userId);
+  }
+
+  async getVibecodingPassedQuizzes(userId: string): Promise<string[]> {
+    return this.getVibecodingQuizProgress(userId);
+  }
+
+  async submitVibecodingQuiz(userId: string, moduleId: string, score: number, totalQuestions: number): Promise<{ passed: boolean }> {
+    const passed = score >= Math.ceil(totalQuestions * 0.8); // 80% to pass
+    
+    // Check if already passed this quiz
+    const existing = await db.select()
+      .from(vibecodingQuizProgress)
+      .where(and(
+        eq(vibecodingQuizProgress.userId, userId),
+        eq(vibecodingQuizProgress.moduleId, moduleId),
+        eq(vibecodingQuizProgress.passed, true)
+      ));
+    
+    if (existing.length === 0 || !passed) {
+      await db.insert(vibecodingQuizProgress).values({
+        userId,
+        moduleId,
+        score,
+        totalQuestions,
+        passed,
+      });
+    }
+    
+    return { passed };
+  }
+
+  async getVibecodingCertificate(userId: string): Promise<any | null> {
+    const [certificate] = await db.select()
+      .from(vibecodingCertificates)
+      .where(eq(vibecodingCertificates.userId, userId));
+    return certificate || null;
+  }
+
+  async issueVibecodingCertificate(userId: string): Promise<any> {
+    // Check if already has certificate
+    const existing = await this.getVibecodingCertificate(userId);
+    if (existing) return existing;
+
+    // Generate unique certificate number
+    const certNumber = `VC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    
+    const [certificate] = await db.insert(vibecodingCertificates).values({
+      userId,
+      certificateNumber: certNumber,
+    }).returning();
+
+    // Also award the Vibecoder badge
+    await this.awardBadge(
+      userId,
+      "vibecoding",
+      "Certified Vibecoder",
+      "Completed the full Vibecoding curriculum and passed all quizzes",
+      "graduation-cap",
+      "vibecoding-certificate"
+    );
+
+    return certificate;
   }
 
   // Stats

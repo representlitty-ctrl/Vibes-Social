@@ -22,7 +22,7 @@ export function FeedTabs() {
   });
 
   // Only show feed tabs on the home page
-  if (!user || location !== "/home") return null;
+  if (!user || location !== "/") return null;
 
   return (
     <div 

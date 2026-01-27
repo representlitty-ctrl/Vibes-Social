@@ -688,6 +688,27 @@ export const vibecodingProgress = pgTable("vibecoding_progress", {
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
+// Vibecoding Quiz Progress - tracks quiz completion for vibecoding modules
+export const vibecodingQuizProgress = pgTable("vibecoding_quiz_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  moduleId: varchar("module_id").notNull(),
+  score: integer("score").notNull(),
+  totalQuestions: integer("total_questions").notNull(),
+  passed: boolean("passed").notNull().default(false),
+  completedAt: timestamp("completed_at").defaultNow(),
+});
+
+// Vibecoding Certificate - issued upon completing all lessons and quizzes
+export const vibecodingCertificates = pgTable("vibecoding_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  certificateNumber: varchar("certificate_number", { length: 50 }).notNull().unique(),
+  earnedAt: timestamp("earned_at").defaultNow(),
+});
+
 export const insertVibecodingProgressSchema = createInsertSchema(vibecodingProgress).omit({ id: true, completedAt: true });
 export type VibecodingProgress = typeof vibecodingProgress.$inferSelect;
 export type InsertVibecodingProgress = z.infer<typeof insertVibecodingProgressSchema>;
+export type VibecodingQuizProgress = typeof vibecodingQuizProgress.$inferSelect;
+export type VibecodingCertificate = typeof vibecodingCertificates.$inferSelect;

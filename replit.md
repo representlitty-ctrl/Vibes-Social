@@ -111,7 +111,12 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Removed @ prefix from usernames display
 - **Learn Vibecoding**: Comprehensive 5-module curriculum with real educational content
   - Content based on Andrej Karpathy's original vibecoding concept (February 2025)
-  - 23 lessons covering fundamentals to advanced techniques
+  - 23 lessons covering fundamentals to advanced techniques (4+5+5+4+5 per module)
   - All content is readable articles (no fake videos)
   - Lesson viewer dialog with navigation between lessons
   - Modules: Introduction, Prompt Engineering, Workflow, Building Projects, Advanced Techniques
+  - **Quiz System**: 25 real questions (5 per module) with 80% passing threshold
+  - **Sequential Progression**: Lessons must be completed in order, quizzes unlock after all module lessons
+  - **Server-Side Validation**: Quiz answers validated server-side, prevents cheating
+  - **Certificate & Badge**: Earned upon completing all 23 lessons and passing all 5 quizzes
+  - Database tables: vibecodingProgress, vibecodingQuizProgress, vibecodingCertificates
