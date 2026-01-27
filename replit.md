@@ -17,7 +17,7 @@ Vibes is a social community platform built for vibecoders - creative developers 
 4. **Learning Hub**: Curated resources with categories, upvotes, bookmarks
 5. **Grants**: Submit projects to grant programs for funding
 6. **Notifications**: Real-time notifications for interactions with user avatars
-7. **Direct Messaging**: Private conversations with voice note support
+7. **Direct Messaging**: Private conversations with voice notes, image sharing, and file attachments
 8. **Emoji Reactions**: React to projects and comments with emojis (❤️ 🔥 🚀 👏 👀 💯)
 
 ## Project Architecture
@@ -58,7 +58,7 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - `/api/notifications` - User notifications
 - `/api/users/:id/follow` - Follow/unfollow users
 - `/api/conversations` - Direct messaging conversations
-- `/api/messages` - Messages within conversations (text + voice notes)
+- `/api/messages` - Messages within conversations (text, voice notes, images, files)
 - `/api/reactions` - Emoji reactions on projects and comments
 
 ## Running the App
@@ -86,3 +86,5 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Added delete project feature
 - Switched from Twitter/X-style to Facebook-style design
 - Profile pictures display everywhere (notifications, messages, comments, projects)
+- Enhanced direct messaging with image uploads and file attachments
+- Made all avatars clickable to navigate to user profiles

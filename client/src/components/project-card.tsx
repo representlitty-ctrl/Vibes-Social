@@ -101,9 +101,9 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
     return "U";
   };
 
-  const displayName = project.user.profile?.username || 
-    `${project.user.firstName || ""} ${project.user.lastName || ""}`.trim() || 
-    "Anonymous";
+  const displayName = project.user.profile?.username 
+    ? `@${project.user.profile.username}`
+    : `${project.user.firstName || ""} ${project.user.lastName || ""}`.trim() || "Anonymous";
 
   if (featured) {
     return (
@@ -130,13 +130,15 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
               {project.description}
             </p>
             <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={project.user.profileImageUrl || undefined} />
-                  <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-muted-foreground">{displayName}</span>
-              </div>
+              <Link href={`/profile/${project.userId}`} onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-2 hover-elevate rounded-full pr-2 cursor-pointer">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={project.user.profileImageUrl || undefined} />
+                    <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm text-muted-foreground">{displayName}</span>
+                </div>
+              </Link>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -228,13 +230,15 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={project.user.profileImageUrl || undefined} />
-                  <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-muted-foreground">{displayName}</span>
-              </div>
+              <Link href={`/profile/${project.userId}`} onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-2 hover-elevate rounded-full pr-2 cursor-pointer">
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={project.user.profileImageUrl || undefined} />
+                    <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground">{displayName}</span>
+                </div>
+              </Link>
 
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MessageCircle className="h-3 w-3" />

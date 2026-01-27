@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -113,6 +113,7 @@ export default function NotificationsPage() {
 
 function NotificationItem({ notification }: { notification: NotificationWithFromUser }) {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const markReadMutation = useMutation({
     mutationFn: async () => {
@@ -173,8 +174,16 @@ function NotificationItem({ notification }: { notification: NotificationWithFrom
     >
       <div className="flex gap-3">
         {notification.fromUser ? (
-          <div className="relative flex-shrink-0">
-            <Avatar className="h-10 w-10">
+          <div 
+            className="relative flex-shrink-0 cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setLocation(`/profile/${notification.fromUser!.id}`);
+            }}
+            data-testid={`link-avatar-${notification.fromUser.id}`}
+          >
+            <Avatar className="h-10 w-10 hover:opacity-80">
               <AvatarImage src={notification.fromUser.profileImageUrl || undefined} />
               <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>

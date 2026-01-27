@@ -123,7 +123,7 @@ export interface IStorage {
   getConversations(userId: string): Promise<any[]>;
   getOrCreateConversation(user1Id: string, user2Id: string): Promise<any>;
   getMessages(conversationId: string, userId: string): Promise<any[]>;
-  sendMessage(conversationId: string, senderId: string, content: string, messageType?: string, voiceNoteUrl?: string): Promise<any>;
+  sendMessage(conversationId: string, senderId: string, content: string, messageType?: string, voiceNoteUrl?: string, imageUrl?: string, fileUrl?: string, fileName?: string): Promise<any>;
   markMessagesRead(conversationId: string, userId: string): Promise<void>;
   getUnreadMessageCount(userId: string): Promise<number>;
   
@@ -1015,7 +1015,8 @@ export class DatabaseStorage implements IStorage {
         ...convo,
         otherUser: otherUser ? {
           ...otherUser,
-          profileImageUrl: profile?.profileImageUrl
+          profileImageUrl: profile?.profileImageUrl,
+          username: profile?.username
         } : null,
         unreadCount: unreadCount?.count || 0,
         lastMessage
@@ -1041,7 +1042,7 @@ export class DatabaseStorage implements IStorage {
       const [profile] = await db.select().from(profiles).where(eq(profiles.userId, otherUserId));
       return {
         ...existing,
-        otherUser: otherUser ? { ...otherUser, profileImageUrl: profile?.profileImageUrl } : null
+        otherUser: otherUser ? { ...otherUser, profileImageUrl: profile?.profileImageUrl, username: profile?.username } : null
       };
     }
     
@@ -1056,7 +1057,7 @@ export class DatabaseStorage implements IStorage {
     
     return {
       ...newConvo,
-      otherUser: otherUser ? { ...otherUser, profileImageUrl: profile?.profileImageUrl } : null
+      otherUser: otherUser ? { ...otherUser, profileImageUrl: profile?.profileImageUrl, username: profile?.username } : null
     };
   }
 
@@ -1082,7 +1083,7 @@ export class DatabaseStorage implements IStorage {
       const [profile] = await db.select().from(profiles).where(eq(profiles.userId, msg.senderId));
       result.push({
         ...msg,
-        sender: sender ? { ...sender, profileImageUrl: profile?.profileImageUrl } : null
+        sender: sender ? { ...sender, profileImageUrl: profile?.profileImageUrl, username: profile?.username } : null
       });
     }
     return result;
@@ -1093,7 +1094,10 @@ export class DatabaseStorage implements IStorage {
     senderId: string,
     content: string,
     messageType: string = "text",
-    voiceNoteUrl?: string
+    voiceNoteUrl?: string,
+    imageUrl?: string,
+    fileUrl?: string,
+    fileName?: string
   ): Promise<any> {
     const [convo] = await db
       .select()
@@ -1110,27 +1114,18 @@ export class DatabaseStorage implements IStorage {
       content,
       messageType,
       voiceNoteUrl,
+      imageUrl,
+      fileUrl,
+      fileName,
     }).returning();
     
     await db.update(conversations).set({ lastMessageAt: new Date() }).where(eq(conversations.id, conversationId));
     
-    const recipientId = convo.user1Id === senderId ? convo.user2Id : convo.user1Id;
     const [sender] = await db.select().from(users).where(eq(users.id, senderId));
-    
-    await this.createNotification(
-      recipientId,
-      "message",
-      `${sender?.firstName || "Someone"} sent you a message`,
-      content?.substring(0, 100),
-      conversationId,
-      "conversation",
-      senderId
-    );
-    
     const [profile] = await db.select().from(profiles).where(eq(profiles.userId, senderId));
     return {
       ...msg,
-      sender: sender ? { ...sender, profileImageUrl: profile?.profileImageUrl } : null
+      sender: sender ? { ...sender, profileImageUrl: profile?.profileImageUrl, username: profile?.username } : null
     };
   }
 
@@ -1150,7 +1145,7 @@ export class DatabaseStorage implements IStorage {
       .from(conversations)
       .where(or(eq(conversations.user1Id, userId), eq(conversations.user2Id, userId)));
     
-    let total = 0;
+    let uniqueUsers = 0;
     for (const convo of convos) {
       const [result] = await db
         .select({ count: count() })
@@ -1160,9 +1155,11 @@ export class DatabaseStorage implements IStorage {
           ne(messages.senderId, userId),
           eq(messages.isRead, false)
         ));
-      total += result?.count || 0;
+      if ((result?.count || 0) > 0) {
+        uniqueUsers++;
+      }
     }
-    return total;
+    return uniqueUsers;
   }
 
   // Reactions

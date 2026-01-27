@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2 } from "lucide-react";
+import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2, Image, Paperclip, Download } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 interface Conversation {
   id: string;
@@ -21,6 +21,7 @@ interface Conversation {
     lastName: string | null;
     email: string;
     profileImageUrl: string | null;
+    username: string | null;
   } | null;
   unreadCount: number;
   lastMessage: {
@@ -37,12 +38,16 @@ interface Message {
   content: string | null;
   messageType: string | null;
   voiceNoteUrl: string | null;
+  imageUrl: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
   createdAt: string | null;
   sender: {
     id: string;
     firstName: string | null;
     lastName: string | null;
     profileImageUrl: string | null;
+    username: string | null;
   } | null;
 }
 
@@ -56,8 +61,11 @@ export default function MessagesPage() {
   const [autoSelectUserId, setAutoSelectUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -68,7 +76,9 @@ export default function MessagesPage() {
     }
   }, []);
   
-  const { uploadFile, isUploading } = useUpload({
+  const pendingFileNameRef = useRef<string>("");
+  
+  const { uploadFile: uploadVoice, isUploading: isUploadingVoice } = useUpload({
     onSuccess: (response) => {
       sendMessageMutation.mutate({ voiceNoteUrl: response.objectPath, messageType: "voice" });
     },
@@ -76,6 +86,28 @@ export default function MessagesPage() {
       toast({ title: "Failed to upload voice note", variant: "destructive" });
     }
   });
+
+  const { uploadFile: uploadImage, isUploading: isUploadingImage } = useUpload({
+    onSuccess: (response) => {
+      sendMessageMutation.mutate({ imageUrl: response.objectPath, messageType: "image" });
+    },
+    onError: () => {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    }
+  });
+
+  const { uploadFile: uploadFileToStorage, isUploading: isUploadingFile } = useUpload({
+    onSuccess: (response) => {
+      sendMessageMutation.mutate({ fileUrl: response.objectPath, fileName: pendingFileNameRef.current, messageType: "file" });
+      pendingFileNameRef.current = "";
+    },
+    onError: () => {
+      toast({ title: "Failed to upload file", variant: "destructive" });
+      pendingFileNameRef.current = "";
+    }
+  });
+
+  const isUploading = isUploadingVoice || isUploadingImage || isUploadingFile;
 
   const { data: conversations = [], isLoading: loadingConvos } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -88,7 +120,7 @@ export default function MessagesPage() {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: { content?: string; voiceNoteUrl?: string; messageType?: string }) => {
+    mutationFn: async (data: { content?: string; voiceNoteUrl?: string; imageUrl?: string; fileUrl?: string; fileName?: string; messageType?: string }) => {
       return apiRequest("POST", `/api/conversations/${selectedConvo?.id}/messages`, data);
     },
     onSuccess: () => {
@@ -155,7 +187,7 @@ export default function MessagesPage() {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         const file = new File([audioBlob], `voice-${Date.now()}.webm`, { type: "audio/webm" });
         stream.getTracks().forEach(track => track.stop());
-        uploadFile(file);
+        uploadVoice(file);
       };
       
       mediaRecorder.start();
@@ -172,14 +204,32 @@ export default function MessagesPage() {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadImage(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      pendingFileNameRef.current = file.name;
+      uploadFileToStorage(file);
+    }
+    e.target.value = "";
+  };
+
   const getInitials = (user: { firstName?: string | null; lastName?: string | null; email?: string } | null) => {
     if (!user) return "?";
     if (user.firstName) return user.firstName[0].toUpperCase();
     return user.email?.[0]?.toUpperCase() || "?";
   };
 
-  const getUserName = (user: { firstName?: string | null; lastName?: string | null; email?: string } | null) => {
+  const getUserName = (user: { firstName?: string | null; lastName?: string | null; email?: string; username?: string | null } | null) => {
     if (!user) return "Unknown";
+    if (user.username) return `@${user.username}`;
     if (user.firstName) return `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`;
     return user.email;
   };
@@ -261,11 +311,15 @@ export default function MessagesPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
-                <AvatarFallback>{getInitials(selectedConvo.otherUser)}</AvatarFallback>
-              </Avatar>
-              <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
+              <Link href={`/profile/${selectedConvo.otherUser?.id}`}>
+                <div className="flex items-center gap-3 hover-elevate rounded-full pr-3 cursor-pointer">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
+                    <AvatarFallback>{getInitials(selectedConvo.otherUser)}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
+                </div>
+              </Link>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -288,16 +342,36 @@ export default function MessagesPage() {
                     >
                       <div className={`flex gap-2 max-w-[70%] ${isOwn ? "flex-row-reverse" : ""}`}>
                         {!isOwn && (
-                          <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage src={msg.sender?.profileImageUrl || undefined} />
-                            <AvatarFallback className="text-xs">{getInitials(msg.sender)}</AvatarFallback>
-                          </Avatar>
+                          <Link href={`/profile/${msg.sender?.id}`}>
+                            <Avatar className="h-8 w-8 flex-shrink-0 cursor-pointer hover:opacity-80">
+                              <AvatarImage src={msg.sender?.profileImageUrl || undefined} />
+                              <AvatarFallback className="text-xs">{getInitials(msg.sender)}</AvatarFallback>
+                            </Avatar>
+                          </Link>
                         )}
                         <div className={`rounded-2xl px-4 py-2 ${
                           isOwn ? "bg-primary text-primary-foreground" : "bg-muted"
                         }`}>
                           {msg.messageType === "voice" && msg.voiceNoteUrl ? (
                             <audio src={msg.voiceNoteUrl} controls className="max-w-full" />
+                          ) : msg.messageType === "image" && msg.imageUrl ? (
+                            <img 
+                              src={msg.imageUrl} 
+                              alt="Shared image" 
+                              className="max-w-full rounded-lg cursor-pointer"
+                              onClick={() => window.open(msg.imageUrl!, "_blank")}
+                              data-testid={`img-message-${msg.id}`}
+                            />
+                          ) : msg.messageType === "file" && msg.fileUrl ? (
+                            <a 
+                              href={msg.fileUrl} 
+                              download={msg.fileName || "file"}
+                              className={`flex items-center gap-2 ${isOwn ? "text-primary-foreground hover:underline" : "text-foreground hover:underline"}`}
+                              data-testid={`link-download-${msg.id}`}
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="text-sm">{msg.fileName || "Download file"}</span>
+                            </a>
                           ) : (
                             <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           )}
@@ -318,8 +392,43 @@ export default function MessagesPage() {
             <div className="p-4 border-t">
               <form 
                 onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1"
               >
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  data-testid="input-image-upload"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  data-testid="input-file-upload"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isUploading || sendMessageMutation.isPending}
+                  data-testid="button-image-upload"
+                >
+                  {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || sendMessageMutation.isPending}
+                  data-testid="button-file-upload"
+                >
+                  {isUploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                </Button>
                 <Button
                   type="button"
                   variant={isRecording ? "destructive" : "ghost"}
@@ -328,7 +437,7 @@ export default function MessagesPage() {
                   disabled={isUploading || sendMessageMutation.isPending}
                   data-testid="button-voice-note"
                 >
-                  {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isRecording ? <Square className="h-4 w-4" /> : (isUploadingVoice ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />)}
                 </Button>
                 <Input
                   ref={messageInputRef}

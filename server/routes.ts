@@ -822,13 +822,13 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
       const { id } = req.params;
-      const { content, messageType, voiceNoteUrl } = req.body;
+      const { content, messageType, voiceNoteUrl, imageUrl, fileUrl, fileName } = req.body;
       
-      if (!content && !voiceNoteUrl) {
+      if (!content && !voiceNoteUrl && !imageUrl && !fileUrl) {
         return res.status(400).json({ message: "Message content required" });
       }
 
-      const msg = await storage.sendMessage(id, userId, content, messageType || "text", voiceNoteUrl);
+      const msg = await storage.sendMessage(id, userId, content, messageType || "text", voiceNoteUrl, imageUrl, fileUrl, fileName);
       res.json(msg);
     } catch (error) {
       console.error("Error sending message:", error);

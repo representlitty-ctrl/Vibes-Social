@@ -197,6 +197,9 @@ export const messages = pgTable("messages", {
   content: text("content"),
   messageType: varchar("message_type", { length: 20 }).default("text"),
   voiceNoteUrl: varchar("voice_note_url"),
+  imageUrl: varchar("image_url"),
+  fileUrl: varchar("file_url"),
+  fileName: varchar("file_name"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
