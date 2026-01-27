@@ -106,3 +106,12 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Made all avatars clickable to navigate to user profiles
 - Added learning courses with lessons, enrollment, and progress tracking
 - Added Range request support for audio/video streaming in object storage
+- Added communities system with feed tabs and category filtering
+- Added verification badges for users with email, profile picture, and custom username
+- Removed @ prefix from usernames display
+- **Learn Vibecoding**: Comprehensive 5-module curriculum with real educational content
+  - Content based on Andrej Karpathy's original vibecoding concept (February 2025)
+  - 23 lessons covering fundamentals to advanced techniques
+  - All content is readable articles (no fake videos)
+  - Lesson viewer dialog with navigation between lessons
+  - Modules: Introduction, Prompt Engineering, Workflow, Building Projects, Advanced Techniques
