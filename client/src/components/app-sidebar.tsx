@@ -9,8 +9,10 @@ import {
   LogOut,
   Plus,
   MessageCircle,
+  Search,
 } from "lucide-react";
 import { VibesLogo } from "@/components/vibes-logo";
+import { UserSearch } from "@/components/user-search";
 import {
   Sidebar,
   SidebarContent,
@@ -70,10 +72,13 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-2">
-          <VibesLogo className="h-5" />
-          <span className="text-xl font-bold">Vibes</span>
-        </Link>
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <VibesLogo className="h-5" />
+            <span className="text-xl font-bold">Vibes</span>
+          </Link>
+          <UserSearch />
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
