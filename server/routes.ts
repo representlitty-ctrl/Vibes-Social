@@ -960,6 +960,18 @@ export async function registerRoutes(
     }
   });
 
+  // Get user's enrolled courses
+  app.get("/api/users/:userId/courses", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const courses = await storage.getEnrolledCourses(userId);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching user courses:", error);
+      res.status(500).json({ message: "Failed to fetch user courses" });
+    }
+  });
+
   // Create a post
   app.post("/api/posts", isAuthenticated, async (req, res) => {
     try {

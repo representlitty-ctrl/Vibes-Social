@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { ProjectCard } from "@/components/project-card";
+import { PostCard } from "@/components/post-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -22,6 +24,8 @@ import {
   UserPlus,
   UserMinus,
   MessageCircle,
+  FileText,
+  BookOpen,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import type { User, Profile, Project } from "@shared/schema";
@@ -40,6 +44,49 @@ type ProjectWithDetails = Project & {
   hasUpvoted: boolean;
 };
 
+interface PostUser {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  profileImageUrl: string | null;
+  username?: string;
+}
+
+interface PostMedia {
+  id: string;
+  postId: string;
+  mediaType: string;
+  mediaUrl: string;
+}
+
+interface Post {
+  id: string;
+  userId: string;
+  content: string | null;
+  voiceNoteUrl: string | null;
+  createdAt: string;
+  user: PostUser | null;
+  media: PostMedia[];
+  likeCount: number;
+  commentCount: number;
+  isLiked: boolean;
+  type: "post";
+}
+
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  description: string | null;
+  instructor: string | null;
+  thumbnailUrl: string | null;
+  difficulty: string | null;
+  duration: string | null;
+  lessonCount: number;
+  completedLessons: number;
+  enrolledAt: string;
+}
+
 export default function ProfilePage() {
   const [, params] = useRoute("/profile/:id");
   const userId = params?.id;
@@ -55,6 +102,16 @@ export default function ProfilePage() {
 
   const { data: projects } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/users", userId, "projects"],
+    enabled: !!userId,
+  });
+
+  const { data: posts } = useQuery<Post[]>({
+    queryKey: ["/api/users", userId, "posts"],
+    enabled: !!userId,
+  });
+
+  const { data: enrolledCourses } = useQuery<EnrolledCourse[]>({
+    queryKey: ["/api/users", userId, "courses"],
     enabled: !!userId,
   });
 
@@ -281,18 +338,46 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      <Tabs defaultValue="projects">
+      <Tabs defaultValue="posts">
         <TabsList>
-          <TabsTrigger value="projects" className="gap-2">
+          <TabsTrigger value="posts" className="gap-2" data-testid="tab-posts">
+            <FileText className="h-4 w-4" />
+            Posts
+          </TabsTrigger>
+          <TabsTrigger value="projects" className="gap-2" data-testid="tab-projects">
             <Grid3X3 className="h-4 w-4" />
             Projects
           </TabsTrigger>
+          <TabsTrigger value="learning" className="gap-2" data-testid="tab-learning">
+            <BookOpen className="h-4 w-4" />
+            Learning
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="posts" className="mt-6">
+          {posts && posts.length > 0 ? (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+              <FileText className="mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">No posts yet</h3>
+              <p className="mt-2 text-muted-foreground">
+                {isOwnProfile
+                  ? "You haven't made any posts yet."
+                  : "This user hasn't made any posts yet."}
+              </p>
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="projects" className="mt-6">
           {projects && projects.length > 0 ? (
             <div className="space-y-4">
-              {projects.map((project, index) => (
+              {projects.map((project) => (
                 <ProjectCard key={project.id} project={project} />
               ))}
             </div>
@@ -308,6 +393,65 @@ export default function ProfilePage() {
               {isOwnProfile && (
                 <Link href="/submit">
                   <Button className="mt-6">Submit Your First Project</Button>
+                </Link>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="learning" className="mt-6">
+          {enrolledCourses && enrolledCourses.length > 0 ? (
+            <div className="space-y-4">
+              {enrolledCourses.map((course) => (
+                <Link key={course.id} href={`/courses/${course.id}`}>
+                  <Card className="p-4 hover-elevate cursor-pointer">
+                    <div className="flex gap-4">
+                      {course.thumbnailUrl && (
+                        <img
+                          src={course.thumbnailUrl}
+                          alt={course.title}
+                          className="h-20 w-32 rounded-md object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{course.title}</h3>
+                        {course.instructor && (
+                          <p className="text-sm text-muted-foreground">by {course.instructor}</p>
+                        )}
+                        <div className="mt-2 flex items-center gap-2">
+                          {course.difficulty && (
+                            <Badge variant="secondary" className="text-xs">
+                              {course.difficulty}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {course.completedLessons} / {course.lessonCount} lessons
+                          </span>
+                        </div>
+                        <div className="mt-2">
+                          <Progress 
+                            value={course.lessonCount > 0 ? (course.completedLessons / course.lessonCount) * 100 : 0} 
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+              <BookOpen className="mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">No courses enrolled</h3>
+              <p className="mt-2 text-muted-foreground">
+                {isOwnProfile
+                  ? "You haven't enrolled in any courses yet."
+                  : "This user hasn't enrolled in any courses yet."}
+              </p>
+              {isOwnProfile && (
+                <Link href="/learn">
+                  <Button className="mt-6">Browse Courses</Button>
                 </Link>
               )}
             </div>

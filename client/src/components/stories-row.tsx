@@ -140,28 +140,18 @@ export function StoriesRow() {
             className="hidden"
             onChange={handleFileSelect}
           />
-          <div className="relative">
-            <Avatar className="h-16 w-16 border-2 border-dashed border-muted-foreground/50">
-              <AvatarImage src={user.profileImageUrl || undefined} />
-              <AvatarFallback className="bg-muted">
-                <Plus className="h-6 w-6 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <Button
-              variant="default"
-              size="icon"
-              className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full"
-              onClick={handleAddStory}
-              disabled={isUploading}
-              data-testid="button-add-story"
-            >
-              {isUploading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Plus className="h-3 w-3" />
-              )}
-            </Button>
-          </div>
+          <button
+            className="h-16 w-16 rounded-full border-2 border-dashed border-muted-foreground/50 bg-muted flex items-center justify-center hover-elevate"
+            onClick={handleAddStory}
+            disabled={isUploading}
+            data-testid="button-add-story"
+          >
+            {isUploading ? (
+              <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+            ) : (
+              <Plus className="h-6 w-6 text-muted-foreground" />
+            )}
+          </button>
           <span className="text-xs text-muted-foreground">Your Story</span>
         </div>
 
