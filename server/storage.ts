@@ -40,6 +40,7 @@ import {
   vibecodingProgress,
   vibecodingQuizProgress,
   vibecodingCertificates,
+  vibecodingLessonReads,
   type User,
   type Profile,
   type InsertProfile,
@@ -218,6 +219,8 @@ export interface IStorage {
   submitVibecodingQuiz(userId: string, moduleId: string, score: number, totalQuestions: number): Promise<{ passed: boolean }>;
   getVibecodingCertificate(userId: string): Promise<any | null>;
   issueVibecodingCertificate(userId: string): Promise<any>;
+  startLessonRead(userId: string, lessonId: string): Promise<void>;
+  getLessonReadStart(userId: string, lessonId: string): Promise<Date | null>;
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
@@ -1374,6 +1377,32 @@ export class DatabaseStorage implements IStorage {
         lessonId,
       });
     }
+  }
+
+  async startLessonRead(userId: string, lessonId: string): Promise<void> {
+    // Delete any existing read start for this lesson (user re-opened it)
+    await db.delete(vibecodingLessonReads)
+      .where(and(
+        eq(vibecodingLessonReads.userId, userId),
+        eq(vibecodingLessonReads.lessonId, lessonId)
+      ));
+    
+    // Insert new read start
+    await db.insert(vibecodingLessonReads).values({
+      userId,
+      lessonId,
+    });
+  }
+
+  async getLessonReadStart(userId: string, lessonId: string): Promise<Date | null> {
+    const read = await db.select()
+      .from(vibecodingLessonReads)
+      .where(and(
+        eq(vibecodingLessonReads.userId, userId),
+        eq(vibecodingLessonReads.lessonId, lessonId)
+      ));
+    
+    return read[0]?.startedAt || null;
   }
 
   async getVibecodingQuizProgress(userId: string): Promise<string[]> {

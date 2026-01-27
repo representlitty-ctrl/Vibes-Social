@@ -715,3 +715,15 @@ export type VibecodingProgress = typeof vibecodingProgress.$inferSelect;
 export type InsertVibecodingProgress = z.infer<typeof insertVibecodingProgressSchema>;
 export type VibecodingQuizProgress = typeof vibecodingQuizProgress.$inferSelect;
 export type VibecodingCertificate = typeof vibecodingCertificates.$inferSelect;
+
+// Vibecoding Lesson Read Tracking - server-side enforcement of minimum reading time
+export const vibecodingLessonReads = pgTable("vibecoding_lesson_reads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  lessonId: varchar("lesson_id").notNull(),
+  startedAt: timestamp("started_at").defaultNow(),
+});
+
+export const insertVibecodingLessonReadSchema = createInsertSchema(vibecodingLessonReads).omit({ id: true, startedAt: true });
+export type VibecodingLessonRead = typeof vibecodingLessonReads.$inferSelect;
+export type InsertVibecodingLessonRead = z.infer<typeof insertVibecodingLessonReadSchema>;

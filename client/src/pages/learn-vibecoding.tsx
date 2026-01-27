@@ -1382,6 +1382,13 @@ export default function LearnVibecodingPage() {
       return;
     }
 
+    // Notify server that user started reading this lesson (for server-side enforcement)
+    if (user) {
+      apiRequest("POST", `/api/vibecoding/lessons/${selectedLesson.id}/start-reading`).catch(() => {
+        // Ignore errors - server tracking is secondary to client timer
+      });
+    }
+
     // Start countdown
     const interval = setInterval(() => {
       setReadingTimeRemaining(prev => {
@@ -1395,7 +1402,7 @@ export default function LearnVibecodingPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [selectedLesson, progress?.completedLessons]);
+  }, [selectedLesson, progress?.completedLessons, user]);
 
   // Quiz functions
   const startQuiz = (moduleId: string) => {

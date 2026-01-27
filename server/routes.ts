@@ -1712,12 +1712,50 @@ export async function registerRoutes(
     }
   });
 
+  // Start reading a lesson - server-side tracking
+  app.post("/api/vibecoding/lessons/:lessonId/start-reading", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { lessonId } = req.params;
+      await storage.startLessonRead(userId, lessonId);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error starting lesson read:", error);
+      res.status(500).json({ message: "Failed to start lesson read" });
+    }
+  });
+
+  const MINIMUM_READING_TIME_SECONDS = 30;
+
   app.post("/api/vibecoding/lessons/:lessonId/complete", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
       const { lessonId } = req.params;
+      
+      // Check if lesson is already completed (skip reading time check)
+      const completedLessons = await storage.getVibecodingCompletedLessons(userId);
+      if (completedLessons.includes(lessonId)) {
+        return res.status(200).json({ success: true, alreadyCompleted: true });
+      }
+      
+      // Server-side enforcement of minimum reading time
+      const readStart = await storage.getLessonReadStart(userId, lessonId);
+      if (!readStart) {
+        return res.status(400).json({ message: "You must open the lesson first" });
+      }
+      
+      const secondsElapsed = (Date.now() - new Date(readStart).getTime()) / 1000;
+      if (secondsElapsed < MINIMUM_READING_TIME_SECONDS) {
+        const remaining = Math.ceil(MINIMUM_READING_TIME_SECONDS - secondsElapsed);
+        return res.status(400).json({ 
+          message: `Please read the lesson for at least ${remaining} more seconds before marking it complete` 
+        });
+      }
+      
       await storage.markVibecodingLessonComplete(userId, lessonId);
       res.status(200).json({ success: true });
     } catch (error) {
@@ -1802,15 +1840,33 @@ export async function registerRoutes(
     }
   });
 
-  // Alternative lesson explanation using AI
+  // Alternative lesson explanation using AI with rate limiting
+  const explanationRateLimit: Map<string, number> = new Map();
+  const EXPLANATION_RATE_LIMIT_MS = 60000; // 1 explanation per minute per user
+
   app.post("/api/vibecoding/lessons/:lessonId/explain", isAuthenticated, async (req, res) => {
     try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
       const { lessonId } = req.params;
       const { lessonTitle, lessonContent } = req.body;
       
-      if (!lessonTitle || !lessonContent) {
-        return res.status(400).json({ message: "Lesson title and content are required" });
+      // Validate input
+      if (!lessonTitle || typeof lessonTitle !== "string" || lessonTitle.length > 200) {
+        return res.status(400).json({ message: "Invalid lesson title" });
       }
+      if (!lessonContent || typeof lessonContent !== "string" || lessonContent.length > 10000) {
+        return res.status(400).json({ message: "Invalid lesson content" });
+      }
+      
+      // Rate limiting per user
+      const lastRequest = explanationRateLimit.get(userId);
+      if (lastRequest && Date.now() - lastRequest < EXPLANATION_RATE_LIMIT_MS) {
+        const waitTime = Math.ceil((EXPLANATION_RATE_LIMIT_MS - (Date.now() - lastRequest)) / 1000);
+        return res.status(429).json({ message: `Please wait ${waitTime} seconds before requesting another explanation` });
+      }
+      explanationRateLimit.set(userId, Date.now());
 
       const OpenAI = (await import("openai")).default;
       const openai = new OpenAI();
@@ -1824,7 +1880,7 @@ export async function registerRoutes(
           },
           {
             role: "user",
-            content: `Please provide an alternative explanation for this lesson:\n\nTitle: ${lessonTitle}\n\nOriginal Content:\n${lessonContent}`
+            content: `Please provide an alternative explanation for this lesson:\n\nTitle: ${lessonTitle.slice(0, 200)}\n\nOriginal Content:\n${lessonContent.slice(0, 5000)}`
           }
         ],
         max_tokens: 500,
