@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck } from "lucide-react";
+import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -134,7 +134,7 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                 <div className="flex items-center gap-2 hover-elevate rounded-full pr-2 cursor-pointer">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={project.user.profileImageUrl || undefined} />
-                    <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+                    <AvatarFallback><UserIcon className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <span className="text-sm text-muted-foreground">{displayName}</span>
                 </div>
@@ -234,7 +234,7 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                 <div className="flex items-center gap-2 hover-elevate rounded-full pr-2 cursor-pointer">
                   <Avatar className="h-5 w-5">
                     <AvatarImage src={project.user.profileImageUrl || undefined} />
-                    <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+                    <AvatarFallback><UserIcon className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <span className="text-xs text-muted-foreground">{displayName}</span>
                 </div>

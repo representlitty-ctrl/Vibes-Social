@@ -21,7 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, Loader2, Camera } from "lucide-react";
+import { ArrowLeft, Loader2, Camera, User as UserIcon } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { ImageCropper } from "@/components/image-cropper";
 import type { Profile } from "@shared/schema";
@@ -220,8 +220,8 @@ export default function ProfileEditPage() {
                 <div className="relative">
                   <Avatar className="h-24 w-24">
                     <AvatarImage src={profileImageUrl || ""} alt="Profile" />
-                    <AvatarFallback className="text-2xl">
-                      {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "?"}
+                    <AvatarFallback>
+                      <UserIcon className="h-10 w-10 text-muted-foreground" />
                     </AvatarFallback>
                   </Avatar>
                   <button

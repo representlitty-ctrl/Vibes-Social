@@ -17,6 +17,7 @@ import {
   CheckCheck,
   Sparkles,
   Mail,
+  User as UserIcon,
 } from "lucide-react";
 import type { Notification, User } from "@shared/schema";
 
@@ -185,7 +186,7 @@ function NotificationItem({ notification }: { notification: NotificationWithFrom
           >
             <Avatar className="h-10 w-10 hover:opacity-80">
               <AvatarImage src={notification.fromUser.profileImageUrl || undefined} />
-              <AvatarFallback>{getInitials()}</AvatarFallback>
+              <AvatarFallback><UserIcon className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
             </Avatar>
             <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background border">
               {getIcon()}

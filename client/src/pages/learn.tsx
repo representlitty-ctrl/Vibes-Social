@@ -26,6 +26,7 @@ import {
   Users,
   PlayCircle,
   CheckCircle,
+  User as UserIcon,
 } from "lucide-react";
 import type { Resource, User, Profile, Course } from "@shared/schema";
 
@@ -340,7 +341,7 @@ function CourseCard({ course, showProgress }: { course: CourseWithDetails; showP
           <div className="mt-3 flex items-center gap-2">
             <Avatar className="h-6 w-6">
               <AvatarImage src={course.instructor?.profileImageUrl || undefined} />
-              <AvatarFallback className="text-xs">{instructorInitials}</AvatarFallback>
+              <AvatarFallback><UserIcon className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
             </Avatar>
             <span className="text-sm text-muted-foreground">{instructorName}</span>
           </div>

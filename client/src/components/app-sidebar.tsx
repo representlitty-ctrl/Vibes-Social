@@ -5,7 +5,7 @@ import {
   BookOpen,
   Trophy,
   Bell,
-  User,
+  User as UserIcon,
   LogOut,
   Plus,
   MessageCircle,
@@ -43,7 +43,7 @@ const mainNavItems = [
 const secondaryNavItems = [
   { title: "Messages", url: "/messages", icon: MessageCircle },
   { title: "Notifications", url: "/notifications", icon: Bell },
-  { title: "Profile", url: "/profile", icon: User },
+  { title: "Profile", url: "/profile", icon: UserIcon },
 ];
 
 export function AppSidebar() {
@@ -164,8 +164,8 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {getInitials()}
+            <AvatarFallback>
+              <UserIcon className="h-5 w-5 text-muted-foreground" />
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden">

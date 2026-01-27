@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Plus, X, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Loader2, Trash2, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
@@ -173,10 +173,8 @@ export function StoriesRow() {
               <div className={`p-0.5 rounded-full ring-2 ${getStoryRingColor(group.storyCount)}`}>
                 <Avatar className="h-14 w-14 border-2 border-background">
                   <AvatarImage src={group.user?.profileImageUrl || undefined} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
-                    {group.user?.firstName?.[0]?.toUpperCase() || 
-                     group.user?.username?.[0]?.toUpperCase() || 
-                     "U"}
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    <User className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -214,9 +212,7 @@ export function StoriesRow() {
                   <Avatar className="h-10 w-10 border-2 border-white/50">
                     <AvatarImage src={viewingGroup.user?.profileImageUrl || undefined} />
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                      {viewingGroup.user?.firstName?.[0]?.toUpperCase() || 
-                       viewingGroup.user?.username?.[0]?.toUpperCase() || 
-                       "U"}
+                      <User className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-white text-sm font-medium drop-shadow-lg">

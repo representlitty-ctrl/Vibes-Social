@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Trash2, Send, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -165,7 +165,7 @@ export function PostCard({ post }: PostCardProps) {
         >
           <Avatar className="h-10 w-10">
             <AvatarImage src={post.user?.profileImageUrl || undefined} />
-            <AvatarFallback>{getInitials(post.user)}</AvatarFallback>
+            <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
           </Avatar>
         </div>
 
@@ -262,8 +262,8 @@ export function PostCard({ post }: PostCardProps) {
                 <div className="flex gap-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.profileImageUrl || undefined} />
-                    <AvatarFallback className="text-xs">
-                      {user.firstName?.[0]?.toUpperCase() || "U"}
+                    <AvatarFallback>
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 flex gap-2">
@@ -301,8 +301,8 @@ export function PostCard({ post }: PostCardProps) {
                       >
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={comment.user?.profileImageUrl || undefined} />
-                          <AvatarFallback className="text-xs">
-                            {getInitials(comment.user)}
+                          <AvatarFallback>
+                            <User className="h-4 w-4 text-muted-foreground" />
                           </AvatarFallback>
                         </Avatar>
                       </div>

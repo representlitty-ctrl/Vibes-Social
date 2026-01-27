@@ -20,6 +20,7 @@ import {
   Circle,
   Video,
   FileText,
+  User as UserIcon,
 } from "lucide-react";
 import type { Course, CourseLesson } from "@shared/schema";
 
@@ -250,7 +251,7 @@ export default function CourseDetailPage() {
               <Link href={`/profile/${course.instructor?.id}`}>
                 <Avatar className="h-12 w-12 cursor-pointer">
                   <AvatarImage src={course.instructor?.profileImageUrl || undefined} />
-                  <AvatarFallback>{instructorInitials}</AvatarFallback>
+                  <AvatarFallback><UserIcon className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
                 </Avatar>
               </Link>
               <div>

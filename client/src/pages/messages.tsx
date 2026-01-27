@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2, Image, Paperclip, Download } from "lucide-react";
+import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2, Image, Paperclip, Download, User } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
@@ -274,7 +274,7 @@ export default function MessagesPage() {
               >
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={convo.otherUser?.profileImageUrl || undefined} />
-                  <AvatarFallback>{getInitials(convo.otherUser)}</AvatarFallback>
+                  <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center justify-between">
@@ -315,7 +315,7 @@ export default function MessagesPage() {
                 <div className="flex items-center gap-3 hover-elevate rounded-full pr-3 cursor-pointer">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
-                    <AvatarFallback>{getInitials(selectedConvo.otherUser)}</AvatarFallback>
+                    <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
                 </div>
@@ -345,7 +345,7 @@ export default function MessagesPage() {
                           <Link href={`/profile/${msg.sender?.id}`}>
                             <Avatar className="h-8 w-8 flex-shrink-0 cursor-pointer hover:opacity-80">
                               <AvatarImage src={msg.sender?.profileImageUrl || undefined} />
-                              <AvatarFallback className="text-xs">{getInitials(msg.sender)}</AvatarFallback>
+                              <AvatarFallback><User className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
                             </Avatar>
                           </Link>
                         )}

@@ -21,6 +21,7 @@ import {
   Send,
   Edit,
   Trash2,
+  User as UserIcon,
 } from "lucide-react";
 import type { Project, User, Profile, ProjectComment } from "@shared/schema";
 
@@ -215,7 +216,7 @@ export default function ProjectDetailPage() {
                 <div className="flex items-center gap-2 hover-elevate rounded-full pr-3">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={project.user.profileImageUrl || undefined} />
-                    <AvatarFallback>{getInitials(project.user)}</AvatarFallback>
+                    <AvatarFallback><UserIcon className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <span className="font-medium">{displayName}</span>
                 </div>
@@ -294,7 +295,7 @@ export default function ProjectDetailPage() {
         <form onSubmit={handleSubmitComment} className="flex gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={user?.profileImageUrl || undefined} />
-            <AvatarFallback>{user ? getInitials(user) : "?"}</AvatarFallback>
+            <AvatarFallback><UserIcon className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-2">
             <Textarea
@@ -384,7 +385,7 @@ function CommentCard({ comment, projectId }: { comment: CommentWithUser; project
       <Link href={`/profile/${comment.userId}`}>
         <Avatar className="h-10 w-10">
           <AvatarImage src={comment.user.profileImageUrl || undefined} />
-          <AvatarFallback>{getInitials()}</AvatarFallback>
+          <AvatarFallback><UserIcon className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
         </Avatar>
       </Link>
       <div className="flex-1">

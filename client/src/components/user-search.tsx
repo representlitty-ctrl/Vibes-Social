@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, X } from "lucide-react";
+import { Search, X, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -112,7 +112,7 @@ export function UserSearch() {
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={getProfileImage(user)} />
-                    <AvatarFallback>{getInitials(user)}</AvatarFallback>
+                    <AvatarFallback><UserIcon className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{getDisplayName(user)}</p>

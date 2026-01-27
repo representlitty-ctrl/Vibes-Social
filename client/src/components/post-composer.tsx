@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Image, Video, Mic, X, Square, Loader2, Send } from "lucide-react";
+import { Image, Video, Mic, X, Square, Loader2, Send, User } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
@@ -166,7 +166,9 @@ export function PostComposer({ onClose }: PostComposerProps) {
       <div className="flex gap-3">
         <Avatar className="h-10 w-10 flex-shrink-0">
           <AvatarImage src={user.profileImageUrl || undefined} />
-          <AvatarFallback>{getInitials()}</AvatarFallback>
+          <AvatarFallback>
+            <User className="h-5 w-5 text-muted-foreground" />
+          </AvatarFallback>
         </Avatar>
         
         <div className="flex-1 space-y-3">

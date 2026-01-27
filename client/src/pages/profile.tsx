@@ -26,6 +26,7 @@ import {
   MessageCircle,
   FileText,
   BookOpen,
+  User as UserIcon,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import type { User, Profile, Project } from "@shared/schema";
@@ -201,7 +202,9 @@ export default function ProfilePage() {
         <div className="flex flex-col items-start gap-6 sm:flex-row">
           <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
             <AvatarImage src={profile.user.profileImageUrl || undefined} />
-            <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
+            <AvatarFallback>
+              <UserIcon className="h-12 w-12 text-muted-foreground" />
+            </AvatarFallback>
           </Avatar>
 
           <div className="flex-1">
