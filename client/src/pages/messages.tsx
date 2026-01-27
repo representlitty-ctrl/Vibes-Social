@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2 } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface Conversation {
   id: string;
@@ -48,12 +49,24 @@ interface Message {
 export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
   const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(null);
   const [messageText, setMessageText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [autoSelectUserId, setAutoSelectUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const withUserId = params.get("with");
+    if (withUserId) {
+      setAutoSelectUserId(withUserId);
+      setLocation("/messages", { replace: true });
+    }
+  }, []);
   
   const { uploadFile, isUploading } = useUpload({
     onSuccess: (response) => {
@@ -104,6 +117,23 @@ export default function MessagesPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (autoSelectUserId && conversations.length > 0 && !selectedConvo) {
+      const matchingConvo = conversations.find(c => c.otherUser?.id === autoSelectUserId);
+      if (matchingConvo) {
+        setSelectedConvo(matchingConvo);
+        setAutoSelectUserId(null);
+        setTimeout(() => messageInputRef.current?.focus(), 100);
+      }
+    }
+  }, [autoSelectUserId, conversations, selectedConvo]);
+
+  useEffect(() => {
+    if (selectedConvo && messageInputRef.current) {
+      messageInputRef.current.focus();
+    }
+  }, [selectedConvo?.id]);
 
   const handleSendMessage = () => {
     if (!messageText.trim() || !selectedConvo) return;
@@ -301,6 +331,7 @@ export default function MessagesPage() {
                   {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </Button>
                 <Input
+                  ref={messageInputRef}
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   placeholder="Type a message..."

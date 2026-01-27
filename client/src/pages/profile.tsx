@@ -88,7 +88,7 @@ export default function ProfilePage() {
       return apiRequest("POST", "/api/conversations", { userId });
     },
     onSuccess: () => {
-      setLocation("/messages");
+      setLocation(`/messages?with=${userId}`);
     },
     onError: () => {
       toast({
