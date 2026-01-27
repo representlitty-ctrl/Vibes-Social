@@ -2,8 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { ProjectCard } from "@/components/project-card";
-import { Sparkles, TrendingUp, Clock, Plus } from "lucide-react";
+import { PostCard } from "@/components/post-card";
+import { PostComposer } from "@/components/post-composer";
+import { StoriesRow } from "@/components/stories-row";
+import { Sparkles, Plus, Compass } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import type { Project, User, Profile } from "@shared/schema";
 
 type ProjectWithDetails = Project & {
@@ -11,37 +16,95 @@ type ProjectWithDetails = Project & {
   upvoteCount: number;
   commentCount: number;
   hasUpvoted: boolean;
+  type?: "project";
 };
 
+interface PostUser {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  profileImageUrl: string | null;
+  username?: string;
+}
+
+interface PostMedia {
+  id: string;
+  postId: string;
+  mediaType: string;
+  mediaUrl: string;
+}
+
+interface Post {
+  id: string;
+  userId: string;
+  content: string | null;
+  voiceNoteUrl: string | null;
+  createdAt: string;
+  user: PostUser | null;
+  media: PostMedia[];
+  likeCount: number;
+  commentCount: number;
+  isLiked: boolean;
+  type: "post";
+}
+
+type FeedItem = (ProjectWithDetails & { type: "project" }) | Post;
+
 export default function HomePage() {
-  const { data: projects, isLoading } = useQuery<ProjectWithDetails[]>({
+  const { user } = useAuth();
+
+  const { data: feed, isLoading: feedLoading } = useQuery<FeedItem[]>({
+    queryKey: ["/api/feed"],
+    enabled: !!user,
+  });
+
+  const { data: projects, isLoading: projectsLoading } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/projects"],
+    enabled: !user,
   });
 
   const { data: featuredProjects } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/projects/featured"],
   });
 
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Home</h1>
-          <p className="text-muted-foreground">Discover the latest projects from the community</p>
-        </div>
-        <Link href="/submit">
-          <Button className="gap-2" data-testid="button-new-project">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
-        </Link>
-      </div>
+  const isLoading = user ? feedLoading : projectsLoading;
+  const feedItems = user ? feed : projects?.map(p => ({ ...p, type: "project" as const }));
 
-      {featuredProjects && featuredProjects.length > 0 && (
+  return (
+    <div className="space-y-6">
+      {user && (
+        <>
+          <StoriesRow />
+          <PostComposer />
+        </>
+      )}
+
+      {!user && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Welcome to Vibes</h1>
+            <p className="text-muted-foreground">Discover projects from the vibecoder community</p>
+          </div>
+          <Button onClick={() => window.location.href = "/api/login"} data-testid="button-login-cta">
+            Sign in to get started
+          </Button>
+        </div>
+      )}
+
+      {user && featuredProjects && featuredProjects.length > 0 && (
         <section>
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Featured</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Featured Projects</h2>
+            </div>
+            <Link href="/discover">
+              <Button variant="ghost" size="sm" className="gap-1" data-testid="link-discover-more">
+                <Compass className="h-4 w-4" />
+                Discover More
+              </Button>
+            </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {featuredProjects.slice(0, 3).map((project) => (
@@ -52,60 +115,100 @@ export default function HomePage() {
       )}
 
       <section>
-        <div className="mb-4 flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Trending Today</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {user ? "Your Feed" : "Latest Projects"}
+          </h2>
+          {user && (
+            <Link href="/submit">
+              <Button variant="outline" size="sm" className="gap-1" data-testid="button-new-project">
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
+            </Link>
+          )}
         </div>
 
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <ProjectCardSkeleton key={i} />
+              <FeedItemSkeleton key={i} />
             ))}
           </div>
-        ) : projects && projects.length > 0 ? (
+        ) : feedItems && feedItems.length > 0 ? (
           <div className="space-y-4">
-            {projects.map((project, index) => (
-              <ProjectCard key={project.id} project={project} rank={index + 1} />
+            {feedItems.map((item) => (
+              item.type === "post" ? (
+                <PostCard key={`post-${item.id}`} post={item as Post} />
+              ) : (
+                <ProjectCard key={`project-${item.id}`} project={item as ProjectWithDetails} />
+              )
             ))}
           </div>
         ) : (
-          <EmptyState />
+          <EmptyState isLoggedIn={!!user} />
         )}
       </section>
     </div>
   );
 }
 
-function ProjectCardSkeleton() {
+function FeedItemSkeleton() {
   return (
-    <div className="flex gap-4 rounded-lg border bg-card p-4">
-      <Skeleton className="h-10 w-10 rounded-lg" />
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-5 w-1/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
+    <Card className="p-4">
+      <div className="flex gap-4">
+        <Skeleton className="h-10 w-10 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
-function EmptyState() {
+function EmptyState({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+    <Card className="flex flex-col items-center justify-center py-16 text-center">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
         <Sparkles className="h-8 w-8 text-primary" />
       </div>
-      <h3 className="text-lg font-semibold">No projects yet</h3>
-      <p className="mt-2 max-w-sm text-muted-foreground">
-        Be the first to share your vibecoded creation with the community!
-      </p>
-      <Link href="/submit">
-        <Button className="mt-6 gap-2">
-          <Plus className="h-4 w-4" />
-          Submit Your Project
-        </Button>
-      </Link>
-    </div>
+      {isLoggedIn ? (
+        <>
+          <h3 className="text-lg font-semibold">Your feed is empty</h3>
+          <p className="mt-2 max-w-sm text-muted-foreground">
+            Follow other vibecoders to see their posts and projects in your feed, or share something yourself!
+          </p>
+          <div className="mt-6 flex gap-3">
+            <Link href="/discover">
+              <Button variant="outline" className="gap-2">
+                <Compass className="h-4 w-4" />
+                Discover People
+              </Button>
+            </Link>
+            <Link href="/submit">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Share a Project
+              </Button>
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <h3 className="text-lg font-semibold">No projects yet</h3>
+          <p className="mt-2 max-w-sm text-muted-foreground">
+            Be the first to share your vibecoded creation with the community!
+          </p>
+          <Button
+            className="mt-6"
+            onClick={() => window.location.href = "/api/login"}
+          >
+            Sign in to get started
+          </Button>
+        </>
+      )}
+    </Card>
   );
 }
