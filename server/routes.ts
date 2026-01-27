@@ -903,5 +903,271 @@ export async function registerRoutes(
     }
   });
 
+  // ===== Posts Routes =====
+
+  // Get all posts
+  app.get("/api/posts", async (req, res) => {
+    try {
+      const currentUserId = getUserId(req);
+      const allPosts = await storage.getPosts(currentUserId);
+      res.json(allPosts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
+  // Get unified feed (posts + projects from followed users)
+  app.get("/api/feed", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const feed = await storage.getFeed(userId);
+      res.json(feed);
+    } catch (error) {
+      console.error("Error fetching feed:", error);
+      res.status(500).json({ message: "Failed to fetch feed" });
+    }
+  });
+
+  // Get post by id
+  app.get("/api/posts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const currentUserId = getUserId(req);
+      const post = await storage.getPostById(id, currentUserId);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      res.json(post);
+    } catch (error) {
+      console.error("Error fetching post:", error);
+      res.status(500).json({ message: "Failed to fetch post" });
+    }
+  });
+
+  // Get posts by user
+  app.get("/api/users/:userId/posts", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const currentUserId = getUserId(req);
+      const userPosts = await storage.getPostsByUser(userId, currentUserId);
+      res.json(userPosts);
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+      res.status(500).json({ message: "Failed to fetch user posts" });
+    }
+  });
+
+  // Create a post
+  app.post("/api/posts", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { content, voiceNoteUrl, media } = req.body;
+      
+      if (!content && !voiceNoteUrl && (!media || media.length === 0)) {
+        return res.status(400).json({ message: "Post must have content, voice note, or media" });
+      }
+
+      const post = await storage.createPost(userId, content || null, voiceNoteUrl);
+      
+      if (media && Array.isArray(media)) {
+        for (let i = 0; i < media.length; i++) {
+          const m = media[i];
+          await storage.addPostMedia(post.id, m.mediaType, m.mediaUrl, m.previewUrl, m.aspectRatio, i);
+        }
+      }
+
+      const fullPost = await storage.getPostById(post.id, userId);
+      res.status(201).json(fullPost);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  // Delete a post
+  app.delete("/api/posts/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.deletePost(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      res.status(500).json({ message: "Failed to delete post" });
+    }
+  });
+
+  // Like a post
+  app.post("/api/posts/:id/like", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.likePost(id, userId);
+      
+      const post = await storage.getPostById(id);
+      if (post && post.userId !== userId) {
+        await storage.createNotification(
+          post.userId,
+          userId,
+          "like",
+          `liked your post`,
+          `/posts/${id}`
+        );
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error liking post:", error);
+      res.status(500).json({ message: "Failed to like post" });
+    }
+  });
+
+  // Unlike a post
+  app.delete("/api/posts/:id/like", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.unlikePost(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unliking post:", error);
+      res.status(500).json({ message: "Failed to unlike post" });
+    }
+  });
+
+  // Get post comments
+  app.get("/api/posts/:id/comments", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const comments = await storage.getPostComments(id);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching post comments:", error);
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  // Create post comment
+  app.post("/api/posts/:id/comments", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const { content } = req.body;
+      
+      if (!content || content.trim() === "") {
+        return res.status(400).json({ message: "Comment content is required" });
+      }
+
+      const comment = await storage.createPostComment(id, userId, content);
+      
+      const post = await storage.getPostById(id);
+      if (post && post.userId !== userId) {
+        await storage.createNotification(
+          post.userId,
+          userId,
+          "comment",
+          `commented on your post`,
+          `/posts/${id}`
+        );
+      }
+      
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating post comment:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  // Delete post comment
+  app.delete("/api/posts/:postId/comments/:commentId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { commentId } = req.params;
+      await storage.deletePostComment(commentId, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting post comment:", error);
+      res.status(500).json({ message: "Failed to delete comment" });
+    }
+  });
+
+  // ===== Stories Routes =====
+
+  // Get stories from followed users
+  app.get("/api/stories", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const storyGroups = await storage.getStories(userId);
+      res.json(storyGroups);
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+      res.status(500).json({ message: "Failed to fetch stories" });
+    }
+  });
+
+  // Get stories by a specific user
+  app.get("/api/users/:userId/stories", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const userStories = await storage.getStoriesByUser(userId);
+      res.json(userStories);
+    } catch (error) {
+      console.error("Error fetching user stories:", error);
+      res.status(500).json({ message: "Failed to fetch user stories" });
+    }
+  });
+
+  // Create a story
+  app.post("/api/stories", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { mediaType, mediaUrl, previewUrl } = req.body;
+      
+      if (!mediaType || !mediaUrl) {
+        return res.status(400).json({ message: "Media type and URL are required" });
+      }
+
+      const story = await storage.createStory(userId, mediaType, mediaUrl, previewUrl);
+      res.status(201).json(story);
+    } catch (error) {
+      console.error("Error creating story:", error);
+      res.status(500).json({ message: "Failed to create story" });
+    }
+  });
+
+  // Delete a story
+  app.delete("/api/stories/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.deleteStory(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting story:", error);
+      res.status(500).json({ message: "Failed to delete story" });
+    }
+  });
+
   return httpServer;
 }
