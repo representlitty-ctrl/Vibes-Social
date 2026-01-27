@@ -1,10 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type Theme = "dark" | "light" | "system";
+type ColorTheme = "red" | "blue" | "green" | "purple" | "orange";
 
 type ThemeProviderContextType = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  colorTheme: ColorTheme;
+  setColorTheme: (colorTheme: ColorTheme) => void;
 };
 
 const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>(undefined);
@@ -12,17 +15,28 @@ const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
+  defaultColorTheme = "red",
   storageKey = "vibes-theme",
+  colorStorageKey = "vibes-color-theme",
 }: {
   children: ReactNode;
   defaultTheme?: Theme;
+  defaultColorTheme?: ColorTheme;
   storageKey?: string;
+  colorStorageKey?: string;
 }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
     }
     return defaultTheme;
+  });
+
+  const [colorTheme, setColorTheme] = useState<ColorTheme>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem(colorStorageKey) as ColorTheme) || defaultColorTheme;
+    }
+    return defaultColorTheme;
   });
 
   useEffect(() => {
@@ -40,11 +54,22 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme]);
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("theme-red", "theme-blue", "theme-green", "theme-purple", "theme-orange");
+    root.classList.add(`theme-${colorTheme}`);
+  }, [colorTheme]);
+
   const value = {
     theme,
     setTheme: (newTheme: Theme) => {
       localStorage.setItem(storageKey, newTheme);
       setTheme(newTheme);
+    },
+    colorTheme,
+    setColorTheme: (newColorTheme: ColorTheme) => {
+      localStorage.setItem(colorStorageKey, newColorTheme);
+      setColorTheme(newColorTheme);
     },
   };
 
@@ -62,3 +87,11 @@ export function useTheme() {
   }
   return context;
 }
+
+export const COLOR_THEMES: { value: ColorTheme; label: string; color: string }[] = [
+  { value: "red", label: "Red", color: "hsl(0, 70%, 45%)" },
+  { value: "blue", label: "Blue", color: "hsl(210, 70%, 45%)" },
+  { value: "green", label: "Green", color: "hsl(142, 70%, 35%)" },
+  { value: "purple", label: "Purple", color: "hsl(270, 70%, 50%)" },
+  { value: "orange", label: "Orange", color: "hsl(25, 95%, 50%)" },
+];

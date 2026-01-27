@@ -26,6 +26,7 @@ import MessagesPage from "@/pages/messages";
 import CourseDetailPage from "@/pages/course-detail";
 import CommunitiesPage from "@/pages/communities";
 import LearnVibecodingPage from "@/pages/learn-vibecoding";
+import SettingsPage from "@/pages/settings";
 import { FeedProvider } from "@/contexts/feed-context";
 import { FeedTabs } from "@/components/feed-tabs";
 
@@ -116,6 +117,7 @@ function Router() {
         <Route path="/submit" component={SubmitProjectPage} />
         <Route path="/projects/:id" component={ProjectDetailPage} />
         <Route path="/posts/:id" component={PostDetailPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </AuthenticatedLayout>
@@ -124,7 +126,7 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vibes-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="vibes-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

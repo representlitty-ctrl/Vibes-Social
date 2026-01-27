@@ -11,6 +11,7 @@ import {
   Search,
   Users,
   GraduationCap,
+  Settings,
 } from "lucide-react";
 import { VibesLogo } from "@/components/vibes-logo";
 import { UserSearch } from "@/components/user-search";
@@ -47,6 +48,7 @@ const secondaryNavItems = [
   { title: "Messages", url: "/messages", icon: MessageCircle },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Profile", url: "/profile", icon: UserIcon },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
