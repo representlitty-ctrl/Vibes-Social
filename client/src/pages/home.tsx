@@ -138,7 +138,7 @@ export default function HomePage() {
           <Button
             variant={feedType === "global" ? "default" : "outline"}
             size="sm"
-            className="gap-2 shrink-0"
+            className={`gap-2 shrink-0 ${feedType === "global" ? "bg-[#1ae6d5] text-[#000000]" : ""}`}
             onClick={() => setFeedType("global")}
             data-testid="tab-global"
           >
