@@ -46,6 +46,7 @@ import {
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
+  searchUsers(query: string): Promise<any[]>;
   
   // Profiles
   getProfile(userId: string): Promise<Profile | undefined>;
@@ -140,6 +141,31 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
+  }
+
+  async searchUsers(query: string): Promise<any[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
+    const results = await db
+      .select({
+        user: users,
+        profile: profiles,
+      })
+      .from(users)
+      .leftJoin(profiles, eq(users.id, profiles.userId))
+      .where(
+        or(
+          ilike(profiles.username, searchTerm),
+          ilike(users.email, searchTerm),
+          ilike(users.firstName, searchTerm),
+          ilike(users.lastName, searchTerm)
+        )
+      )
+      .limit(20);
+
+    return results.map((r) => ({
+      ...r.user,
+      profile: r.profile,
+    }));
   }
 
   // Profiles

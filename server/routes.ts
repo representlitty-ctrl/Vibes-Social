@@ -319,6 +319,21 @@ export async function registerRoutes(
     }
   });
 
+  // Search users route
+  app.get("/api/users/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.json([]);
+      }
+      const users = await storage.searchUsers(query);
+      res.json(users);
+    } catch (error) {
+      console.error("Error searching users:", error);
+      res.status(500).json({ message: "Failed to search users" });
+    }
+  });
+
   // User projects route
   app.get("/api/users/:userId/projects", async (req, res) => {
     try {
