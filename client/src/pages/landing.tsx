@@ -469,7 +469,7 @@ export default function LandingPage() {
               <span className="font-semibold">Vibes</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              The social platform for vibecoders
+              Built by a vibecoder for vibecoders
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <Link href="/discover" className="hover:text-foreground transition-colors">
