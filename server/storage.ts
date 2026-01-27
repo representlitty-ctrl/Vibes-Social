@@ -30,6 +30,9 @@ import {
   courseLessons,
   courseEnrollments,
   courseProgress,
+  communities,
+  communityMembers,
+  communityPosts,
   type User,
   type Profile,
   type InsertProfile,
@@ -58,6 +61,9 @@ import {
   type Course,
   type CourseLesson,
   type CourseEnrollment,
+  type Community,
+  type InsertCommunity,
+  type CommunityMember,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -187,6 +193,18 @@ export interface IStorage {
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
+  
+  // Communities
+  getCommunities(currentUserId?: string): Promise<any[]>;
+  getCommunityById(id: string, currentUserId?: string): Promise<any>;
+  getCommunityByName(name: string, currentUserId?: string): Promise<any>;
+  createCommunity(userId: string, data: InsertCommunity): Promise<Community>;
+  joinCommunity(communityId: string, userId: string): Promise<void>;
+  leaveCommunity(communityId: string, userId: string): Promise<void>;
+  getJoinedCommunities(userId: string): Promise<any[]>;
+  getCommunityPosts(communityId: string, currentUserId?: string): Promise<any[]>;
+  addPostToCommunity(communityId: string, postId: string): Promise<void>;
+  getGlobalFeed(currentUserId?: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1873,6 +1891,175 @@ export class DatabaseStorage implements IStorage {
       completedLessonIds: progress.map(p => p.lessonId),
       percentage: lessons.length > 0 ? Math.round((progress.length / lessons.length) * 100) : 0,
     };
+  }
+
+  // Communities
+  async getCommunities(currentUserId?: string): Promise<any[]> {
+    const allCommunities = await db.select().from(communities).orderBy(desc(communities.createdAt));
+    
+    return Promise.all(allCommunities.map(async (community) => {
+      const [creator] = await db.select().from(users).where(eq(users.id, community.creatorId));
+      const [creatorProfile] = await db.select().from(profiles).where(eq(profiles.userId, community.creatorId));
+      const memberCount = await db.select({ count: count() }).from(communityMembers).where(eq(communityMembers.communityId, community.id));
+      
+      let isMember = false;
+      if (currentUserId) {
+        const [membership] = await db.select().from(communityMembers).where(and(
+          eq(communityMembers.communityId, community.id),
+          eq(communityMembers.userId, currentUserId)
+        ));
+        isMember = !!membership;
+      }
+      
+      return {
+        ...community,
+        creator: creator ? {
+          id: creator.id,
+          firstName: creator.firstName,
+          lastName: creator.lastName,
+          profileImageUrl: creatorProfile?.profileImageUrl || creator.profileImageUrl,
+          username: creatorProfile?.username,
+        } : null,
+        memberCount: memberCount[0]?.count || 0,
+        isMember,
+      };
+    }));
+  }
+
+  async getCommunityById(id: string, currentUserId?: string): Promise<any> {
+    const [community] = await db.select().from(communities).where(eq(communities.id, id));
+    if (!community) return null;
+    
+    const [creator] = await db.select().from(users).where(eq(users.id, community.creatorId));
+    const [creatorProfile] = await db.select().from(profiles).where(eq(profiles.userId, community.creatorId));
+    const memberCount = await db.select({ count: count() }).from(communityMembers).where(eq(communityMembers.communityId, id));
+    
+    let isMember = false;
+    let memberRole = null;
+    if (currentUserId) {
+      const [membership] = await db.select().from(communityMembers).where(and(
+        eq(communityMembers.communityId, id),
+        eq(communityMembers.userId, currentUserId)
+      ));
+      isMember = !!membership;
+      memberRole = membership?.role;
+    }
+    
+    return {
+      ...community,
+      creator: creator ? {
+        id: creator.id,
+        firstName: creator.firstName,
+        lastName: creator.lastName,
+        profileImageUrl: creatorProfile?.profileImageUrl || creator.profileImageUrl,
+        username: creatorProfile?.username,
+      } : null,
+      memberCount: memberCount[0]?.count || 0,
+      isMember,
+      memberRole,
+    };
+  }
+
+  async getCommunityByName(name: string, currentUserId?: string): Promise<any> {
+    const [community] = await db.select().from(communities).where(eq(communities.name, name));
+    if (!community) return null;
+    return this.getCommunityById(community.id, currentUserId);
+  }
+
+  async createCommunity(userId: string, data: InsertCommunity): Promise<Community> {
+    const [community] = await db.insert(communities).values({
+      ...data,
+      creatorId: userId,
+    }).returning();
+    
+    // Creator automatically joins as admin
+    await db.insert(communityMembers).values({
+      communityId: community.id,
+      userId,
+      role: "admin",
+    });
+    
+    return community;
+  }
+
+  async joinCommunity(communityId: string, userId: string): Promise<void> {
+    const [existing] = await db.select().from(communityMembers).where(and(
+      eq(communityMembers.communityId, communityId),
+      eq(communityMembers.userId, userId)
+    ));
+    if (existing) return;
+    
+    await db.insert(communityMembers).values({
+      communityId,
+      userId,
+      role: "member",
+    });
+  }
+
+  async leaveCommunity(communityId: string, userId: string): Promise<void> {
+    await db.delete(communityMembers).where(and(
+      eq(communityMembers.communityId, communityId),
+      eq(communityMembers.userId, userId)
+    ));
+  }
+
+  async getJoinedCommunities(userId: string): Promise<any[]> {
+    const memberships = await db.select().from(communityMembers).where(eq(communityMembers.userId, userId));
+    
+    return Promise.all(memberships.map(async (membership) => {
+      const community = await this.getCommunityById(membership.communityId, userId);
+      return {
+        ...community,
+        memberRole: membership.role,
+      };
+    }));
+  }
+
+  async getCommunityPosts(communityId: string, currentUserId?: string): Promise<any[]> {
+    const comPosts = await db.select().from(communityPosts).where(eq(communityPosts.communityId, communityId)).orderBy(desc(communityPosts.createdAt));
+    
+    const postIds = comPosts.map(cp => cp.postId);
+    if (postIds.length === 0) return [];
+    
+    return Promise.all(postIds.map(async (postId) => {
+      return this.getPostById(postId, currentUserId);
+    })).then(results => results.filter(Boolean));
+  }
+
+  async addPostToCommunity(communityId: string, postId: string): Promise<void> {
+    await db.insert(communityPosts).values({
+      communityId,
+      postId,
+    });
+  }
+
+  async getGlobalFeed(currentUserId?: string): Promise<any[]> {
+    // Get all posts (not just from followed users)
+    const allPosts = await db.select().from(posts).orderBy(desc(posts.createdAt)).limit(50);
+    
+    const postsWithDetails = await Promise.all(allPosts.map(async (post) => {
+      const postWithDetails = await this.getPostById(post.id, currentUserId);
+      return postWithDetails ? { ...postWithDetails, feedType: 'post' as const } : null;
+    }));
+    
+    // Get all projects
+    const allProjects = await db.select().from(projects).orderBy(desc(projects.createdAt)).limit(50);
+    
+    const projectsWithDetails = await Promise.all(allProjects.map(async (project) => {
+      const projectWithDetails = await this.getProjectById(project.id, currentUserId);
+      return projectWithDetails ? { ...projectWithDetails, feedType: 'project' as const } : null;
+    }));
+    
+    // Combine and sort by createdAt
+    const combined = [...postsWithDetails, ...projectsWithDetails]
+      .filter(Boolean)
+      .sort((a, b) => {
+        const dateA = new Date(a!.createdAt || 0).getTime();
+        const dateB = new Date(b!.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+    
+    return combined;
   }
 }
 

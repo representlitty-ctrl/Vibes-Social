@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema } from "@shared/schema";
+import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema, insertCommunitySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -1345,6 +1345,108 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error marking lesson complete:", error);
       res.status(500).json({ message: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Community routes
+  app.get("/api/communities", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const communities = await storage.getCommunities(userId);
+      res.json(communities);
+    } catch (error) {
+      console.error("Error fetching communities:", error);
+      res.status(500).json({ message: "Failed to fetch communities" });
+    }
+  });
+
+  app.get("/api/communities/joined", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const communities = await storage.getJoinedCommunities(userId);
+      res.json(communities);
+    } catch (error) {
+      console.error("Error fetching joined communities:", error);
+      res.status(500).json({ message: "Failed to fetch joined communities" });
+    }
+  });
+
+  app.get("/api/communities/:id", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const community = await storage.getCommunityById(req.params.id, userId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      res.json(community);
+    } catch (error) {
+      console.error("Error fetching community:", error);
+      res.status(500).json({ message: "Failed to fetch community" });
+    }
+  });
+
+  app.post("/api/communities", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const data = insertCommunitySchema.parse(req.body);
+      const community = await storage.createCommunity(userId, data);
+      res.status(201).json(community);
+    } catch (error) {
+      console.error("Error creating community:", error);
+      res.status(500).json({ message: "Failed to create community" });
+    }
+  });
+
+  app.post("/api/communities/:id/join", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.joinCommunity(req.params.id, userId);
+      res.status(200).json({ message: "Joined community" });
+    } catch (error) {
+      console.error("Error joining community:", error);
+      res.status(500).json({ message: "Failed to join community" });
+    }
+  });
+
+  app.post("/api/communities/:id/leave", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.leaveCommunity(req.params.id, userId);
+      res.status(200).json({ message: "Left community" });
+    } catch (error) {
+      console.error("Error leaving community:", error);
+      res.status(500).json({ message: "Failed to leave community" });
+    }
+  });
+
+  app.get("/api/communities/:id/posts", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const posts = await storage.getCommunityPosts(req.params.id, userId);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching community posts:", error);
+      res.status(500).json({ message: "Failed to fetch community posts" });
+    }
+  });
+
+  // Global feed (all posts and projects from everyone)
+  app.get("/api/feed/global", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const feed = await storage.getGlobalFeed(userId);
+      res.json(feed);
+    } catch (error) {
+      console.error("Error fetching global feed:", error);
+      res.status(500).json({ message: "Failed to fetch global feed" });
     }
   });
 
