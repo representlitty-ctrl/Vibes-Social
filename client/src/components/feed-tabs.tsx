@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useFeed } from "@/contexts/feed-context";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,15 @@ type CommunityWithDetails = Community & {
 export function FeedTabs() {
   const { user } = useAuth();
   const { feedType, setFeedType } = useFeed();
+  const [location] = useLocation();
 
   const { data: joinedCommunities } = useQuery<CommunityWithDetails[]>({
     queryKey: ["/api/communities/joined"],
     enabled: !!user,
   });
 
-  if (!user) return null;
+  // Only show feed tabs on the home page
+  if (!user || location !== "/home") return null;
 
   return (
     <div 
