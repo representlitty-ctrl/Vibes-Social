@@ -316,11 +316,23 @@ export class DatabaseStorage implements IStorage {
       isFollowing = !!followRecord;
     }
 
+    const [postResult] = await db
+      .select({ count: count() })
+      .from(posts)
+      .where(eq(posts.userId, userId));
+
+    const [projectResult] = await db
+      .select({ count: count() })
+      .from(projects)
+      .where(eq(projects.userId, userId));
+
     return {
       ...profile,
       user,
       followerCount: followerResult?.count || 0,
       followingCount: followingResult?.count || 0,
+      postCount: postResult?.count || 0,
+      projectCount: projectResult?.count || 0,
       isFollowing,
     };
   }

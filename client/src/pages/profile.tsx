@@ -36,6 +36,8 @@ type ProfileWithUser = Profile & {
   user: User;
   followerCount: number;
   followingCount: number;
+  postCount: number;
+  projectCount: number;
   isFollowing: boolean;
 };
 
@@ -275,6 +277,14 @@ export default function ProfilePage() {
             )}
 
             <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <FileText className="h-4 w-4" />
+                <span className="font-medium text-foreground">{profile.postCount}</span> posts
+              </div>
+              <div className="flex items-center gap-1">
+                <Grid3X3 className="h-4 w-4" />
+                <span className="font-medium text-foreground">{profile.projectCount}</span> projects
+              </div>
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
                 <span className="font-medium text-foreground">{profile.followerCount}</span> followers
