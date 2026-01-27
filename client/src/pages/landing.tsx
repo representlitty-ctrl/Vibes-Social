@@ -294,7 +294,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-cyan-500 to-green-500 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
                         <Zap className="h-6 w-6 text-white" />
                       </div>
                       <div>
