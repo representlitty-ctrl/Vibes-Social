@@ -53,6 +53,14 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
       const data = insertProfileSchema.parse(req.body);
+      
+      if (data.username) {
+        const isAvailable = await storage.isUsernameAvailable(data.username, userId);
+        if (!isAvailable) {
+          return res.status(400).json({ message: "Username is already taken" });
+        }
+      }
+      
       const profile = await storage.upsertProfile(userId, data);
       res.json(profile);
     } catch (error) {

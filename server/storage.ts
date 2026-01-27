@@ -169,6 +169,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Profiles
+  async generateUniqueUsername(user: User): Promise<string> {
+    let base = "";
+    if (user.firstName && user.lastName) {
+      base = `${user.firstName}${user.lastName}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+    } else if (user.firstName) {
+      base = user.firstName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    } else if (user.email) {
+      base = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+    } else {
+      base = "user";
+    }
+    
+    base = base.substring(0, 20) || "user";
+    
+    let username = base;
+    let counter = 1;
+    while (true) {
+      const [existing] = await db.select().from(profiles).where(eq(profiles.username, username));
+      if (!existing) break;
+      username = `${base}${counter}`;
+      counter++;
+    }
+    return username;
+  }
+
+  async isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+    const query = excludeUserId
+      ? db.select().from(profiles).where(and(eq(profiles.username, username), ne(profiles.userId, excludeUserId)))
+      : db.select().from(profiles).where(eq(profiles.username, username));
+    const [existing] = await query;
+    return !existing;
+  }
+
   async getProfile(userId: string): Promise<Profile | undefined> {
     const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     return profile || undefined;
@@ -180,7 +213,8 @@ export class DatabaseStorage implements IStorage {
 
     let [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     if (!profile) {
-      [profile] = await db.insert(profiles).values({ userId }).returning();
+      const baseUsername = await this.generateUniqueUsername(user);
+      [profile] = await db.insert(profiles).values({ userId, username: baseUsername }).returning();
     }
 
     const [followerResult] = await db
@@ -346,7 +380,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProject(id: string, userId: string): Promise<void> {
-    await db.delete(projects).where(and(eq(projects.id, id), eq(projects.userId, userId)));
+    const [project] = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.userId, userId)));
+    if (!project) return;
+    
+    await db.delete(projectUpvotes).where(eq(projectUpvotes.projectId, id));
+    await db.delete(projectDownvotes).where(eq(projectDownvotes.projectId, id));
+    await db.delete(projectBookmarks).where(eq(projectBookmarks.projectId, id));
+    await db.delete(projectComments).where(eq(projectComments.projectId, id));
+    await db.delete(reactions).where(and(eq(reactions.targetType, "project"), eq(reactions.targetId, id)));
+    await db.delete(notifications).where(and(eq(notifications.referenceType, "project"), eq(notifications.referenceId, id)));
+    await db.delete(projects).where(eq(projects.id, id));
   }
 
   // Project Upvotes
