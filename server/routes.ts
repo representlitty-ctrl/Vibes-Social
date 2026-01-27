@@ -1633,5 +1633,36 @@ export async function registerRoutes(
     }
   });
 
+  // Vibecoding Progress
+  app.get("/api/users/:id/vibecoding-progress", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const completedLessons = await storage.getVibecodingProgress(id);
+      res.json({
+        completedLessons,
+        passedQuizzes: [],
+        hasCertificate: false,
+        badges: [],
+      });
+    } catch (error) {
+      console.error("Error fetching vibecoding progress:", error);
+      res.status(500).json({ message: "Failed to fetch progress" });
+    }
+  });
+
+  app.post("/api/vibecoding/lessons/:lessonId/complete", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { lessonId } = req.params;
+      await storage.markVibecodingLessonComplete(userId, lessonId);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error marking lesson complete:", error);
+      res.status(500).json({ message: "Failed to mark lesson complete" });
+    }
+  });
+
   return httpServer;
 }

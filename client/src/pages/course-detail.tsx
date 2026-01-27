@@ -21,6 +21,7 @@ import {
   Video,
   FileText,
   User as UserIcon,
+  Lock,
 } from "lucide-react";
 import type { Course, CourseLesson } from "@shared/schema";
 
@@ -197,13 +198,38 @@ export default function CourseDetailPage() {
               <div className="space-y-2">
                 {course.lessons.map((lesson, index) => {
                   const isCompleted = course.completedLessons?.includes(lesson.id);
+                  // Lesson is unlocked if it's the first one or all previous lessons are completed
+                  const isUnlocked = index === 0 || 
+                    course.lessons.slice(0, index).every((l: CourseLesson) => 
+                      course.completedLessons?.includes(l.id)
+                    );
+                  const isLocked = !isUnlocked && !isCompleted;
+                  
                   return (
                     <div
                       key={lesson.id}
-                      className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                      className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                        isCompleted 
+                          ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                          : isLocked
+                          ? "bg-muted/30 border-muted opacity-60"
+                          : "hover:bg-muted/50"
+                      }`}
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                        {index + 1}
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+                        isCompleted 
+                          ? "bg-green-500 text-white"
+                          : isLocked
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-primary/20 text-primary"
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : isLocked ? (
+                          <Lock className="h-4 w-4" />
+                        ) : (
+                          index + 1
+                        )}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -212,26 +238,39 @@ export default function CourseDetailPage() {
                           ) : (
                             <FileText className="h-4 w-4 text-muted-foreground" />
                           )}
-                          <span className="font-medium">{lesson.title}</span>
+                          <span className={`font-medium ${isLocked ? "text-muted-foreground" : ""}`}>
+                            {lesson.title}
+                          </span>
                         </div>
                         {lesson.duration && (
                           <span className="text-xs text-muted-foreground">{lesson.duration}</span>
                         )}
                       </div>
                       {course.isEnrolled && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => !isCompleted && handleCompleteLesson(lesson.id)}
-                          disabled={isCompleted || completeLessonMutation.isPending}
-                          data-testid={`button-complete-lesson-${lesson.id}`}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground" />
-                          )}
-                        </Button>
+                        isLocked ? (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            disabled
+                            data-testid={`button-complete-lesson-${lesson.id}`}
+                          >
+                            <Lock className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => !isCompleted && handleCompleteLesson(lesson.id)}
+                            disabled={isCompleted || completeLessonMutation.isPending}
+                            data-testid={`button-complete-lesson-${lesson.id}`}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle className="h-5 w-5 text-green-500" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </Button>
+                        )
                       )}
                     </div>
                   );

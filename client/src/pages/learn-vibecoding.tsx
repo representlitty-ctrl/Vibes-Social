@@ -938,11 +938,24 @@ export default function LearnVibecodingPage() {
 
   const allLessons = VIBECODING_SYLLABUS.flatMap(m => m.lessons);
   const currentLessonIndex = selectedLesson ? allLessons.findIndex(l => l.id === selectedLesson.id) : -1;
+  
+  // Check if next lesson can be accessed (current must be completed or user is completing it)
+  const canAccessNextLesson = (nextIndex: number) => {
+    if (nextIndex >= allLessons.length || nextIndex < 0) return false;
+    // Can access if all lessons before it are completed
+    for (let i = 0; i < nextIndex; i++) {
+      const lessonCompleted = progress?.completedLessons?.includes(allLessons[i].id) || false;
+      if (!lessonCompleted) return false;
+    }
+    return true;
+  };
+  
   const hasNextLesson = currentLessonIndex >= 0 && currentLessonIndex < allLessons.length - 1;
   const hasPrevLesson = currentLessonIndex > 0;
+  const canGoNext = hasNextLesson && canAccessNextLesson(currentLessonIndex + 1);
 
   const goToNextLesson = () => {
-    if (hasNextLesson) {
+    if (hasNextLesson && canGoNext) {
       setSelectedLesson(allLessons[currentLessonIndex + 1]);
     }
   };
@@ -952,6 +965,20 @@ export default function LearnVibecodingPage() {
       setSelectedLesson(allLessons[currentLessonIndex - 1]);
     }
   };
+
+  // Mutation to mark lesson as complete
+  const completeLesson = useMutation({
+    mutationFn: async (lessonId: string) => {
+      return apiRequest("POST", `/api/vibecoding/lessons/${lessonId}/complete`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "vibecoding-progress"] });
+      toast({
+        title: "Lesson completed!",
+        description: "Great job! Keep learning.",
+      });
+    },
+  });
 
   const formatContent = (content: string) => {
     return content.split('\n').map((line, i) => {
@@ -992,14 +1019,6 @@ export default function LearnVibecodingPage() {
 
   const { data: progress, isLoading: progressLoading } = useQuery<UserProgress>({
     queryKey: ["/api/users", user?.id, "vibecoding-progress"],
-    queryFn: async () => {
-      return {
-        completedLessons: [],
-        passedQuizzes: [],
-        hasCertificate: false,
-        badges: [],
-      };
-    },
     enabled: !!user,
   });
 
@@ -1048,6 +1067,39 @@ export default function LearnVibecodingPage() {
 
   const isLessonCompleted = (lessonId: string) => {
     return progress?.completedLessons?.includes(lessonId) || false;
+  };
+
+  // Get all lessons flattened with their module index
+  const allLessonsWithModules = VIBECODING_SYLLABUS.flatMap((module, moduleIdx) => 
+    module.lessons.map((lesson, lessonIdx) => ({
+      ...lesson,
+      moduleIndex: moduleIdx,
+      lessonIndex: lessonIdx,
+    }))
+  );
+
+  // Check if a lesson is unlocked (first lesson OR all previous lessons completed)
+  const isLessonUnlocked = (lessonId: string) => {
+    const lessonIndex = allLessonsWithModules.findIndex(l => l.id === lessonId);
+    if (lessonIndex === 0) return true; // First lesson is always unlocked
+    
+    // Check if all previous lessons are completed
+    for (let i = 0; i < lessonIndex; i++) {
+      if (!isLessonCompleted(allLessonsWithModules[i].id)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Get the index of the next unlockable lesson (first uncompleted or last+1)
+  const getNextUnlockedIndex = () => {
+    for (let i = 0; i < allLessonsWithModules.length; i++) {
+      if (!isLessonCompleted(allLessonsWithModules[i].id)) {
+        return i;
+      }
+    }
+    return allLessonsWithModules.length; // All completed
   };
 
   const vibecodingCertificates = certificates?.filter(c => 
@@ -1147,12 +1199,17 @@ export default function LearnVibecodingPage() {
                         <div className="space-y-2 pl-11">
                           {module.lessons.map((lesson, lessonIndex) => {
                             const completed = isLessonCompleted(lesson.id);
+                            const unlocked = isLessonUnlocked(lesson.id);
+                            const isLocked = !unlocked && !completed;
+                            
                             return (
                               <div
                                 key={lesson.id}
                                 className={`flex items-center gap-3 p-3 rounded-lg border ${
                                   completed 
                                     ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900" 
+                                    : isLocked
+                                    ? "bg-muted/30 border-muted opacity-60"
                                     : "bg-card hover-elevate"
                                 }`}
                                 data-testid={`lesson-${lesson.id}`}
@@ -1160,16 +1217,22 @@ export default function LearnVibecodingPage() {
                                 <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                                   completed 
                                     ? "bg-green-500 text-white" 
-                                    : "bg-muted text-muted-foreground"
+                                    : isLocked
+                                    ? "bg-muted text-muted-foreground"
+                                    : "bg-primary/20 text-primary"
                                 }`}>
                                   {completed ? (
                                     <CheckCircle className="h-3 w-3" />
+                                  ) : isLocked ? (
+                                    <Lock className="h-3 w-3" />
                                   ) : (
                                     lessonIndex + 1
                                   )}
                                 </div>
                                 <div className="flex-1">
-                                  <div className="text-sm font-medium">{lesson.title}</div>
+                                  <div className={`text-sm font-medium ${isLocked ? "text-muted-foreground" : ""}`}>
+                                    {lesson.title}
+                                  </div>
                                   <div className="flex items-center gap-2 mt-1">
                                     {getLessonBadge(lesson.type)}
                                     <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1178,16 +1241,29 @@ export default function LearnVibecodingPage() {
                                     </span>
                                   </div>
                                 </div>
-                                <Button
-                                  variant={completed ? "outline" : "default"}
-                                  size="sm"
-                                  className="gap-1"
-                                  onClick={() => setSelectedLesson(lesson)}
-                                  data-testid={`start-lesson-${lesson.id}`}
-                                >
-                                  {completed ? "Review" : "Start"}
-                                  <ChevronRight className="h-3 w-3" />
-                                </Button>
+                                {isLocked ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1"
+                                    disabled
+                                    data-testid={`start-lesson-${lesson.id}`}
+                                  >
+                                    <Lock className="h-3 w-3" />
+                                    Locked
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant={completed ? "outline" : "default"}
+                                    size="sm"
+                                    className="gap-1"
+                                    onClick={() => setSelectedLesson(lesson)}
+                                    data-testid={`start-lesson-${lesson.id}`}
+                                  >
+                                    {completed ? "Review" : "Start"}
+                                    <ChevronRight className="h-3 w-3" />
+                                  </Button>
+                                )}
                               </div>
                             );
                           })}
@@ -1372,12 +1448,38 @@ export default function LearnVibecodingPage() {
               <ArrowLeft className="h-4 w-4" />
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Lesson {currentLessonIndex + 1} of {allLessons.length}
-            </span>
+            
+            <div className="flex items-center gap-3">
+              {user && selectedLesson && !isLessonCompleted(selectedLesson.id) ? (
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    if (selectedLesson) {
+                      completeLesson.mutate(selectedLesson.id);
+                    }
+                  }}
+                  disabled={completeLesson.isPending}
+                  className="gap-2"
+                  data-testid="button-complete-lesson"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  {completeLesson.isPending ? "Marking..." : "Mark Complete"}
+                </Button>
+              ) : selectedLesson && isLessonCompleted(selectedLesson.id) ? (
+                <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Completed
+                </Badge>
+              ) : null}
+              <span className="text-sm text-muted-foreground">
+                {currentLessonIndex + 1} / {allLessons.length}
+              </span>
+            </div>
+            
             <Button
               onClick={goToNextLesson}
-              disabled={!hasNextLesson}
+              variant="outline"
+              disabled={!hasNextLesson || (!canGoNext && !isLessonCompleted(selectedLesson?.id || ""))}
               className="gap-2"
             >
               Next

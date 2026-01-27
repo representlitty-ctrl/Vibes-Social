@@ -37,6 +37,7 @@ import {
   quizAttempts,
   courseCertificates,
   userBadges,
+  vibecodingProgress,
   type User,
   type Profile,
   type InsertProfile,
@@ -205,6 +206,10 @@ export interface IStorage {
   // View Counts
   incrementProjectViewCount(projectId: string): Promise<void>;
   incrementPostViewCount(postId: string): Promise<void>;
+  
+  // Vibecoding Progress
+  getVibecodingProgress(userId: string): Promise<string[]>;
+  markVibecodingLessonComplete(userId: string, lessonId: string): Promise<void>;
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
@@ -1336,6 +1341,31 @@ export class DatabaseStorage implements IStorage {
     await db.update(posts)
       .set({ viewCount: sql`COALESCE(${posts.viewCount}, 0) + 1` })
       .where(eq(posts.id, postId));
+  }
+
+  // Vibecoding Progress
+  async getVibecodingProgress(userId: string): Promise<string[]> {
+    const progress = await db.select()
+      .from(vibecodingProgress)
+      .where(eq(vibecodingProgress.userId, userId));
+    return progress.map(p => p.lessonId);
+  }
+
+  async markVibecodingLessonComplete(userId: string, lessonId: string): Promise<void> {
+    // Check if already completed
+    const existing = await db.select()
+      .from(vibecodingProgress)
+      .where(and(
+        eq(vibecodingProgress.userId, userId),
+        eq(vibecodingProgress.lessonId, lessonId)
+      ));
+    
+    if (existing.length === 0) {
+      await db.insert(vibecodingProgress).values({
+        userId,
+        lessonId,
+      });
+    }
   }
 
   // Stats
