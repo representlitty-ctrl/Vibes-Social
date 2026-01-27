@@ -375,7 +375,7 @@ function CommunityCard({
             <span className="text-xs text-muted-foreground">
               Created by{" "}
               {community.creator.username
-                ? `@${community.creator.username}`
+                ? community.creator.username
                 : community.creator.firstName || "User"}
             </span>
           </div>

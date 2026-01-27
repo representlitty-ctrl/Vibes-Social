@@ -103,7 +103,7 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
   };
 
   const displayName = project.user.profile?.username 
-    ? `@${project.user.profile.username}`
+    ? project.user.profile.username
     : `${project.user.firstName || ""} ${project.user.lastName || ""}`.trim() || "Anonymous";
 
   if (featured) {

@@ -229,7 +229,7 @@ export default function MessagesPage() {
 
   const getUserName = (user: { firstName?: string | null; lastName?: string | null; email?: string; username?: string | null } | null) => {
     if (!user) return "Unknown";
-    if (user.username) return `@${user.username}`;
+    if (user.username) return user.username;
     if (user.firstName) return `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`;
     return user.email;
   };

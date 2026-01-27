@@ -148,7 +148,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const displayName = post.user?.username
-    ? `@${post.user.username}`
+    ? post.user.username
     : `${post.user?.firstName || ""} ${post.user?.lastName || ""}`.trim() || "Anonymous";
 
   const handleAvatarClick = (e: React.MouseEvent, userId: string) => {
@@ -314,7 +314,7 @@ export function PostCard({ post }: PostCardProps) {
                           onClick={(e) => handleAvatarClick(e, comment.userId)}
                         >
                           {comment.user?.username
-                            ? `@${comment.user.username}`
+                            ? comment.user.username
                             : `${comment.user?.firstName || ""} ${comment.user?.lastName || ""}`.trim() || "Anonymous"}
                         </span>
                         <p className="text-sm">{comment.content}</p>
