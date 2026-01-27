@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, sql, count, or, ilike, ne } from "drizzle-orm";
+import { eq, desc, and, sql, count, or, ilike, ne, gt, inArray } from "drizzle-orm";
 import {
   users,
   profiles,
@@ -21,6 +21,11 @@ import {
   conversations,
   messages,
   reactions,
+  posts,
+  postMedia,
+  postLikes,
+  postComments,
+  stories,
   type User,
   type Profile,
   type InsertProfile,
@@ -41,6 +46,11 @@ import {
   type Message,
   type Conversation,
   type Reaction,
+  type Post,
+  type PostMedia,
+  type PostLike,
+  type PostComment,
+  type Story,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -131,6 +141,26 @@ export interface IStorage {
   getReactions(targetType: string, targetId: string): Promise<any[]>;
   addReaction(userId: string, emoji: string, targetType: string, targetId: string): Promise<void>;
   removeReaction(userId: string, emoji: string, targetType: string, targetId: string): Promise<void>;
+  
+  // Posts
+  createPost(userId: string, content: string | null, voiceNoteUrl?: string): Promise<any>;
+  addPostMedia(postId: string, mediaType: string, mediaUrl: string, previewUrl?: string, aspectRatio?: string, orderIndex?: number): Promise<any>;
+  getPosts(currentUserId?: string): Promise<any[]>;
+  getFeed(userId: string): Promise<any[]>;
+  getPostById(id: string, currentUserId?: string): Promise<any>;
+  getPostsByUser(userId: string, currentUserId?: string): Promise<any[]>;
+  deletePost(id: string, userId: string): Promise<void>;
+  likePost(postId: string, userId: string): Promise<void>;
+  unlikePost(postId: string, userId: string): Promise<void>;
+  getPostComments(postId: string): Promise<any[]>;
+  createPostComment(postId: string, userId: string, content: string): Promise<any>;
+  deletePostComment(commentId: string, userId: string): Promise<void>;
+  
+  // Stories
+  createStory(userId: string, mediaType: string, mediaUrl: string, previewUrl?: string): Promise<any>;
+  getStories(userId: string): Promise<any[]>;
+  getStoriesByUser(userId: string): Promise<any[]>;
+  deleteStory(id: string, userId: string): Promise<void>;
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
@@ -1213,6 +1243,383 @@ export class DatabaseStorage implements IStorage {
       userCount: userResult?.count || 0,
       grantCount: grantResult?.count || 0,
     };
+  }
+
+  // Posts
+  async createPost(userId: string, content: string | null, voiceNoteUrl?: string): Promise<any> {
+    const [post] = await db.insert(posts).values({
+      userId,
+      content,
+      voiceNoteUrl,
+    }).returning();
+    return post;
+  }
+
+  async addPostMedia(postId: string, mediaType: string, mediaUrl: string, previewUrl?: string, aspectRatio?: string, orderIndex: number = 0): Promise<any> {
+    const [media] = await db.insert(postMedia).values({
+      postId,
+      mediaType,
+      mediaUrl,
+      previewUrl,
+      aspectRatio,
+      orderIndex,
+    }).returning();
+    return media;
+  }
+
+  async getPosts(currentUserId?: string): Promise<any[]> {
+    const allPosts = await db
+      .select()
+      .from(posts)
+      .orderBy(desc(posts.createdAt))
+      .limit(50);
+
+    return Promise.all(allPosts.map(async (post) => {
+      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, post.userId));
+      const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
+      const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
+      const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+      
+      let isLiked = false;
+      if (currentUserId) {
+        const [like] = await db.select().from(postLikes).where(and(
+          eq(postLikes.postId, post.id),
+          eq(postLikes.userId, currentUserId)
+        ));
+        isLiked = !!like;
+      }
+
+      return {
+        ...post,
+        type: "post",
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+          username: profile?.username,
+        } : null,
+        media,
+        likeCount: likeCount?.count || 0,
+        commentCount: commentCount?.count || 0,
+        isLiked,
+      };
+    }));
+  }
+
+  async getFeed(userId: string): Promise<any[]> {
+    const followingIds = await db
+      .select({ followingId: follows.followingId })
+      .from(follows)
+      .where(eq(follows.followerId, userId));
+    
+    const followingUserIds = followingIds.map(f => f.followingId);
+    followingUserIds.push(userId);
+
+    const feedPosts = await db
+      .select()
+      .from(posts)
+      .where(inArray(posts.userId, followingUserIds))
+      .orderBy(desc(posts.createdAt))
+      .limit(30);
+
+    const feedProjects = await db
+      .select()
+      .from(projects)
+      .where(inArray(projects.userId, followingUserIds))
+      .orderBy(desc(projects.createdAt))
+      .limit(30);
+
+    const postsWithData = await Promise.all(feedPosts.map(async (post) => {
+      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, post.userId));
+      const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
+      const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
+      const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+      
+      let isLiked = false;
+      const [like] = await db.select().from(postLikes).where(and(
+        eq(postLikes.postId, post.id),
+        eq(postLikes.userId, userId)
+      ));
+      isLiked = !!like;
+
+      return {
+        ...post,
+        type: "post",
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+          username: profile?.username,
+        } : null,
+        media,
+        likeCount: likeCount?.count || 0,
+        commentCount: commentCount?.count || 0,
+        isLiked,
+      };
+    }));
+
+    const projectsWithData = await Promise.all(feedProjects.map(async (project) => {
+      const [user] = await db.select().from(users).where(eq(users.id, project.userId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, project.userId));
+      const [upvoteCount] = await db.select({ count: count() }).from(projectUpvotes).where(eq(projectUpvotes.projectId, project.id));
+      const [commentCount] = await db.select({ count: count() }).from(projectComments).where(eq(projectComments.projectId, project.id));
+      
+      let isUpvoted = false;
+      const [upvote] = await db.select().from(projectUpvotes).where(and(
+        eq(projectUpvotes.projectId, project.id),
+        eq(projectUpvotes.userId, userId)
+      ));
+      isUpvoted = !!upvote;
+
+      return {
+        ...project,
+        type: "project",
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+          username: profile?.username,
+        } : null,
+        upvoteCount: upvoteCount?.count || 0,
+        commentCount: commentCount?.count || 0,
+        isUpvoted,
+      };
+    }));
+
+    const combined = [...postsWithData, ...projectsWithData];
+    combined.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+
+    return combined.slice(0, 50);
+  }
+
+  async getPostById(id: string, currentUserId?: string): Promise<any> {
+    const [post] = await db.select().from(posts).where(eq(posts.id, id));
+    if (!post) return null;
+
+    const [user] = await db.select().from(users).where(eq(users.id, post.userId));
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, post.userId));
+    const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
+    const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
+    const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+    
+    let isLiked = false;
+    if (currentUserId) {
+      const [like] = await db.select().from(postLikes).where(and(
+        eq(postLikes.postId, post.id),
+        eq(postLikes.userId, currentUserId)
+      ));
+      isLiked = !!like;
+    }
+
+    return {
+      ...post,
+      type: "post",
+      user: user ? {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+        username: profile?.username,
+      } : null,
+      media,
+      likeCount: likeCount?.count || 0,
+      commentCount: commentCount?.count || 0,
+      isLiked,
+    };
+  }
+
+  async getPostsByUser(userId: string, currentUserId?: string): Promise<any[]> {
+    const userPosts = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId))
+      .orderBy(desc(posts.createdAt));
+
+    return Promise.all(userPosts.map(async (post) => {
+      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, post.userId));
+      const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
+      const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
+      const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+      
+      let isLiked = false;
+      if (currentUserId) {
+        const [like] = await db.select().from(postLikes).where(and(
+          eq(postLikes.postId, post.id),
+          eq(postLikes.userId, currentUserId)
+        ));
+        isLiked = !!like;
+      }
+
+      return {
+        ...post,
+        type: "post",
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+          username: profile?.username,
+        } : null,
+        media,
+        likeCount: likeCount?.count || 0,
+        commentCount: commentCount?.count || 0,
+        isLiked,
+      };
+    }));
+  }
+
+  async deletePost(id: string, userId: string): Promise<void> {
+    await db.delete(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
+  }
+
+  async likePost(postId: string, userId: string): Promise<void> {
+    const existing = await db.select().from(postLikes).where(and(
+      eq(postLikes.postId, postId),
+      eq(postLikes.userId, userId)
+    ));
+    if (existing.length === 0) {
+      await db.insert(postLikes).values({ postId, userId });
+    }
+  }
+
+  async unlikePost(postId: string, userId: string): Promise<void> {
+    await db.delete(postLikes).where(and(
+      eq(postLikes.postId, postId),
+      eq(postLikes.userId, userId)
+    ));
+  }
+
+  async getPostComments(postId: string): Promise<any[]> {
+    const comments = await db
+      .select()
+      .from(postComments)
+      .where(eq(postComments.postId, postId))
+      .orderBy(desc(postComments.createdAt));
+
+    return Promise.all(comments.map(async (comment) => {
+      const [user] = await db.select().from(users).where(eq(users.id, comment.userId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, comment.userId));
+      return {
+        ...comment,
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+          username: profile?.username,
+        } : null,
+      };
+    }));
+  }
+
+  async createPostComment(postId: string, userId: string, content: string): Promise<any> {
+    const [comment] = await db.insert(postComments).values({
+      postId,
+      userId,
+      content,
+    }).returning();
+    return comment;
+  }
+
+  async deletePostComment(commentId: string, userId: string): Promise<void> {
+    await db.delete(postComments).where(and(
+      eq(postComments.id, commentId),
+      eq(postComments.userId, userId)
+    ));
+  }
+
+  // Stories
+  async createStory(userId: string, mediaType: string, mediaUrl: string, previewUrl?: string): Promise<any> {
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
+    const [story] = await db.insert(stories).values({
+      userId,
+      mediaType,
+      mediaUrl,
+      previewUrl,
+      expiresAt,
+    }).returning();
+    return story;
+  }
+
+  async getStories(userId: string): Promise<any[]> {
+    const followingIds = await db
+      .select({ followingId: follows.followingId })
+      .from(follows)
+      .where(eq(follows.followerId, userId));
+    
+    const followingUserIds = followingIds.map(f => f.followingId);
+    followingUserIds.push(userId);
+
+    const now = new Date();
+    const activeStories = await db
+      .select()
+      .from(stories)
+      .where(and(
+        inArray(stories.userId, followingUserIds),
+        gt(stories.expiresAt, now)
+      ))
+      .orderBy(desc(stories.createdAt));
+
+    const groupedByUser = activeStories.reduce((acc, story) => {
+      if (!acc[story.userId]) {
+        acc[story.userId] = [];
+      }
+      acc[story.userId].push(story);
+      return acc;
+    }, {} as Record<string, typeof activeStories>);
+
+    const result = await Promise.all(Object.entries(groupedByUser).map(async ([storyUserId, userStories]) => {
+      const [user] = await db.select().from(users).where(eq(users.id, storyUserId));
+      const [profile] = await db.select().from(profiles).where(eq(profiles.userId, storyUserId));
+      return {
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+          username: profile?.username,
+        } : null,
+        stories: userStories,
+        storyCount: userStories.length,
+      };
+    }));
+
+    return result;
+  }
+
+  async getStoriesByUser(userId: string): Promise<any[]> {
+    const now = new Date();
+    return db
+      .select()
+      .from(stories)
+      .where(and(
+        eq(stories.userId, userId),
+        gt(stories.expiresAt, now)
+      ))
+      .orderBy(desc(stories.createdAt));
+  }
+
+  async deleteStory(id: string, userId: string): Promise<void> {
+    await db.delete(stories).where(and(eq(stories.id, id), eq(stories.userId, userId)));
   }
 }
 

@@ -32,6 +32,7 @@ export const projects = pgTable("projects", {
   demoUrl: varchar("demo_url"),
   githubUrl: varchar("github_url"),
   imageUrl: varchar("image_url"),
+  voiceNoteUrl: varchar("voice_note_url"),
   tags: text("tags").array(),
   userId: varchar("user_id").notNull().references(() => users.id),
   isFeatured: boolean("is_featured").default(false),
@@ -214,6 +215,56 @@ export const reactions = pgTable("reactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Social Posts
+export const posts = pgTable("posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content"),
+  voiceNoteUrl: varchar("voice_note_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Post Media (images/videos)
+export const postMedia = pgTable("post_media", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  mediaType: varchar("media_type", { length: 20 }).notNull(),
+  mediaUrl: varchar("media_url").notNull(),
+  previewUrl: varchar("preview_url"),
+  aspectRatio: varchar("aspect_ratio"),
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Post Likes
+export const postLikes = pgTable("post_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Post Comments
+export const postComments = pgTable("post_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Stories
+export const stories = pgTable("stories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  mediaType: varchar("media_type", { length: 20 }).notNull(),
+  mediaUrl: varchar("media_url").notNull(),
+  previewUrl: varchar("preview_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   profile: one(profiles, { fields: [users.id], references: [profiles.userId] }),
@@ -327,6 +378,31 @@ export const reactionsRelations = relations(reactions, ({ one }) => ({
   user: one(users, { fields: [reactions.userId], references: [users.id] }),
 }));
 
+export const postsRelations = relations(posts, ({ one, many }) => ({
+  user: one(users, { fields: [posts.userId], references: [users.id] }),
+  media: many(postMedia),
+  likes: many(postLikes),
+  comments: many(postComments),
+}));
+
+export const postMediaRelations = relations(postMedia, ({ one }) => ({
+  post: one(posts, { fields: [postMedia.postId], references: [posts.id] }),
+}));
+
+export const postLikesRelations = relations(postLikes, ({ one }) => ({
+  post: one(posts, { fields: [postLikes.postId], references: [posts.id] }),
+  user: one(users, { fields: [postLikes.userId], references: [users.id] }),
+}));
+
+export const postCommentsRelations = relations(postComments, ({ one }) => ({
+  post: one(posts, { fields: [postComments.postId], references: [posts.id] }),
+  user: one(users, { fields: [postComments.userId], references: [users.id] }),
+}));
+
+export const storiesRelations = relations(stories, ({ one }) => ({
+  user: one(users, { fields: [stories.userId], references: [users.id] }),
+}));
+
 // Insert Schemas
 export const insertProfileSchema = createInsertSchema(profiles).omit({ userId: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, userId: true, createdAt: true, updatedAt: true, isFeatured: true });
@@ -338,6 +414,10 @@ export const insertGrantApplicationSchema = createInsertSchema(grantApplications
 export const insertGrantSubmissionSchema = createInsertSchema(grantSubmissions).omit({ id: true, userId: true, createdAt: true, status: true, isWinner: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, senderId: true, createdAt: true, isRead: true });
 export const insertReactionSchema = createInsertSchema(reactions).omit({ id: true, userId: true, createdAt: true });
+export const insertPostSchema = createInsertSchema(posts).omit({ id: true, userId: true, createdAt: true, updatedAt: true });
+export const insertPostMediaSchema = createInsertSchema(postMedia).omit({ id: true, createdAt: true });
+export const insertPostCommentSchema = createInsertSchema(postComments).omit({ id: true, userId: true, createdAt: true });
+export const insertStorySchema = createInsertSchema(stories).omit({ id: true, userId: true, createdAt: true });
 
 // Types
 export type Profile = typeof profiles.$inferSelect;
@@ -381,3 +461,17 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 export type Reaction = typeof reactions.$inferSelect;
 export type InsertReaction = z.infer<typeof insertReactionSchema>;
+
+export type Post = typeof posts.$inferSelect;
+export type InsertPost = z.infer<typeof insertPostSchema>;
+
+export type PostMedia = typeof postMedia.$inferSelect;
+export type InsertPostMedia = z.infer<typeof insertPostMediaSchema>;
+
+export type PostLike = typeof postLikes.$inferSelect;
+
+export type PostComment = typeof postComments.$inferSelect;
+export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
+
+export type Story = typeof stories.$inferSelect;
+export type InsertStory = z.infer<typeof insertStorySchema>;
