@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useFeed } from "@/contexts/feed-context";
 import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
 import { Globe, Users } from "lucide-react";
 import type { Community } from "@shared/schema";
 
@@ -26,43 +27,37 @@ export function FeedTabs() {
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       data-testid="feed-tabs-header"
     >
-      <button
+      <Button
+        variant={feedType === "following" ? "default" : "ghost"}
+        size="sm"
         onClick={() => setFeedType("following")}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-          feedType === "following"
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted"
-        }`}
+        className="gap-1.5 shrink-0 rounded-full"
         data-testid="tab-your-feed"
       >
         <Users className="h-3.5 w-3.5" />
         Your Feed
-      </button>
-      <button
+      </Button>
+      <Button
+        variant={feedType === "global" ? "default" : "ghost"}
+        size="sm"
         onClick={() => setFeedType("global")}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-          feedType === "global"
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted"
-        }`}
+        className="gap-1.5 shrink-0 rounded-full"
         data-testid="tab-global"
       >
         <Globe className="h-3.5 w-3.5" />
         Global
-      </button>
+      </Button>
       {joinedCommunities?.map((community) => (
-        <button
+        <Button
           key={community.id}
+          variant={feedType === community.id ? "default" : "ghost"}
+          size="sm"
           onClick={() => setFeedType(community.id)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-            feedType === community.id
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted"
-          }`}
+          className="gap-1.5 shrink-0 rounded-full"
           data-testid={`tab-community-${community.id}`}
         >
           {community.name}
-        </button>
+        </Button>
       ))}
     </div>
   );
