@@ -1348,6 +1348,137 @@ export async function registerRoutes(
     }
   });
 
+  // Lesson Quiz routes
+  app.get("/api/lessons/:id/quizzes", async (req, res) => {
+    try {
+      const quizzes = await storage.getLessonQuizzes(req.params.id);
+      res.json(quizzes);
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+      res.status(500).json({ message: "Failed to fetch quizzes" });
+    }
+  });
+
+  app.post("/api/lessons/:id/quizzes", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const quiz = await storage.addLessonQuiz(req.params.id, req.body);
+      res.status(201).json(quiz);
+    } catch (error) {
+      console.error("Error adding quiz:", error);
+      res.status(500).json({ message: "Failed to add quiz" });
+    }
+  });
+
+  app.post("/api/quizzes/:id/answer", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { selectedOptionIndex } = req.body;
+      const result = await storage.submitQuizAnswer(req.params.id, userId, selectedOptionIndex);
+      res.json(result);
+    } catch (error) {
+      console.error("Error submitting quiz answer:", error);
+      res.status(500).json({ message: "Failed to submit answer" });
+    }
+  });
+
+  app.get("/api/lessons/:id/quiz-attempts", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const attempts = await storage.getUserQuizAttempts(req.params.id, userId);
+      res.json(attempts);
+    } catch (error) {
+      console.error("Error fetching quiz attempts:", error);
+      res.status(500).json({ message: "Failed to fetch quiz attempts" });
+    }
+  });
+
+  // Certificate routes
+  app.get("/api/courses/:id/completion", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const completion = await storage.checkCourseCompletion(req.params.id, userId);
+      res.json(completion);
+    } catch (error) {
+      console.error("Error checking course completion:", error);
+      res.status(500).json({ message: "Failed to check course completion" });
+    }
+  });
+
+  app.post("/api/courses/:id/claim-certificate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      // Check if user can earn certificate
+      const completion = await storage.checkCourseCompletion(req.params.id, userId);
+      if (!completion.canEarnCertificate) {
+        return res.status(400).json({ message: "Complete all lessons and pass all quizzes to earn certificate" });
+      }
+
+      // Issue certificate
+      const certificate = await storage.issueCertificate(req.params.id, userId);
+
+      // Award badge
+      const course = await storage.getCourseById(req.params.id, userId);
+      await storage.awardBadge(
+        userId,
+        "course_completion",
+        `${course?.title || "Course"} Graduate`,
+        `Successfully completed the ${course?.title || "course"} and passed all quizzes`,
+        "Award",
+        req.params.id
+      );
+
+      res.json({ certificate, message: "Congratulations! Certificate and badge earned!" });
+    } catch (error) {
+      console.error("Error claiming certificate:", error);
+      res.status(500).json({ message: "Failed to claim certificate" });
+    }
+  });
+
+  app.get("/api/certificates/verify/:certNumber", async (req, res) => {
+    try {
+      const certificate = await storage.getCertificateByNumber(req.params.certNumber);
+      if (!certificate) {
+        return res.status(404).json({ message: "Certificate not found" });
+      }
+      res.json(certificate);
+    } catch (error) {
+      console.error("Error verifying certificate:", error);
+      res.status(500).json({ message: "Failed to verify certificate" });
+    }
+  });
+
+  app.get("/api/users/:userId/certificates", async (req, res) => {
+    try {
+      const certificates = await storage.getUserCertificates(req.params.userId);
+      res.json(certificates);
+    } catch (error) {
+      console.error("Error fetching user certificates:", error);
+      res.status(500).json({ message: "Failed to fetch certificates" });
+    }
+  });
+
+  // Badge routes
+  app.get("/api/users/:userId/badges", async (req, res) => {
+    try {
+      const badges = await storage.getUserBadges(req.params.userId);
+      res.json(badges);
+    } catch (error) {
+      console.error("Error fetching user badges:", error);
+      res.status(500).json({ message: "Failed to fetch badges" });
+    }
+  });
+
   // Community routes
   app.get("/api/communities", async (req, res) => {
     try {

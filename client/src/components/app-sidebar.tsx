@@ -10,6 +10,8 @@ import {
   Plus,
   MessageCircle,
   Search,
+  Users,
+  GraduationCap,
 } from "lucide-react";
 import { VibesLogo } from "@/components/vibes-logo";
 import { UserSearch } from "@/components/user-search";
@@ -36,7 +38,9 @@ import { useQuery } from "@tanstack/react-query";
 const mainNavItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Discover", url: "/discover", icon: Rocket },
-  { title: "Learn", url: "/learn", icon: BookOpen },
+  { title: "Learn Vibecoding", url: "/learn-vibecoding", icon: GraduationCap },
+  { title: "Resources", url: "/learn", icon: BookOpen },
+  { title: "Communities", url: "/communities", icon: Users },
   { title: "Grants", url: "/grants", icon: Trophy },
 ];
 

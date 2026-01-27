@@ -33,6 +33,10 @@ import {
   communities,
   communityMembers,
   communityPosts,
+  lessonQuizzes,
+  quizAttempts,
+  courseCertificates,
+  userBadges,
   type User,
   type Profile,
   type InsertProfile,
@@ -64,6 +68,11 @@ import {
   type Community,
   type InsertCommunity,
   type CommunityMember,
+  type LessonQuiz,
+  type InsertLessonQuiz,
+  type QuizAttempt,
+  type CourseCertificate,
+  type UserBadge,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -2031,6 +2040,172 @@ export class DatabaseStorage implements IStorage {
       communityId,
       postId,
     });
+  }
+
+  // Quizzes
+  async getLessonQuizzes(lessonId: string): Promise<LessonQuiz[]> {
+    return db.select().from(lessonQuizzes).where(eq(lessonQuizzes.lessonId, lessonId)).orderBy(lessonQuizzes.orderIndex);
+  }
+
+  async addLessonQuiz(lessonId: string, data: InsertLessonQuiz): Promise<LessonQuiz> {
+    const [quiz] = await db.insert(lessonQuizzes).values({
+      ...data,
+      lessonId,
+    }).returning();
+    return quiz;
+  }
+
+  async submitQuizAnswer(quizId: string, userId: string, selectedOptionIndex: number): Promise<{ isCorrect: boolean; explanation: string | null }> {
+    const [quiz] = await db.select().from(lessonQuizzes).where(eq(lessonQuizzes.id, quizId));
+    if (!quiz) throw new Error("Quiz not found");
+
+    const isCorrect = quiz.correctOptionIndex === selectedOptionIndex;
+
+    // Record the attempt
+    await db.insert(quizAttempts).values({
+      quizId,
+      userId,
+      selectedOptionIndex,
+      isCorrect,
+    });
+
+    return { isCorrect, explanation: quiz.explanation };
+  }
+
+  async getUserQuizAttempts(lessonId: string, userId: string): Promise<QuizAttempt[]> {
+    const quizzes = await db.select().from(lessonQuizzes).where(eq(lessonQuizzes.lessonId, lessonId));
+    const quizIds = quizzes.map(q => q.id);
+    if (quizIds.length === 0) return [];
+    
+    return db.select().from(quizAttempts).where(and(
+      inArray(quizAttempts.quizId, quizIds),
+      eq(quizAttempts.userId, userId)
+    ));
+  }
+
+  async getQuizById(quizId: string): Promise<LessonQuiz | null> {
+    const [quiz] = await db.select().from(lessonQuizzes).where(eq(lessonQuizzes.id, quizId));
+    return quiz || null;
+  }
+
+  // Certificates
+  async issueCertificate(courseId: string, userId: string): Promise<CourseCertificate> {
+    // Check if already has certificate
+    const [existing] = await db.select().from(courseCertificates).where(and(
+      eq(courseCertificates.courseId, courseId),
+      eq(courseCertificates.userId, userId)
+    ));
+    if (existing) return existing;
+
+    // Generate unique certificate number
+    const certNumber = `VIBES-${courseId.substring(0, 8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    
+    const [certificate] = await db.insert(courseCertificates).values({
+      courseId,
+      userId,
+      certificateNumber: certNumber,
+    }).returning();
+
+    return certificate;
+  }
+
+  async getUserCertificates(userId: string): Promise<any[]> {
+    const certs = await db.select().from(courseCertificates).where(eq(courseCertificates.userId, userId));
+    
+    return Promise.all(certs.map(async (cert) => {
+      const [course] = await db.select().from(courses).where(eq(courses.id, cert.courseId));
+      return {
+        ...cert,
+        course,
+      };
+    }));
+  }
+
+  async getCertificateByNumber(certNumber: string): Promise<any> {
+    const [cert] = await db.select().from(courseCertificates).where(eq(courseCertificates.certificateNumber, certNumber));
+    if (!cert) return null;
+
+    const [course] = await db.select().from(courses).where(eq(courses.id, cert.courseId));
+    const [user] = await db.select().from(users).where(eq(users.id, cert.userId));
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, cert.userId));
+
+    return {
+      ...cert,
+      course,
+      user: user ? {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
+        username: profile?.username,
+      } : null,
+    };
+  }
+
+  // Badges
+  async awardBadge(userId: string, badgeType: string, badgeName: string, badgeDescription?: string, badgeIcon?: string, referenceId?: string): Promise<UserBadge> {
+    // Check if already has this badge
+    const [existing] = await db.select().from(userBadges).where(and(
+      eq(userBadges.userId, userId),
+      eq(userBadges.badgeType, badgeType),
+      referenceId ? eq(userBadges.referenceId, referenceId) : sql`true`
+    ));
+    if (existing) return existing;
+
+    const [badge] = await db.insert(userBadges).values({
+      userId,
+      badgeType,
+      badgeName,
+      badgeDescription,
+      badgeIcon,
+      referenceId,
+    }).returning();
+
+    return badge;
+  }
+
+  async getUserBadges(userId: string): Promise<UserBadge[]> {
+    return db.select().from(userBadges).where(eq(userBadges.userId, userId)).orderBy(desc(userBadges.earnedAt));
+  }
+
+  async checkCourseCompletion(courseId: string, userId: string): Promise<{ isComplete: boolean; quizzesPassed: boolean; canEarnCertificate: boolean }> {
+    // Get enrollment
+    const [enrollment] = await db.select().from(courseEnrollments).where(and(
+      eq(courseEnrollments.courseId, courseId),
+      eq(courseEnrollments.userId, userId)
+    ));
+    if (!enrollment) return { isComplete: false, quizzesPassed: false, canEarnCertificate: false };
+
+    // Get all lessons
+    const lessons = await db.select().from(courseLessons).where(eq(courseLessons.courseId, courseId));
+    
+    // Get completed lessons
+    const progress = await db.select().from(courseProgress).where(eq(courseProgress.enrollmentId, enrollment.id));
+    const allLessonsComplete = lessons.length > 0 && progress.length >= lessons.length;
+
+    // Check if all quizzes are passed
+    let quizzesPassed = true;
+    for (const lesson of lessons) {
+      const quizzes = await db.select().from(lessonQuizzes).where(eq(lessonQuizzes.lessonId, lesson.id));
+      for (const quiz of quizzes) {
+        const [attempt] = await db.select().from(quizAttempts).where(and(
+          eq(quizAttempts.quizId, quiz.id),
+          eq(quizAttempts.userId, userId),
+          eq(quizAttempts.isCorrect, true)
+        ));
+        if (!attempt) {
+          quizzesPassed = false;
+          break;
+        }
+      }
+      if (!quizzesPassed) break;
+    }
+
+    return {
+      isComplete: allLessonsComplete,
+      quizzesPassed,
+      canEarnCertificate: allLessonsComplete && quizzesPassed,
+    };
   }
 
   async getGlobalFeed(currentUserId?: string): Promise<any[]> {

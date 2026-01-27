@@ -339,6 +339,49 @@ export const communityPosts = pgTable("community_posts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Lesson Quizzes (Q&A for each lesson)
+export const lessonQuizzes = pgTable("lesson_quizzes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lessonId: varchar("lesson_id").notNull().references(() => courseLessons.id, { onDelete: "cascade" }),
+  question: text("question").notNull(),
+  options: text("options").array().notNull(),
+  correctOptionIndex: integer("correct_option_index").notNull(),
+  explanation: text("explanation"),
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Quiz Attempts (track user answers)
+export const quizAttempts = pgTable("quiz_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quizId: varchar("quiz_id").notNull().references(() => lessonQuizzes.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  selectedOptionIndex: integer("selected_option_index").notNull(),
+  isCorrect: boolean("is_correct").notNull(),
+  attemptedAt: timestamp("attempted_at").defaultNow(),
+});
+
+// Course Certificates (issued upon completing all lessons and passing quizzes)
+export const courseCertificates = pgTable("course_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  certificateNumber: varchar("certificate_number", { length: 50 }).notNull().unique(),
+  earnedAt: timestamp("earned_at").defaultNow(),
+});
+
+// User Badges (achievements and course completion badges)
+export const userBadges = pgTable("user_badges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  badgeType: varchar("badge_type", { length: 50 }).notNull(),
+  badgeName: varchar("badge_name", { length: 100 }).notNull(),
+  badgeDescription: text("badge_description"),
+  badgeIcon: varchar("badge_icon", { length: 50 }),
+  referenceId: varchar("reference_id"),
+  earnedAt: timestamp("earned_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   profile: one(profiles, { fields: [users.id], references: [profiles.userId] }),
@@ -514,6 +557,25 @@ export const communityPostsRelations = relations(communityPosts, ({ one }) => ({
   post: one(posts, { fields: [communityPosts.postId], references: [posts.id] }),
 }));
 
+export const lessonQuizzesRelations = relations(lessonQuizzes, ({ one, many }) => ({
+  lesson: one(courseLessons, { fields: [lessonQuizzes.lessonId], references: [courseLessons.id] }),
+  attempts: many(quizAttempts),
+}));
+
+export const quizAttemptsRelations = relations(quizAttempts, ({ one }) => ({
+  quiz: one(lessonQuizzes, { fields: [quizAttempts.quizId], references: [lessonQuizzes.id] }),
+  user: one(users, { fields: [quizAttempts.userId], references: [users.id] }),
+}));
+
+export const courseCertificatesRelations = relations(courseCertificates, ({ one }) => ({
+  course: one(courses, { fields: [courseCertificates.courseId], references: [courses.id] }),
+  user: one(users, { fields: [courseCertificates.userId], references: [users.id] }),
+}));
+
+export const userBadgesRelations = relations(userBadges, ({ one }) => ({
+  user: one(users, { fields: [userBadges.userId], references: [users.id] }),
+}));
+
 // Insert Schemas
 export const insertProfileSchema = createInsertSchema(profiles).omit({ userId: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, userId: true, createdAt: true, updatedAt: true, isFeatured: true });
@@ -532,6 +594,8 @@ export const insertStorySchema = createInsertSchema(stories).omit({ id: true, us
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, instructorId: true, createdAt: true, updatedAt: true, isFeatured: true });
 export const insertCourseLessonSchema = createInsertSchema(courseLessons).omit({ id: true, createdAt: true });
 export const insertCommunitySchema = createInsertSchema(communities).omit({ id: true, creatorId: true, createdAt: true });
+export const insertLessonQuizSchema = createInsertSchema(lessonQuizzes).omit({ id: true, createdAt: true });
+export const insertQuizAttemptSchema = createInsertSchema(quizAttempts).omit({ id: true, userId: true, attemptedAt: true });
 
 // Types
 export type Profile = typeof profiles.$inferSelect;
@@ -604,3 +668,12 @@ export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 
 export type CommunityMember = typeof communityMembers.$inferSelect;
 export type CommunityPost = typeof communityPosts.$inferSelect;
+
+export type LessonQuiz = typeof lessonQuizzes.$inferSelect;
+export type InsertLessonQuiz = z.infer<typeof insertLessonQuizSchema>;
+
+export type QuizAttempt = typeof quizAttempts.$inferSelect;
+export type InsertQuizAttempt = z.infer<typeof insertQuizAttemptSchema>;
+
+export type CourseCertificate = typeof courseCertificates.$inferSelect;
+export type UserBadge = typeof userBadges.$inferSelect;
