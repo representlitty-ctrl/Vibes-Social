@@ -133,7 +133,7 @@ function NotificationItem({ notification }: { notification: NotificationWithFrom
       case "upvote":
         return <ChevronUp className="h-4 w-4 text-green-500" />;
       case "follow":
-        return <UserPlus className="h-4 w-4 text-purple-500" />;
+        return <UserPlus className="h-4 w-4 text-sky-500" />;
       case "grant_winner":
         return <Trophy className="h-4 w-4 text-yellow-500" />;
       case "message":

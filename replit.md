@@ -84,10 +84,10 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Resources and grants should be added by admins through the platform
 
 ## User Preferences
-- Cyan/teal primary color (matching rainbow logo)
+- Light blue primary color (hue 200)
 - Facebook-style social media aesthetic with light gray background
 - Pure black dark mode with elevated cards
-- Rainbow gradient accents for key text
+- Light blue gradient accents for key elements
 - Inter font family for sans-serif
 - Clean, card-based layout with subtle shadows
 - White sidebar/nav with white cards on gray background

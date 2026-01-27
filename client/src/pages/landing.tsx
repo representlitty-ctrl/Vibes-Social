@@ -276,7 +276,7 @@ export default function LandingPage() {
                 <Card className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center">
                         <BookOpen className="h-6 w-6 text-white" />
                       </div>
                       <div>
@@ -285,7 +285,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                         <Code2 className="h-6 w-6 text-white" />
                       </div>
                       <div>
@@ -294,7 +294,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
                         <Zap className="h-6 w-6 text-white" />
                       </div>
                       <div>

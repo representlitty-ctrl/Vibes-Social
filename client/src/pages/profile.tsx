@@ -266,7 +266,7 @@ export default function ProfilePage() {
                   {vibecodingProgress?.hasCertificate && (
                     <Badge 
                       variant="secondary" 
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 gap-1"
+                      className="bg-gradient-to-r from-sky-400 to-blue-500 text-white border-0 gap-1"
                       data-testid="badge-vibecoder"
                     >
                       <GraduationCap className="h-3 w-3" />

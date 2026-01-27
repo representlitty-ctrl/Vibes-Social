@@ -119,7 +119,7 @@ export function StoriesRow() {
   };
 
   const getStoryRingColor = (count: number) => {
-    if (count >= 5) return "ring-purple-500";
+    if (count >= 5) return "ring-sky-400";
     if (count >= 3) return "ring-orange-500";
     if (count >= 2) return "ring-blue-500";
     return "ring-primary";
