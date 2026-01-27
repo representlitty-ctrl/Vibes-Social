@@ -22,7 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { ArrowLeft, Loader2, Camera } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { ImageCropper } from "@/components/image-cropper";
 import type { Profile } from "@shared/schema";
 
 const editProfileSchema = z.object({
@@ -44,6 +45,8 @@ export default function ProfileEditPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { uploadFile, isUploading: isUploadingImage } = useUpload({
@@ -125,9 +128,24 @@ export default function ProfileEditPage() {
         });
         return;
       }
-      await uploadFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result as string);
+        setCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
+
+  const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
+    const file = new File([croppedBlob], "profile.jpg", { type: "image/jpeg" });
+    await uploadFile(file);
+    setCropperOpen(false);
+    setImageToCrop("");
+  }, [uploadFile]);
 
   const mutation = useMutation({
     mutationFn: async (data: EditProfileForm) => {
@@ -408,6 +426,15 @@ export default function ProfileEditPage() {
           </Form>
         </CardContent>
       </Card>
+
+      <ImageCropper
+        open={cropperOpen}
+        onOpenChange={setCropperOpen}
+        imageSrc={imageToCrop}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+        isLoading={isUploadingImage}
+      />
     </div>
   );
 }
