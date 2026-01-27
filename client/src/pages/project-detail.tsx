@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +88,35 @@ export default function ProjectDetailPage() {
     },
   });
 
+  const [, setLocation] = useLocation();
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/projects/${projectId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Project deleted",
+        description: "Your project has been deleted successfully.",
+      });
+      setLocation("/");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteProject = () => {
+    if (window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
+      deleteMutation.mutate();
+    }
+  };
+
   const handleUpvote = () => {
     if (!user) {
       window.location.href = "/api/login";
@@ -168,6 +197,15 @@ export default function ProjectDetailPage() {
                       <Edit className="h-4 w-4" />
                     </Button>
                   </Link>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleDeleteProject}
+                    disabled={deleteMutation.isPending}
+                    data-testid="button-delete-project"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
               )}
             </div>
