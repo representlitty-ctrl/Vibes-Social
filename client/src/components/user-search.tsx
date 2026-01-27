@@ -45,12 +45,12 @@ export function UserSearch() {
   const { data: users, isLoading } = useQuery<UserWithProfile[]>({
     queryKey: ["/api/users/search", searchQuery],
     queryFn: async () => {
-      if (searchQuery.length < 2) return [];
+      if (searchQuery.length < 3) return [];
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`);
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: searchQuery.length >= 2,
+    enabled: searchQuery.length >= 3,
   });
 
   const handleUserClick = () => {
@@ -74,12 +74,12 @@ export function UserSearch() {
         </DialogHeader>
         <div className="space-y-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by username, name, or email..."
+              placeholder="Type at least 3 letters to search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9"
+              className={searchQuery ? "pr-9" : ""}
+              autoFocus
               data-testid="input-search-users"
             />
             {searchQuery && (
@@ -96,11 +96,11 @@ export function UserSearch() {
           </div>
 
           <div className="max-h-[300px] overflow-y-auto space-y-1">
-            {isLoading && searchQuery.length >= 2 && (
+            {isLoading && searchQuery.length >= 3 && (
               <p className="text-sm text-muted-foreground text-center py-4">Searching...</p>
             )}
             
-            {!isLoading && searchQuery.length >= 2 && users?.length === 0 && (
+            {!isLoading && searchQuery.length >= 3 && users?.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">No users found</p>
             )}
 
