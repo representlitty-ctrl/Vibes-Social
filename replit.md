@@ -17,11 +17,12 @@ Vibes is a social community platform built for vibecoders - creative developers 
 4. **Stories**: 24-hour expiring stories with circular profile previews and color-coded rings
 5. **Unified Feed**: Combined feed showing posts and projects from followed users
 6. **Projects**: Submit, view, upvote, comment, bookmark, emoji reactions on projects
-7. **Learning Hub**: Curated resources with categories, upvotes, bookmarks
-8. **Grants**: Submit projects to grant programs for funding
-9. **Notifications**: Real-time notifications for interactions with user avatars
-10. **Direct Messaging**: Private conversations with voice notes, image sharing, and file attachments
-11. **Emoji Reactions**: React to projects and comments with emojis
+7. **Learning Hub**: Curated resources and courses with categories, upvotes, bookmarks
+8. **Courses**: Learning courses with lessons, enrollment, and progress tracking
+9. **Grants**: Submit projects to grant programs for funding
+10. **Notifications**: Real-time notifications for interactions with user avatars
+11. **Direct Messaging**: Private conversations with voice notes, image sharing, and file attachments
+12. **Emoji Reactions**: React to projects and comments with emojis
 
 ## Project Architecture
 
@@ -53,6 +54,7 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - notifications
 - conversations, messages (DMs with voice notes)
 - reactions (emoji reactions on projects and comments)
+- courses, course_lessons, course_enrollments, course_progress
 
 ## API Endpoints
 - `/api/auth/user` - Get current user
@@ -68,6 +70,8 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - `/api/conversations` - Direct messaging conversations
 - `/api/messages` - Messages within conversations (text, voice notes, images, files)
 - `/api/reactions` - Emoji reactions on projects and comments
+- `/api/courses` - Learning courses with lessons and enrollments
+- `/api/lessons` - Course lessons with completion tracking
 
 ## Running the App
 1. Database is automatically provisioned via Replit
@@ -100,3 +104,5 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Profile pictures display everywhere (notifications, messages, comments, projects)
 - Enhanced direct messaging with image uploads and file attachments
 - Made all avatars clickable to navigate to user profiles
+- Added learning courses with lessons, enrollment, and progress tracking
+- Added Range request support for audio/video streaming in object storage

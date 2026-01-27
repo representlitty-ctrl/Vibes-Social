@@ -1169,5 +1169,172 @@ export async function registerRoutes(
     }
   });
 
+  // Courses
+  app.get("/api/courses", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const courses = await storage.getCourses(userId || undefined);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  app.get("/api/courses/enrolled", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const courses = await storage.getEnrolledCourses(userId);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching enrolled courses:", error);
+      res.status(500).json({ message: "Failed to fetch enrolled courses" });
+    }
+  });
+
+  app.get("/api/courses/:id", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const course = await storage.getCourseById(req.params.id, userId || undefined);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course:", error);
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  app.post("/api/courses", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const course = await storage.createCourse(userId, req.body);
+      res.status(201).json(course);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+
+  app.patch("/api/courses/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const course = await storage.updateCourse(req.params.id, userId, req.body);
+      res.json(course);
+    } catch (error) {
+      console.error("Error updating course:", error);
+      res.status(500).json({ message: "Failed to update course" });
+    }
+  });
+
+  app.delete("/api/courses/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.deleteCourse(req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
+  app.post("/api/courses/:id/enroll", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const enrollment = await storage.enrollInCourse(req.params.id, userId);
+      res.status(201).json(enrollment);
+    } catch (error) {
+      console.error("Error enrolling in course:", error);
+      res.status(500).json({ message: "Failed to enroll in course" });
+    }
+  });
+
+  app.delete("/api/courses/:id/enroll", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.unenrollFromCourse(req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unenrolling from course:", error);
+      res.status(500).json({ message: "Failed to unenroll from course" });
+    }
+  });
+
+  app.get("/api/courses/:id/progress", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const progress = await storage.getCourseProgress(req.params.id, userId);
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching course progress:", error);
+      res.status(500).json({ message: "Failed to fetch course progress" });
+    }
+  });
+
+  app.post("/api/courses/:id/lessons", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const lesson = await storage.addCourseLesson(req.params.id, userId, req.body);
+      res.status(201).json(lesson);
+    } catch (error) {
+      console.error("Error adding lesson:", error);
+      res.status(500).json({ message: "Failed to add lesson" });
+    }
+  });
+
+  app.patch("/api/lessons/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const lesson = await storage.updateCourseLesson(req.params.id, userId, req.body);
+      res.json(lesson);
+    } catch (error) {
+      console.error("Error updating lesson:", error);
+      res.status(500).json({ message: "Failed to update lesson" });
+    }
+  });
+
+  app.delete("/api/lessons/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.deleteCourseLesson(req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      res.status(500).json({ message: "Failed to delete lesson" });
+    }
+  });
+
+  app.post("/api/lessons/:id/complete", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.markLessonComplete(req.params.id, userId);
+      res.status(200).json({ message: "Lesson marked as complete" });
+    } catch (error) {
+      console.error("Error marking lesson complete:", error);
+      res.status(500).json({ message: "Failed to mark lesson complete" });
+    }
+  });
+
   return httpServer;
 }

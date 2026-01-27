@@ -265,6 +265,50 @@ export const stories = pgTable("stories", {
   expiresAt: timestamp("expires_at").notNull(),
 });
 
+// Learning Courses
+export const courses = pgTable("courses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  imageUrl: varchar("image_url"),
+  category: varchar("category", { length: 100 }).notNull(),
+  difficulty: varchar("difficulty", { length: 50 }).default("beginner"),
+  duration: varchar("duration"),
+  instructorId: varchar("instructor_id").notNull().references(() => users.id),
+  isPublished: boolean("is_published").default(false),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Course Lessons
+export const courseLessons = pgTable("course_lessons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content"),
+  videoUrl: varchar("video_url"),
+  orderIndex: integer("order_index").default(0),
+  duration: varchar("duration"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Course Enrollments
+export const courseEnrollments = pgTable("course_enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Course Progress (track completed lessons)
+export const courseProgress = pgTable("course_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  enrollmentId: varchar("enrollment_id").notNull().references(() => courseEnrollments.id, { onDelete: "cascade" }),
+  lessonId: varchar("lesson_id").notNull().references(() => courseLessons.id, { onDelete: "cascade" }),
+  completedAt: timestamp("completed_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   profile: one(profiles, { fields: [users.id], references: [profiles.userId] }),
@@ -403,6 +447,27 @@ export const storiesRelations = relations(stories, ({ one }) => ({
   user: one(users, { fields: [stories.userId], references: [users.id] }),
 }));
 
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+  instructor: one(users, { fields: [courses.instructorId], references: [users.id] }),
+  lessons: many(courseLessons),
+  enrollments: many(courseEnrollments),
+}));
+
+export const courseLessonsRelations = relations(courseLessons, ({ one }) => ({
+  course: one(courses, { fields: [courseLessons.courseId], references: [courses.id] }),
+}));
+
+export const courseEnrollmentsRelations = relations(courseEnrollments, ({ one, many }) => ({
+  course: one(courses, { fields: [courseEnrollments.courseId], references: [courses.id] }),
+  user: one(users, { fields: [courseEnrollments.userId], references: [users.id] }),
+  progress: many(courseProgress),
+}));
+
+export const courseProgressRelations = relations(courseProgress, ({ one }) => ({
+  enrollment: one(courseEnrollments, { fields: [courseProgress.enrollmentId], references: [courseEnrollments.id] }),
+  lesson: one(courseLessons, { fields: [courseProgress.lessonId], references: [courseLessons.id] }),
+}));
+
 // Insert Schemas
 export const insertProfileSchema = createInsertSchema(profiles).omit({ userId: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, userId: true, createdAt: true, updatedAt: true, isFeatured: true });
@@ -418,6 +483,8 @@ export const insertPostSchema = createInsertSchema(posts).omit({ id: true, userI
 export const insertPostMediaSchema = createInsertSchema(postMedia).omit({ id: true, createdAt: true });
 export const insertPostCommentSchema = createInsertSchema(postComments).omit({ id: true, userId: true, createdAt: true });
 export const insertStorySchema = createInsertSchema(stories).omit({ id: true, userId: true, createdAt: true });
+export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, instructorId: true, createdAt: true, updatedAt: true, isFeatured: true });
+export const insertCourseLessonSchema = createInsertSchema(courseLessons).omit({ id: true, createdAt: true });
 
 // Types
 export type Profile = typeof profiles.$inferSelect;
@@ -475,3 +542,12 @@ export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
 
 export type Story = typeof stories.$inferSelect;
 export type InsertStory = z.infer<typeof insertStorySchema>;
+
+export type Course = typeof courses.$inferSelect;
+export type InsertCourse = z.infer<typeof insertCourseSchema>;
+
+export type CourseLesson = typeof courseLessons.$inferSelect;
+export type InsertCourseLesson = z.infer<typeof insertCourseLessonSchema>;
+
+export type CourseEnrollment = typeof courseEnrollments.$inferSelect;
+export type CourseProgress = typeof courseProgress.$inferSelect;

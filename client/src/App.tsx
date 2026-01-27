@@ -22,6 +22,7 @@ import SubmitResourcePage from "@/pages/submit-resource";
 import CreateGrantPage from "@/pages/create-grant";
 import ProjectDetailPage from "@/pages/project-detail";
 import MessagesPage from "@/pages/messages";
+import CourseDetailPage from "@/pages/course-detail";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -72,6 +73,11 @@ function Router() {
             <ProfilePage />
           </AuthenticatedLayout>
         )} />
+        <Route path="/courses/:id" component={() => (
+          <AuthenticatedLayout>
+            <CourseDetailPage />
+          </AuthenticatedLayout>
+        )} />
         <Route component={LandingPage} />
       </Switch>
     );
@@ -84,6 +90,7 @@ function Router() {
         <Route path="/discover" component={DiscoverPage} />
         <Route path="/learn" component={LearnPage} />
         <Route path="/learn/submit" component={SubmitResourcePage} />
+        <Route path="/courses/:id" component={CourseDetailPage} />
         <Route path="/grants" component={GrantsPage} />
         <Route path="/grants/create" component={CreateGrantPage} />
         <Route path="/notifications" component={NotificationsPage} />

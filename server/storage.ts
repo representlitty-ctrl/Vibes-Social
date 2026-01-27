@@ -26,6 +26,10 @@ import {
   postLikes,
   postComments,
   stories,
+  courses,
+  courseLessons,
+  courseEnrollments,
+  courseProgress,
   type User,
   type Profile,
   type InsertProfile,
@@ -51,6 +55,9 @@ import {
   type PostLike,
   type PostComment,
   type Story,
+  type Course,
+  type CourseLesson,
+  type CourseEnrollment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -161,6 +168,22 @@ export interface IStorage {
   getStories(userId: string): Promise<any[]>;
   getStoriesByUser(userId: string): Promise<any[]>;
   deleteStory(id: string, userId: string): Promise<void>;
+  
+  // Courses
+  getCourses(currentUserId?: string): Promise<any[]>;
+  getCourseById(id: string, currentUserId?: string): Promise<any>;
+  getCoursesByInstructor(instructorId: string): Promise<any[]>;
+  createCourse(instructorId: string, data: any): Promise<any>;
+  updateCourse(id: string, instructorId: string, data: any): Promise<any>;
+  deleteCourse(id: string, instructorId: string): Promise<void>;
+  addCourseLesson(courseId: string, instructorId: string, data: any): Promise<any>;
+  updateCourseLesson(lessonId: string, instructorId: string, data: any): Promise<any>;
+  deleteCourseLesson(lessonId: string, instructorId: string): Promise<void>;
+  enrollInCourse(courseId: string, userId: string): Promise<any>;
+  unenrollFromCourse(courseId: string, userId: string): Promise<void>;
+  getEnrolledCourses(userId: string): Promise<any[]>;
+  markLessonComplete(lessonId: string, userId: string): Promise<void>;
+  getCourseProgress(courseId: string, userId: string): Promise<any>;
   
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
@@ -1620,6 +1643,236 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStory(id: string, userId: string): Promise<void> {
     await db.delete(stories).where(and(eq(stories.id, id), eq(stories.userId, userId)));
+  }
+
+  // Courses
+  async getCourses(currentUserId?: string): Promise<any[]> {
+    const allCourses = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.isPublished, true))
+      .orderBy(desc(courses.createdAt));
+
+    return Promise.all(allCourses.map(async (course) => {
+      const [instructor] = await db.select().from(users).where(eq(users.id, course.instructorId));
+      const [instructorProfile] = await db.select().from(profiles).where(eq(profiles.userId, course.instructorId));
+      const lessons = await db.select().from(courseLessons).where(eq(courseLessons.courseId, course.id)).orderBy(courseLessons.orderIndex);
+      const [enrollmentCount] = await db.select({ count: count() }).from(courseEnrollments).where(eq(courseEnrollments.courseId, course.id));
+      
+      let isEnrolled = false;
+      if (currentUserId) {
+        const [enrollment] = await db.select().from(courseEnrollments).where(and(
+          eq(courseEnrollments.courseId, course.id),
+          eq(courseEnrollments.userId, currentUserId)
+        ));
+        isEnrolled = !!enrollment;
+      }
+
+      return {
+        ...course,
+        instructor: instructor ? {
+          id: instructor.id,
+          firstName: instructor.firstName,
+          lastName: instructor.lastName,
+          email: instructor.email,
+          profileImageUrl: instructorProfile?.profileImageUrl || instructor.profileImageUrl,
+          username: instructorProfile?.username,
+        } : null,
+        lessonCount: lessons.length,
+        enrollmentCount: enrollmentCount?.count || 0,
+        isEnrolled,
+      };
+    }));
+  }
+
+  async getCourseById(id: string, currentUserId?: string): Promise<any> {
+    const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    if (!course) return null;
+
+    const [instructor] = await db.select().from(users).where(eq(users.id, course.instructorId));
+    const [instructorProfile] = await db.select().from(profiles).where(eq(profiles.userId, course.instructorId));
+    const lessons = await db.select().from(courseLessons).where(eq(courseLessons.courseId, course.id)).orderBy(courseLessons.orderIndex);
+    const [enrollmentCount] = await db.select({ count: count() }).from(courseEnrollments).where(eq(courseEnrollments.courseId, course.id));
+    
+    let isEnrolled = false;
+    let completedLessons: string[] = [];
+    if (currentUserId) {
+      const [enrollment] = await db.select().from(courseEnrollments).where(and(
+        eq(courseEnrollments.courseId, course.id),
+        eq(courseEnrollments.userId, currentUserId)
+      ));
+      isEnrolled = !!enrollment;
+      
+      if (enrollment) {
+        const progress = await db.select().from(courseProgress).where(eq(courseProgress.enrollmentId, enrollment.id));
+        completedLessons = progress.map(p => p.lessonId);
+      }
+    }
+
+    return {
+      ...course,
+      instructor: instructor ? {
+        id: instructor.id,
+        firstName: instructor.firstName,
+        lastName: instructor.lastName,
+        email: instructor.email,
+        profileImageUrl: instructorProfile?.profileImageUrl || instructor.profileImageUrl,
+        username: instructorProfile?.username,
+      } : null,
+      lessons,
+      lessonCount: lessons.length,
+      enrollmentCount: enrollmentCount?.count || 0,
+      isEnrolled,
+      completedLessons,
+    };
+  }
+
+  async getCoursesByInstructor(instructorId: string): Promise<any[]> {
+    return db.select().from(courses).where(eq(courses.instructorId, instructorId)).orderBy(desc(courses.createdAt));
+  }
+
+  async createCourse(instructorId: string, data: any): Promise<any> {
+    const [course] = await db.insert(courses).values({
+      ...data,
+      instructorId,
+    }).returning();
+    return course;
+  }
+
+  async updateCourse(id: string, instructorId: string, data: any): Promise<any> {
+    const [course] = await db
+      .update(courses)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(courses.id, id), eq(courses.instructorId, instructorId)))
+      .returning();
+    return course;
+  }
+
+  async deleteCourse(id: string, instructorId: string): Promise<void> {
+    await db.delete(courses).where(and(eq(courses.id, id), eq(courses.instructorId, instructorId)));
+  }
+
+  async addCourseLesson(courseId: string, instructorId: string, data: any): Promise<any> {
+    const [course] = await db.select().from(courses).where(and(eq(courses.id, courseId), eq(courses.instructorId, instructorId)));
+    if (!course) throw new Error("Course not found or access denied");
+
+    const [lesson] = await db.insert(courseLessons).values({
+      ...data,
+      courseId,
+    }).returning();
+    return lesson;
+  }
+
+  async updateCourseLesson(lessonId: string, instructorId: string, data: any): Promise<any> {
+    const [lesson] = await db.select().from(courseLessons).where(eq(courseLessons.id, lessonId));
+    if (!lesson) throw new Error("Lesson not found");
+
+    const [course] = await db.select().from(courses).where(and(eq(courses.id, lesson.courseId), eq(courses.instructorId, instructorId)));
+    if (!course) throw new Error("Access denied");
+
+    const [updated] = await db.update(courseLessons).set(data).where(eq(courseLessons.id, lessonId)).returning();
+    return updated;
+  }
+
+  async deleteCourseLesson(lessonId: string, instructorId: string): Promise<void> {
+    const [lesson] = await db.select().from(courseLessons).where(eq(courseLessons.id, lessonId));
+    if (!lesson) throw new Error("Lesson not found");
+
+    const [course] = await db.select().from(courses).where(and(eq(courses.id, lesson.courseId), eq(courses.instructorId, instructorId)));
+    if (!course) throw new Error("Access denied");
+
+    await db.delete(courseLessons).where(eq(courseLessons.id, lessonId));
+  }
+
+  async enrollInCourse(courseId: string, userId: string): Promise<any> {
+    const [existing] = await db.select().from(courseEnrollments).where(and(
+      eq(courseEnrollments.courseId, courseId),
+      eq(courseEnrollments.userId, userId)
+    ));
+    if (existing) return existing;
+
+    const [enrollment] = await db.insert(courseEnrollments).values({
+      courseId,
+      userId,
+    }).returning();
+    return enrollment;
+  }
+
+  async unenrollFromCourse(courseId: string, userId: string): Promise<void> {
+    await db.delete(courseEnrollments).where(and(
+      eq(courseEnrollments.courseId, courseId),
+      eq(courseEnrollments.userId, userId)
+    ));
+  }
+
+  async getEnrolledCourses(userId: string): Promise<any[]> {
+    const enrollments = await db.select().from(courseEnrollments).where(eq(courseEnrollments.userId, userId));
+    
+    return Promise.all(enrollments.map(async (enrollment) => {
+      const [course] = await db.select().from(courses).where(eq(courses.id, enrollment.courseId));
+      if (!course) return null;
+
+      const [instructor] = await db.select().from(users).where(eq(users.id, course.instructorId));
+      const [instructorProfile] = await db.select().from(profiles).where(eq(profiles.userId, course.instructorId));
+      const lessons = await db.select().from(courseLessons).where(eq(courseLessons.courseId, course.id));
+      const progress = await db.select().from(courseProgress).where(eq(courseProgress.enrollmentId, enrollment.id));
+
+      return {
+        ...course,
+        instructor: instructor ? {
+          id: instructor.id,
+          firstName: instructor.firstName,
+          lastName: instructor.lastName,
+          email: instructor.email,
+          profileImageUrl: instructorProfile?.profileImageUrl || instructor.profileImageUrl,
+          username: instructorProfile?.username,
+        } : null,
+        lessonCount: lessons.length,
+        completedCount: progress.length,
+        progress: lessons.length > 0 ? Math.round((progress.length / lessons.length) * 100) : 0,
+        isEnrolled: true,
+      };
+    })).then(results => results.filter(Boolean));
+  }
+
+  async markLessonComplete(lessonId: string, userId: string): Promise<void> {
+    const [lesson] = await db.select().from(courseLessons).where(eq(courseLessons.id, lessonId));
+    if (!lesson) throw new Error("Lesson not found");
+
+    const [enrollment] = await db.select().from(courseEnrollments).where(and(
+      eq(courseEnrollments.courseId, lesson.courseId),
+      eq(courseEnrollments.userId, userId)
+    ));
+    if (!enrollment) throw new Error("Not enrolled in course");
+
+    const [existing] = await db.select().from(courseProgress).where(and(
+      eq(courseProgress.enrollmentId, enrollment.id),
+      eq(courseProgress.lessonId, lessonId)
+    ));
+    if (existing) return;
+
+    await db.insert(courseProgress).values({
+      enrollmentId: enrollment.id,
+      lessonId,
+    });
+  }
+
+  async getCourseProgress(courseId: string, userId: string): Promise<any> {
+    const [enrollment] = await db.select().from(courseEnrollments).where(and(
+      eq(courseEnrollments.courseId, courseId),
+      eq(courseEnrollments.userId, userId)
+    ));
+    if (!enrollment) return null;
+
+    const lessons = await db.select().from(courseLessons).where(eq(courseLessons.courseId, courseId));
+    const progress = await db.select().from(courseProgress).where(eq(courseProgress.enrollmentId, enrollment.id));
+
+    return {
+      totalLessons: lessons.length,
+      completedLessons: progress.length,
+      completedLessonIds: progress.map(p => p.lessonId),
+      percentage: lessons.length > 0 ? Math.round((progress.length / lessons.length) * 100) : 0,
+    };
   }
 }
 
