@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, X, User as UserIcon } from "lucide-react";
+import { Search, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,21 +78,9 @@ export function UserSearch() {
               placeholder="Type at least 3 letters to search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={searchQuery ? "pr-9" : ""}
               autoFocus
               data-testid="input-search-users"
             />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                onClick={() => setSearchQuery("")}
-                data-testid="button-clear-search"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
           </div>
 
           <div className="max-h-[300px] overflow-y-auto space-y-1">
