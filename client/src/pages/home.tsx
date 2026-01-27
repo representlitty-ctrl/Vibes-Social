@@ -8,9 +8,9 @@ import { ProjectCard } from "@/components/project-card";
 import { PostCard } from "@/components/post-card";
 import { PostComposer } from "@/components/post-composer";
 import { StoriesRow } from "@/components/stories-row";
-import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X } from "lucide-react";
+import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X, Globe, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import type { Project, User, Profile } from "@shared/schema";
+import type { Project, User, Profile, Community } from "@shared/schema";
 
 type ProjectWithDetails = Project & {
   user: User & { profile: Profile | null };
@@ -52,15 +52,42 @@ interface Post {
 
 type FeedItem = (ProjectWithDetails & { type: "project" }) | Post;
 
+type CommunityWithDetails = Community & {
+  memberCount: number;
+  isMember: boolean;
+};
+
 export default function HomePage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showPostComposer, setShowPostComposer] = useState(false);
+  const [feedType, setFeedType] = useState<"following" | "global" | string>("following");
 
   const { data: feed, isLoading: feedLoading } = useQuery<FeedItem[]>({
     queryKey: ["/api/feed"],
+    enabled: !!user && feedType === "following",
+  });
+
+  const { data: globalFeed, isLoading: globalFeedLoading } = useQuery<FeedItem[]>({
+    queryKey: ["/api/feed/global"],
+    enabled: feedType === "global",
+  });
+
+  const { data: joinedCommunities } = useQuery<CommunityWithDetails[]>({
+    queryKey: ["/api/communities/joined"],
     enabled: !!user,
+  });
+
+  const { data: communityPosts, isLoading: communityPostsLoading } = useQuery<any[]>({
+    queryKey: ["/api/communities", feedType, "posts"],
+    queryFn: async () => {
+      if (feedType === "following" || feedType === "global") return [];
+      const res = await fetch(`/api/communities/${feedType}/posts`);
+      if (!res.ok) throw new Error("Failed to fetch community posts");
+      return res.json();
+    },
+    enabled: !!user && feedType !== "following" && feedType !== "global",
   });
 
   const { data: projects, isLoading: projectsLoading } = useQuery<ProjectWithDetails[]>({
@@ -72,8 +99,17 @@ export default function HomePage() {
     queryKey: ["/api/projects/featured"],
   });
 
-  const isLoading = user ? feedLoading : projectsLoading;
-  const feedItems = user ? feed : projects?.map(p => ({ ...p, type: "project" as const }));
+  const getCurrentFeed = () => {
+    if (!user) return projects?.map(p => ({ ...p, type: "project" as const }));
+    if (feedType === "following") return feed;
+    if (feedType === "global") return globalFeed;
+    return communityPosts?.map(p => ({ ...p, type: "post" as const }));
+  };
+
+  const isLoading = user 
+    ? (feedType === "following" ? feedLoading : feedType === "global" ? globalFeedLoading : communityPostsLoading)
+    : projectsLoading;
+  const feedItems = getCurrentFeed();
 
   const handleNewPost = () => {
     setShowCreateMenu(false);
@@ -87,6 +123,43 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
+      {user && (
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" data-testid="feed-tabs">
+          <Button
+            variant={feedType === "following" ? "default" : "outline"}
+            size="sm"
+            className="gap-2 shrink-0"
+            onClick={() => setFeedType("following")}
+            data-testid="tab-your-feed"
+          >
+            <Users className="h-4 w-4" />
+            Your Feed
+          </Button>
+          <Button
+            variant={feedType === "global" ? "default" : "outline"}
+            size="sm"
+            className="gap-2 shrink-0"
+            onClick={() => setFeedType("global")}
+            data-testid="tab-global"
+          >
+            <Globe className="h-4 w-4" />
+            Global
+          </Button>
+          {joinedCommunities?.map((community) => (
+            <Button
+              key={community.id}
+              variant={feedType === community.id ? "default" : "outline"}
+              size="sm"
+              className="gap-2 shrink-0"
+              onClick={() => setFeedType(community.id)}
+              data-testid={`tab-community-${community.id}`}
+            >
+              {community.name}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {user && <StoriesRow />}
 
       {showPostComposer && user && (
@@ -105,7 +178,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {user && featuredProjects && featuredProjects.length > 0 && (
+      {user && feedType === "following" && featuredProjects && featuredProjects.length > 0 && (
         <section>
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -130,7 +203,13 @@ export default function HomePage() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {user ? "Your Feed" : "Latest Projects"}
+            {!user 
+              ? "Latest Projects" 
+              : feedType === "following" 
+                ? "Your Feed" 
+                : feedType === "global" 
+                  ? "Global Feed" 
+                  : joinedCommunities?.find(c => c.id === feedType)?.name || "Community"}
           </h2>
         </div>
 
