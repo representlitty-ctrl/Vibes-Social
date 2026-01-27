@@ -13,12 +13,15 @@ Vibes is a social community platform built for vibecoders - creative developers 
 ## Key Features
 1. **Authentication**: Replit Auth with OAuth support
 2. **User Profiles**: Bio, skills, tools, social links, follow/unfollow, profile pictures
-3. **Projects**: Submit, view, upvote, comment, bookmark, emoji reactions on projects
-4. **Learning Hub**: Curated resources with categories, upvotes, bookmarks
-5. **Grants**: Submit projects to grant programs for funding
-6. **Notifications**: Real-time notifications for interactions with user avatars
-7. **Direct Messaging**: Private conversations with voice notes, image sharing, and file attachments
-8. **Emoji Reactions**: React to projects and comments with emojis (❤️ 🔥 🚀 👏 👀 💯)
+3. **Posts**: Create text posts with images, videos, and voice notes; like and comment on posts
+4. **Stories**: 24-hour expiring stories with circular profile previews and color-coded rings
+5. **Unified Feed**: Combined feed showing posts and projects from followed users
+6. **Projects**: Submit, view, upvote, comment, bookmark, emoji reactions on projects
+7. **Learning Hub**: Curated resources with categories, upvotes, bookmarks
+8. **Grants**: Submit projects to grant programs for funding
+9. **Notifications**: Real-time notifications for interactions with user avatars
+10. **Direct Messaging**: Private conversations with voice notes, image sharing, and file attachments
+11. **Emoji Reactions**: React to projects and comments with emojis
 
 ## Project Architecture
 
@@ -41,6 +44,8 @@ Vibes is a social community platform built for vibecoders - creative developers 
 ## Database Tables
 - users, sessions (auth)
 - profiles
+- posts, post_media, post_likes, post_comments
+- stories
 - projects, project_upvotes, project_downvotes, project_comments, project_bookmarks
 - follows
 - resources, resource_upvotes, resource_bookmarks, resource_comments
@@ -52,6 +57,9 @@ Vibes is a social community platform built for vibecoders - creative developers 
 ## API Endpoints
 - `/api/auth/user` - Get current user
 - `/api/profile` - User profile CRUD
+- `/api/posts` - Post CRUD + likes + comments
+- `/api/stories` - Story CRUD (24-hour expiry)
+- `/api/feed` - Unified feed (posts + projects from followed users)
 - `/api/projects` - Project CRUD + upvotes + comments + bookmarks
 - `/api/resources` - Learning resources + upvotes + bookmarks
 - `/api/grants` - Grant programs + submissions
@@ -81,6 +89,10 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - White sidebar/nav with white cards on gray background
 
 ## Recent Changes
+- Added posts feature with text, images, videos, and voice notes support
+- Added stories feature with 24-hour expiry and circular profile previews
+- Added unified feed combining posts and projects from followed users
+- Added color-coded story rings (purple for 5+, orange for 3+, blue for 2+, primary for 1)
 - Added user search functionality (search by username, name, email)
 - Added 1:1 image cropping for profile picture uploads
 - Added delete project feature
