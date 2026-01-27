@@ -158,6 +158,8 @@ export interface IStorage {
   sendMessage(conversationId: string, senderId: string, content: string, messageType?: string, voiceNoteUrl?: string, imageUrl?: string, fileUrl?: string, fileName?: string): Promise<any>;
   markMessagesRead(conversationId: string, userId: string): Promise<void>;
   getUnreadMessageCount(userId: string): Promise<number>;
+  deleteMessage(messageId: string, userId: string): Promise<void>;
+  deleteConversation(conversationId: string, userId: string): Promise<void>;
   
   // Reactions
   getReactions(targetType: string, targetId: string): Promise<any[]>;
@@ -1252,6 +1254,31 @@ export class DatabaseStorage implements IStorage {
       }
     }
     return uniqueUsers;
+  }
+
+  async deleteMessage(messageId: string, userId: string): Promise<void> {
+    const [message] = await db.select().from(messages).where(eq(messages.id, messageId));
+    if (!message) return;
+    
+    if (message.senderId !== userId) {
+      throw new Error("You can only delete your own messages");
+    }
+    
+    await db.delete(messages).where(eq(messages.id, messageId));
+  }
+
+  async deleteConversation(conversationId: string, userId: string): Promise<void> {
+    const [convo] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, conversationId));
+    
+    if (!convo || (convo.user1Id !== userId && convo.user2Id !== userId)) {
+      throw new Error("Conversation not found or access denied");
+    }
+    
+    await db.delete(messages).where(eq(messages.conversationId, conversationId));
+    await db.delete(conversations).where(eq(conversations.id, conversationId));
   }
 
   // Reactions

@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2, Image, Paperclip, Download, User } from "lucide-react";
+import { Send, ArrowLeft, MessageCircle, Mic, Square, Loader2, Image, Paperclip, Download, User, Trash2, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
@@ -137,6 +143,35 @@ export default function MessagesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/messages/unread-count"] });
+    },
+  });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      return apiRequest("DELETE", `/api/messages/${messageId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConvo?.id, "messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ title: "Message deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete message", variant: "destructive" });
+    },
+  });
+
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (convoId: string) => {
+      return apiRequest("DELETE", `/api/conversations/${convoId}`);
+    },
+    onSuccess: () => {
+      setSelectedConvo(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/unread-count"] });
+      toast({ title: "Conversation deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete conversation", variant: "destructive" });
     },
   });
 
@@ -301,25 +336,44 @@ export default function MessagesPage() {
       <div className={`flex-1 flex flex-col ${selectedConvo ? "flex" : "hidden md:flex"}`}>
         {selectedConvo ? (
           <>
-            <div className="p-4 border-b flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => setSelectedConvo(null)}
-                data-testid="button-back-messages"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <Link href={`/profile/${selectedConvo.otherUser?.id}`}>
-                <div className="flex items-center gap-3 hover-elevate rounded-full pr-3 cursor-pointer">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
-                    <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
-                </div>
-              </Link>
+            <div className="p-4 border-b flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  onClick={() => setSelectedConvo(null)}
+                  data-testid="button-back-messages"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <Link href={`/profile/${selectedConvo.otherUser?.id}`}>
+                  <div className="flex items-center gap-3 hover-elevate rounded-full pr-3 cursor-pointer">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
+                      <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
+                  </div>
+                </Link>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" data-testid="button-conversation-menu">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => deleteConversationMutation.mutate(selectedConvo.id)}
+                    data-testid="button-delete-conversation"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Conversation
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -337,10 +391,10 @@ export default function MessagesPage() {
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                      className={`flex ${isOwn ? "justify-end" : "justify-start"} group`}
                       data-testid={`message-${msg.id}`}
                     >
-                      <div className={`flex gap-2 max-w-[70%] ${isOwn ? "flex-row-reverse" : ""}`}>
+                      <div className={`flex gap-2 max-w-[70%] items-end ${isOwn ? "flex-row-reverse" : ""}`}>
                         {!isOwn && (
                           <Link href={`/profile/${msg.sender?.id}`}>
                             <Avatar className="h-8 w-8 flex-shrink-0 cursor-pointer hover:opacity-80">
@@ -381,6 +435,17 @@ export default function MessagesPage() {
                             </p>
                           )}
                         </div>
+                        {isOwn && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => deleteMessageMutation.mutate(msg.id)}
+                            data-testid={`button-delete-message-${msg.id}`}
+                          >
+                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );

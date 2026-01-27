@@ -851,6 +851,34 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/messages/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.deleteMessage(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+
+  app.delete("/api/conversations/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.deleteConversation(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      res.status(500).json({ message: "Failed to delete conversation" });
+    }
+  });
+
   // ===== Reactions Routes =====
 
   // Get reactions for a target (project or comment)

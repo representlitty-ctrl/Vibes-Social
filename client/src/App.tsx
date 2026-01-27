@@ -21,6 +21,7 @@ import SubmitProjectPage from "@/pages/submit-project";
 import SubmitResourcePage from "@/pages/submit-resource";
 import CreateGrantPage from "@/pages/create-grant";
 import ProjectDetailPage from "@/pages/project-detail";
+import PostDetailPage from "@/pages/post-detail";
 import MessagesPage from "@/pages/messages";
 import CourseDetailPage from "@/pages/course-detail";
 import CommunitiesPage from "@/pages/communities";
@@ -107,6 +108,7 @@ function Router() {
         }} />
         <Route path="/submit" component={SubmitProjectPage} />
         <Route path="/projects/:id" component={ProjectDetailPage} />
+        <Route path="/posts/:id" component={PostDetailPage} />
         <Route component={NotFound} />
       </Switch>
     </AuthenticatedLayout>

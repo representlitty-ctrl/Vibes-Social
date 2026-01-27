@@ -117,7 +117,8 @@ export function PostCard({ post }: PostCardProps) {
     },
   });
 
-  const handleLike = () => {
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user) {
       window.location.href = "/api/login";
       return;
@@ -125,19 +126,26 @@ export function PostCard({ post }: PostCardProps) {
     likeMutation.mutate();
   };
 
-  const handleDelete = () => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm("Are you sure you want to delete this post?")) {
       deleteMutation.mutate();
     }
   };
 
-  const handleComment = () => {
+  const handleComment = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user) {
       window.location.href = "/api/login";
       return;
     }
     if (!commentText.trim()) return;
     commentMutation.mutate();
+  };
+
+  const handleShowComments = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowComments(!showComments);
   };
 
   const getInitials = (u: PostUser | null) => {
@@ -157,8 +165,12 @@ export function PostCard({ post }: PostCardProps) {
     navigate(`/profile/${userId}`);
   };
 
+  const handleCardClick = () => {
+    navigate(`/posts/${post.id}`);
+  };
+
   return (
-    <Card className="p-4" data-testid={`card-post-${post.id}`}>
+    <Card className="p-4 cursor-pointer hover-elevate" onClick={handleCardClick} data-testid={`card-post-${post.id}`}>
       <div className="flex gap-3">
         <div 
           className="cursor-pointer" 
@@ -249,7 +261,7 @@ export function PostCard({ post }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowComments(!showComments)}
+              onClick={handleShowComments}
               className="gap-1"
               data-testid={`button-comments-post-${post.id}`}
             >
