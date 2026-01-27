@@ -6,7 +6,6 @@ import {
   Trophy,
   Bell,
   User as UserIcon,
-  LogOut,
   Plus,
   MessageCircle,
   Search,
@@ -51,7 +50,7 @@ const secondaryNavItems = [
 ];
 
 export function AppSidebar() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [location] = useLocation();
   const { setOpenMobile, isMobile } = useSidebar();
 
@@ -152,30 +151,22 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
-            <AvatarFallback>
-              <UserIcon className="h-5 w-5 text-muted-foreground" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <span className="truncate text-sm font-medium">
-              {user?.firstName} {user?.lastName}
-            </span>
-            <span className="truncate text-xs text-muted-foreground">
-              {user?.email}
-            </span>
+        <Link href="/profile" onClick={handleNavClick} data-testid="link-profile-sidebar">
+          <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3 hover-elevate cursor-pointer">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
+              <AvatarFallback>{getInitials()}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <span className="truncate text-sm font-medium">
+                {user?.firstName} {user?.lastName}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {user?.email}
+              </span>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => logout()}
-            data-testid="button-logout"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
+        </Link>
       </SidebarFooter>
     </Sidebar>
   );

@@ -30,6 +30,7 @@ import {
   BookOpen,
   User as UserIcon,
   GraduationCap,
+  LogOut,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { useLocation } from "wouter";
@@ -110,7 +111,7 @@ interface VibecodingProgress {
 export default function ProfilePage() {
   const [, params] = useRoute("/profile/:id");
   const userId = params?.id;
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -283,12 +284,33 @@ export default function ProfilePage() {
 
               <div className="flex gap-2">
                 {isOwnProfile ? (
-                  <Link href="/profile/edit">
-                    <Button variant="outline" className="gap-2" data-testid="button-edit-profile">
-                      <Settings className="h-4 w-4" />
-                      Edit Profile
+                  <>
+                    <Link href="/profile/edit">
+                      <Button variant="outline" className="gap-2" data-testid="button-edit-profile">
+                        <Settings className="h-4 w-4" />
+                        Edit Profile
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => {
+                        try {
+                          logout();
+                        } catch (error) {
+                          toast({
+                            title: "Logout failed",
+                            description: "Please try again",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
                     </Button>
-                  </Link>
+                  </>
                 ) : (
                   <>
                     <Button
