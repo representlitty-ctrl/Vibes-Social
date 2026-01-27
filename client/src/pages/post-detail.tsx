@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useState } from "react";
 import {
   Heart,
@@ -212,7 +212,7 @@ export default function PostDetailPage() {
                   }) && <VerifiedBadge size="sm" />}
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {post.createdAt && formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                  {post.createdAt && format(new Date(post.createdAt), "MMMM d, yyyy 'at' h:mm a")}
                 </span>
               </div>
             </div>

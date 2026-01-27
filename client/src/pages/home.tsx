@@ -8,8 +8,9 @@ import { ProjectCard } from "@/components/project-card";
 import { PostCard } from "@/components/post-card";
 import { PostComposer } from "@/components/post-composer";
 import { StoriesRow } from "@/components/stories-row";
-import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X, Globe, Users } from "lucide-react";
+import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useFeed } from "@/contexts/feed-context";
 import type { Project, User, Profile, Community } from "@shared/schema";
 
 type ProjectWithDetails = Project & {
@@ -62,7 +63,7 @@ export default function HomePage() {
   const [, navigate] = useLocation();
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showPostComposer, setShowPostComposer] = useState(false);
-  const [feedType, setFeedType] = useState<"following" | "global" | string>("following");
+  const { feedType } = useFeed();
 
   const { data: feed, isLoading: feedLoading } = useQuery<FeedItem[]>({
     queryKey: ["/api/feed"],
@@ -123,43 +124,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
-      {user && (
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" data-testid="feed-tabs">
-          <Button
-            variant={feedType === "following" ? "default" : "outline"}
-            size="sm"
-            className="gap-2 shrink-0"
-            onClick={() => setFeedType("following")}
-            data-testid="tab-your-feed"
-          >
-            <Users className="h-4 w-4" />
-            Your Feed
-          </Button>
-          <Button
-            variant={feedType === "global" ? "default" : "outline"}
-            size="sm"
-            className={`gap-2 shrink-0 ${feedType === "global" ? "bg-[#1ae6d5] text-[#000000]" : ""}`}
-            onClick={() => setFeedType("global")}
-            data-testid="tab-global"
-          >
-            <Globe className="h-4 w-4" />
-            Global
-          </Button>
-          {joinedCommunities?.map((community) => (
-            <Button
-              key={community.id}
-              variant={feedType === community.id ? "default" : "outline"}
-              size="sm"
-              className="gap-2 shrink-0"
-              onClick={() => setFeedType(community.id)}
-              data-testid={`tab-community-${community.id}`}
-            >
-              {community.name}
-            </Button>
-          ))}
-        </div>
-      )}
-
       {user && <StoriesRow />}
 
       {showPostComposer && user && (

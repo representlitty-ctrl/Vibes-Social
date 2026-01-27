@@ -26,6 +26,8 @@ import MessagesPage from "@/pages/messages";
 import CourseDetailPage from "@/pages/course-detail";
 import CommunitiesPage from "@/pages/communities";
 import LearnVibecodingPage from "@/pages/learn-vibecoding";
+import { FeedProvider } from "@/contexts/feed-context";
+import { FeedTabs } from "@/components/feed-tabs";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -34,20 +36,25 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   } as React.CSSProperties;
 
   return (
-    <SidebarProvider style={style}>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-md">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <ThemeToggle />
-          </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6">
-            {children}
-          </main>
+    <FeedProvider>
+      <SidebarProvider style={style}>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <div className="flex flex-1 flex-col">
+            <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div className="flex-1 overflow-hidden">
+                <FeedTabs />
+              </div>
+              <ThemeToggle />
+            </header>
+            <main className="flex-1 overflow-auto p-4 md:p-6">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </FeedProvider>
   );
 }
 

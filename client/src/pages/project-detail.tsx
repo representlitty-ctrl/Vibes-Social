@@ -10,7 +10,7 @@ import { EmojiReactions } from "@/components/emoji-reactions";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useState } from "react";
 import {
   ChevronUp,
@@ -223,7 +223,7 @@ export default function ProjectDetailPage() {
               </Link>
 
               <span className="text-sm text-muted-foreground">
-                {project.createdAt && formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}
+                {project.createdAt && format(new Date(project.createdAt), "MMMM d, yyyy 'at' h:mm a")}
               </span>
             </div>
 
