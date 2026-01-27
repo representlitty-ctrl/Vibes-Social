@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 
 interface PostUser {
   id: string;
@@ -178,6 +179,7 @@ export function PostCard({ post }: PostCardProps) {
               >
                 {displayName}
               </span>
+              {isUserVerified(post.user) && <VerifiedBadge size="sm" />}
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
               </span>

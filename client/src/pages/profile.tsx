@@ -28,6 +28,7 @@ import {
   BookOpen,
   User as UserIcon,
 } from "lucide-react";
+import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { useLocation } from "wouter";
 import type { User, Profile, Project } from "@shared/schema";
 
@@ -201,7 +202,7 @@ export default function ProfilePage() {
       <Card className="p-6">
         <div className="flex flex-col items-start gap-6 sm:flex-row">
           <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
-            <AvatarImage src={profile.user.profileImageUrl || undefined} />
+            <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
             <AvatarFallback>
               <UserIcon className="h-12 w-12 text-muted-foreground" />
             </AvatarFallback>
@@ -210,7 +211,14 @@ export default function ProfilePage() {
           <div className="flex-1">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold">{displayName}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">{displayName}</h1>
+                  {isUserVerified({
+                    profileImageUrl: profile.profileImageUrl || profile.user.profileImageUrl,
+                    username: profile.username,
+                    email: profile.user.email,
+                  }) && <VerifiedBadge size="lg" />}
+                </div>
                 {profile.username && profile.user.firstName && (
                   <p className="text-muted-foreground">
                     {profile.user.firstName} {profile.user.lastName}

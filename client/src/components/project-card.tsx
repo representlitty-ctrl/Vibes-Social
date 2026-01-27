@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import type { Project, User, Profile } from "@shared/schema";
+import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 
 type ProjectWithDetails = Project & {
   user: User & { profile: Profile | null };
@@ -137,6 +138,11 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                     <AvatarFallback><UserIcon className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <span className="text-sm text-muted-foreground">{displayName}</span>
+                  {isUserVerified({
+                    profileImageUrl: project.user.profile?.profileImageUrl || project.user.profileImageUrl,
+                    username: project.user.profile?.username,
+                    email: project.user.email,
+                  }) && <VerifiedBadge size="sm" />}
                 </div>
               </Link>
               <div className="flex items-center gap-2">
@@ -237,6 +243,11 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                     <AvatarFallback><UserIcon className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
                   </Avatar>
                   <span className="text-xs text-muted-foreground">{displayName}</span>
+                  {isUserVerified({
+                    profileImageUrl: project.user.profile?.profileImageUrl || project.user.profileImageUrl,
+                    username: project.user.profile?.username,
+                    email: project.user.email,
+                  }) && <VerifiedBadge size="sm" />}
                 </div>
               </Link>
 
