@@ -25,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const secondaryNavItems = [
 export function AppSidebar() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const { setOpenMobile, isMobile } = useSidebar();
 
   const { data: unreadCount } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
@@ -69,11 +71,17 @@ export function AppSidebar() {
     return "U";
   };
 
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between gap-2">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2" onClick={handleNavClick}>
             <VibesLogo className="h-5" />
             <span className="text-xl font-bold">Vibes</span>
           </Link>
@@ -84,7 +92,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <div className="px-3 py-2">
-            <Link href="/submit">
+            <Link href="/submit" onClick={handleNavClick}>
               <Button className="w-full gap-2" data-testid="button-submit-project">
                 <Plus className="h-4 w-4" />
                 Submit Project
@@ -106,7 +114,7 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`nav-${item.title.toLowerCase()}`}
                   >
-                    <Link href={item.url}>
+                    <Link href={item.url} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -130,7 +138,7 @@ export function AppSidebar() {
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                     data-testid={`nav-${item.title.toLowerCase()}`}
                   >
-                    <Link href={item.url}>
+                    <Link href={item.url} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                       {item.title === "Messages" && unreadMessages && unreadMessages.count > 0 && (

@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useSidebar } from "@/components/ui/sidebar";
 import type { User, Profile } from "@shared/schema";
 
 type UserWithProfile = User & { profile: Profile | null };
@@ -39,6 +40,7 @@ function getProfileImage(user: UserWithProfile): string | undefined {
 export function UserSearch() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { setOpenMobile, isMobile } = useSidebar();
 
   const { data: users, isLoading } = useQuery<UserWithProfile[]>({
     queryKey: ["/api/users/search", searchQuery],
@@ -54,6 +56,9 @@ export function UserSearch() {
   const handleUserClick = () => {
     setOpen(false);
     setSearchQuery("");
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
