@@ -309,6 +309,36 @@ export const courseProgress = pgTable("course_progress", {
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
+// Communities
+export const communities = pgTable("communities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  category: varchar("category", { length: 50 }).notNull(),
+  imageUrl: varchar("image_url"),
+  coverImageUrl: varchar("cover_image_url"),
+  creatorId: varchar("creator_id").notNull().references(() => users.id),
+  isPrivate: boolean("is_private").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Community Members
+export const communityMembers = pgTable("community_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  communityId: varchar("community_id").notNull().references(() => communities.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  role: varchar("role", { length: 20 }).default("member"),
+  joinedAt: timestamp("joined_at").defaultNow(),
+});
+
+// Community Posts (posts can optionally belong to a community)
+export const communityPosts = pgTable("community_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  communityId: varchar("community_id").notNull().references(() => communities.id, { onDelete: "cascade" }),
+  postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   profile: one(profiles, { fields: [users.id], references: [profiles.userId] }),
@@ -468,6 +498,22 @@ export const courseProgressRelations = relations(courseProgress, ({ one }) => ({
   lesson: one(courseLessons, { fields: [courseProgress.lessonId], references: [courseLessons.id] }),
 }));
 
+export const communitiesRelations = relations(communities, ({ one, many }) => ({
+  creator: one(users, { fields: [communities.creatorId], references: [users.id] }),
+  members: many(communityMembers),
+  posts: many(communityPosts),
+}));
+
+export const communityMembersRelations = relations(communityMembers, ({ one }) => ({
+  community: one(communities, { fields: [communityMembers.communityId], references: [communities.id] }),
+  user: one(users, { fields: [communityMembers.userId], references: [users.id] }),
+}));
+
+export const communityPostsRelations = relations(communityPosts, ({ one }) => ({
+  community: one(communities, { fields: [communityPosts.communityId], references: [communities.id] }),
+  post: one(posts, { fields: [communityPosts.postId], references: [posts.id] }),
+}));
+
 // Insert Schemas
 export const insertProfileSchema = createInsertSchema(profiles).omit({ userId: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, userId: true, createdAt: true, updatedAt: true, isFeatured: true });
@@ -485,6 +531,7 @@ export const insertPostCommentSchema = createInsertSchema(postComments).omit({ i
 export const insertStorySchema = createInsertSchema(stories).omit({ id: true, userId: true, createdAt: true });
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, instructorId: true, createdAt: true, updatedAt: true, isFeatured: true });
 export const insertCourseLessonSchema = createInsertSchema(courseLessons).omit({ id: true, createdAt: true });
+export const insertCommunitySchema = createInsertSchema(communities).omit({ id: true, creatorId: true, createdAt: true });
 
 // Types
 export type Profile = typeof profiles.$inferSelect;
@@ -551,3 +598,9 @@ export type InsertCourseLesson = z.infer<typeof insertCourseLessonSchema>;
 
 export type CourseEnrollment = typeof courseEnrollments.$inferSelect;
 export type CourseProgress = typeof courseProgress.$inferSelect;
+
+export type Community = typeof communities.$inferSelect;
+export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
+
+export type CommunityMember = typeof communityMembers.$inferSelect;
+export type CommunityPost = typeof communityPosts.$inferSelect;
