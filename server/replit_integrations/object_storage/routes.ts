@@ -63,7 +63,7 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   /**
-   * Serve uploaded objects.
+   * Serve uploaded objects with Range request support for audio/video streaming.
    *
    * GET /objects/*
    *
@@ -73,7 +73,8 @@ export function registerObjectStorageRoutes(app: Express): void {
   app.get("/objects/*objectPath", async (req, res) => {
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res);
+      const rangeHeader = req.headers.range;
+      await objectStorageService.downloadObject(objectFile, res, 3600, rangeHeader);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
