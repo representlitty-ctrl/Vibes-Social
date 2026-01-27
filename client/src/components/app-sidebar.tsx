@@ -95,19 +95,6 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <div className="px-3 py-2">
-            <Link href="/submit" onClick={handleNavClick}>
-              <Button className="w-full gap-2" data-testid="button-submit-project">
-                <Plus className="h-4 w-4" />
-                Submit Project
-              </Button>
-            </Link>
-          </div>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        <SidebarGroup>
           <SidebarGroupLabel>Navigate</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
