@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { ProjectCard } from "@/components/project-card";
 import { PostCard } from "@/components/post-card";
 import { PostComposer } from "@/components/post-composer";
 import { StoriesRow } from "@/components/stories-row";
-import { Sparkles, Plus, Compass } from "lucide-react";
+import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import type { Project, User, Profile } from "@shared/schema";
 
@@ -53,6 +54,9 @@ type FeedItem = (ProjectWithDetails & { type: "project" }) | Post;
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [showPostComposer, setShowPostComposer] = useState(false);
 
   const { data: feed, isLoading: feedLoading } = useQuery<FeedItem[]>({
     queryKey: ["/api/feed"],
@@ -71,13 +75,22 @@ export default function HomePage() {
   const isLoading = user ? feedLoading : projectsLoading;
   const feedItems = user ? feed : projects?.map(p => ({ ...p, type: "project" as const }));
 
+  const handleNewPost = () => {
+    setShowCreateMenu(false);
+    setShowPostComposer(true);
+  };
+
+  const handleNewProject = () => {
+    setShowCreateMenu(false);
+    navigate("/submit");
+  };
+
   return (
     <div className="space-y-6">
-      {user && (
-        <>
-          <StoriesRow />
-          <PostComposer />
-        </>
+      {user && <StoriesRow />}
+
+      {showPostComposer && user && (
+        <PostComposer onClose={() => setShowPostComposer(false)} />
       )}
 
       {!user && (
@@ -119,14 +132,6 @@ export default function HomePage() {
           <h2 className="text-lg font-semibold">
             {user ? "Your Feed" : "Latest Projects"}
           </h2>
-          {user && (
-            <Link href="/submit">
-              <Button variant="outline" size="sm" className="gap-1" data-testid="button-new-project">
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
-            </Link>
-          )}
         </div>
 
         {isLoading ? (
@@ -149,6 +154,44 @@ export default function HomePage() {
           <EmptyState isLoggedIn={!!user} />
         )}
       </section>
+
+      {user && (
+        <div className="fixed bottom-6 right-6 z-50">
+          {showCreateMenu && (
+            <div className="absolute bottom-16 right-0 flex flex-col gap-2 mb-2">
+              <Button
+                onClick={handleNewPost}
+                className="gap-2 shadow-lg"
+                data-testid="button-create-post"
+              >
+                <PenSquare className="h-4 w-4" />
+                New Post
+              </Button>
+              <Button
+                onClick={handleNewProject}
+                variant="outline"
+                className="gap-2 shadow-lg bg-background"
+                data-testid="button-create-project"
+              >
+                <FolderPlus className="h-4 w-4" />
+                New Project
+              </Button>
+            </div>
+          )}
+          <Button
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+            onClick={() => setShowCreateMenu(!showCreateMenu)}
+            data-testid="button-create-fab"
+          >
+            {showCreateMenu ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Plus className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

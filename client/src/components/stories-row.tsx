@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Plus, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
@@ -242,7 +242,7 @@ export function StoriesRow() {
                       onClick={() => deleteStoryMutation.mutate(currentStory.id)}
                       data-testid="button-delete-story"
                     >
-                      <X className="h-5 w-5" />
+                      <Trash2 className="h-5 w-5" />
                     </Button>
                   )}
                   <Button

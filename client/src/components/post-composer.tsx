@@ -17,7 +17,11 @@ interface MediaItem {
   aspectRatio?: string;
 }
 
-export function PostComposer() {
+interface PostComposerProps {
+  onClose?: () => void;
+}
+
+export function PostComposer({ onClose }: PostComposerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -69,6 +73,7 @@ export function PostComposer() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
       toast({ title: "Post created!" });
+      onClose?.();
     },
     onError: () => {
       toast({ title: "Failed to create post", variant: "destructive" });
@@ -145,6 +150,19 @@ export function PostComposer() {
 
   return (
     <Card className="p-4" data-testid="post-composer">
+      {onClose && (
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-semibold">Create Post</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            data-testid="button-close-composer"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
       <div className="flex gap-3">
         <Avatar className="h-10 w-10 flex-shrink-0">
           <AvatarImage src={user.profileImageUrl || undefined} />
