@@ -24,17 +24,17 @@
   --sidebar: 0 0% 100%;
   --sidebar-foreground: 210 20% 20%;
   --sidebar-border: 220 10% 88%;
-  --sidebar-primary: 200 85% 50%;
+  --sidebar-primary: 195 39% 18%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 200 50% 94%;
-  --sidebar-accent-foreground: 200 85% 30%;
-  --sidebar-ring: 200 85% 50%;
+  --sidebar-accent: 195 30% 92%;
+  --sidebar-accent-foreground: 195 39% 18%;
+  --sidebar-ring: 195 39% 18%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 210 20% 10%;
   --popover-border: 220 10% 88%;
 
-  --primary: 200 85% 50%;
+  --primary: 195 39% 18%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 220 10% 92%;
@@ -43,14 +43,14 @@
   --muted: 220 10% 92%;
   --muted-foreground: 210 10% 45%;
 
-  --accent: 200 50% 94%;
-  --accent-foreground: 200 85% 30%;
+  --accent: 195 30% 92%;
+  --accent-foreground: 195 39% 18%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --input: 220 10% 88%;
-  --ring: 200 85% 50%;
+  --ring: 195 39% 18%;
 
   --chart-1: 320 70% 60%;
   --chart-2: 280 70% 55%;
@@ -117,17 +117,17 @@
   --sidebar: 0 0% 4%;
   --sidebar-foreground: 0 0% 90%;
   --sidebar-border: 0 0% 18%;
-  --sidebar-primary: 200 85% 55%;
+  --sidebar-primary: 195 45% 35%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 200 40% 18%;
-  --sidebar-accent-foreground: 200 70% 75%;
-  --sidebar-ring: 200 85% 55%;
+  --sidebar-accent: 195 35% 15%;
+  --sidebar-accent-foreground: 195 50% 75%;
+  --sidebar-ring: 195 45% 35%;
 
   --popover: 0 0% 7%;
   --popover-foreground: 0 0% 95%;
   --popover-border: 0 0% 18%;
 
-  --primary: 200 85% 55%;
+  --primary: 195 45% 35%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 0 0% 14%;
@@ -136,17 +136,17 @@
   --muted: 0 0% 14%;
   --muted-foreground: 0 0% 60%;
 
-  --accent: 200 40% 18%;
-  --accent-foreground: 200 70% 75%;
+  --accent: 195 35% 15%;
+  --accent-foreground: 195 50% 75%;
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
   --input: 0 0% 18%;
-  --ring: 200 85% 55%;
+  --ring: 195 45% 35%;
 
   --chart-1: 320 70% 65%;
-  --chart-2: 200 85% 55%;
+  --chart-2: 195 45% 35%;
   --chart-3: 175 80% 55%;
   --chart-4: 140 60% 50%;
   --chart-5: 45 90% 60%;
