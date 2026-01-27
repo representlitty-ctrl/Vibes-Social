@@ -73,8 +73,16 @@ Vibes is a social community platform built for vibecoders - creative developers 
 
 ## User Preferences
 - Cyan/teal primary color (matching rainbow logo)
-- Twitter/X-style social media aesthetic
-- Pure black dark mode (#000)
+- Facebook-style social media aesthetic with light gray background
+- Pure black dark mode with elevated cards
 - Rainbow gradient accents for key text
 - Inter font family for sans-serif
-- Clean, minimal card-based layout
+- Clean, card-based layout with subtle shadows
+- White sidebar/nav with white cards on gray background
+
+## Recent Changes
+- Added user search functionality (search by username, name, email)
+- Added 1:1 image cropping for profile picture uploads
+- Added delete project feature
+- Switched from Twitter/X-style to Facebook-style design
+- Profile pictures display everywhere (notifications, messages, comments, projects)
