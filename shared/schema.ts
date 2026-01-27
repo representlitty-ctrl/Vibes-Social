@@ -6,6 +6,9 @@ import { z } from "zod";
 // Re-export auth models
 export * from "./models/auth";
 
+// Re-export chat models
+export * from "./models/chat";
+
 // User Profiles - extends the auth user
 export const profiles = pgTable("profiles", {
   userId: varchar("user_id").primaryKey().references(() => users.id),

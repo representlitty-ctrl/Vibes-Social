@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ import {
   X,
   ArrowLeft,
   ArrowRight,
+  Lightbulb,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -1251,6 +1253,14 @@ export default function LearnVibecodingPage() {
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState<{ correct: number; total: number } | null>(null);
+  
+  // Reading timer state (30 second minimum)
+  const READING_TIME_REQUIRED = 30;
+  const [readingTimeRemaining, setReadingTimeRemaining] = useState(READING_TIME_REQUIRED);
+  const [hasMetReadingTime, setHasMetReadingTime] = useState(false);
+  
+  // Alternative explanation state
+  const [alternativeExplanation, setAlternativeExplanation] = useState<string | null>(null);
 
   // Fetch progress FIRST before using it in other functions
   const { data: progress, isLoading: progressLoading } = useQuery<UserProgress>({
@@ -1338,6 +1348,54 @@ export default function LearnVibecodingPage() {
       });
     },
   });
+
+  // Mutation to get alternative explanation
+  const getExplanation = useMutation({
+    mutationFn: async ({ lessonId, lessonTitle, lessonContent }: { lessonId: string; lessonTitle: string; lessonContent: string }) => {
+      return apiRequest("POST", `/api/vibecoding/lessons/${lessonId}/explain`, { lessonTitle, lessonContent });
+    },
+    onSuccess: (data: any) => {
+      setAlternativeExplanation(data.explanation);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Could not generate alternative explanation. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reading timer effect - countdown when lesson is open
+  useEffect(() => {
+    if (!selectedLesson) {
+      // Reset when lesson closes
+      setReadingTimeRemaining(READING_TIME_REQUIRED);
+      setHasMetReadingTime(false);
+      setAlternativeExplanation(null);
+      return;
+    }
+
+    // If lesson is already completed, don't require timer
+    if (progress?.completedLessons?.includes(selectedLesson.id)) {
+      setHasMetReadingTime(true);
+      return;
+    }
+
+    // Start countdown
+    const interval = setInterval(() => {
+      setReadingTimeRemaining(prev => {
+        if (prev <= 1) {
+          setHasMetReadingTime(true);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [selectedLesson, progress?.completedLessons]);
 
   // Quiz functions
   const startQuiz = (moduleId: string) => {
@@ -1896,10 +1954,18 @@ export default function LearnVibecodingPage() {
                 {selectedLesson && getLessonBadge(selectedLesson.type)}
                 <DialogTitle className="text-xl">{selectedLesson?.title}</DialogTitle>
               </div>
-              <span className="text-sm text-muted-foreground flex items-center gap-1 flex-shrink-0">
-                <Clock className="h-4 w-4" />
-                {selectedLesson?.duration}
-              </span>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {selectedLesson?.duration}
+                </span>
+                {user && selectedLesson && !isLessonCompleted(selectedLesson.id) && !hasMetReadingTime && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {readingTimeRemaining}s remaining
+                  </Badge>
+                )}
+              </div>
             </div>
           </DialogHeader>
           
@@ -1907,6 +1973,51 @@ export default function LearnVibecodingPage() {
             <div className="prose prose-sm dark:prose-invert max-w-none">
               {selectedLesson?.content && formatContent(selectedLesson.content)}
             </div>
+            
+            {/* Alternative Explanation Section */}
+            {user && selectedLesson && (
+              <div className="mt-6 pt-4 border-t">
+                {!alternativeExplanation ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (selectedLesson) {
+                        getExplanation.mutate({
+                          lessonId: selectedLesson.id,
+                          lessonTitle: selectedLesson.title,
+                          lessonContent: selectedLesson.content
+                        });
+                      }
+                    }}
+                    disabled={getExplanation.isPending}
+                    className="gap-2"
+                    data-testid="button-alternative-explanation"
+                  >
+                    {getExplanation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb className="h-4 w-4" />
+                        Need a different explanation?
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lightbulb className="h-5 w-5 text-primary" />
+                      <span className="font-medium text-primary">Alternative Explanation</span>
+                    </div>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {formatContent(alternativeExplanation)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t mt-4">
@@ -1929,12 +2040,12 @@ export default function LearnVibecodingPage() {
                       completeLesson.mutate(selectedLesson.id);
                     }
                   }}
-                  disabled={completeLesson.isPending}
+                  disabled={completeLesson.isPending || !hasMetReadingTime}
                   className="gap-2"
                   data-testid="button-complete-lesson"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  {completeLesson.isPending ? "Marking..." : "Mark Complete"}
+                  {completeLesson.isPending ? "Marking..." : hasMetReadingTime ? "Mark Complete" : `Read for ${readingTimeRemaining}s`}
                 </Button>
               ) : selectedLesson && isLessonCompleted(selectedLesson.id) ? (
                 <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">

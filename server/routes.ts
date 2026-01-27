@@ -1802,5 +1802,42 @@ export async function registerRoutes(
     }
   });
 
+  // Alternative lesson explanation using AI
+  app.post("/api/vibecoding/lessons/:lessonId/explain", isAuthenticated, async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+      const { lessonTitle, lessonContent } = req.body;
+      
+      if (!lessonTitle || !lessonContent) {
+        return res.status(400).json({ message: "Lesson title and content are required" });
+      }
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI();
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a friendly coding teacher explaining vibecoding concepts. Provide a clear, alternative explanation of the lesson content. Use simple language, practical examples, and analogies. Keep the explanation concise but helpful (2-3 paragraphs)."
+          },
+          {
+            role: "user",
+            content: `Please provide an alternative explanation for this lesson:\n\nTitle: ${lessonTitle}\n\nOriginal Content:\n${lessonContent}`
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      const explanation = response.choices[0]?.message?.content || "Unable to generate explanation.";
+      res.json({ explanation });
+    } catch (error) {
+      console.error("Error generating explanation:", error);
+      res.status(500).json({ message: "Failed to generate alternative explanation" });
+    }
+  });
+
   return httpServer;
 }
