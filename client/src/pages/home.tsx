@@ -165,18 +165,6 @@ export default function HomePage() {
       )}
 
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {!user 
-              ? "Latest Projects" 
-              : feedType === "following" 
-                ? "Your Feed" 
-                : feedType === "global" 
-                  ? "Global Feed" 
-                  : joinedCommunities?.find(c => c.id === feedType)?.name || "Community"}
-          </h2>
-        </div>
-
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
