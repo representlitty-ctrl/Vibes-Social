@@ -254,14 +254,6 @@ function EmptyState({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p className="mt-2 max-w-sm text-muted-foreground">
             Follow other vibecoders to see their posts and projects in your feed, or share something yourself!
           </p>
-          <div className="mt-6">
-            <Link href="/submit">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Share a Project
-              </Button>
-            </Link>
-          </div>
         </>
       ) : (
         <>
