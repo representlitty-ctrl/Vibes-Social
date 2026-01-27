@@ -289,7 +289,7 @@ export function PostCard({ post }: PostCardProps) {
           </div>
 
           {showComments && (
-            <div className="mt-4 space-y-3 border-t pt-3">
+            <div className="mt-4 space-y-3 border-t pt-3" onClick={(e) => e.stopPropagation()}>
               {user && (
                 <div className="flex gap-2">
                   <Avatar className="h-8 w-8">
@@ -303,6 +303,7 @@ export function PostCard({ post }: PostCardProps) {
                       placeholder="Write a comment..."
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
                       className="min-h-[40px] resize-none text-sm"
                       rows={1}
                       data-testid={`input-comment-${post.id}`}
