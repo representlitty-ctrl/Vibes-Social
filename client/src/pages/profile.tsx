@@ -29,6 +29,7 @@ import {
   FileText,
   BookOpen,
   User as UserIcon,
+  GraduationCap,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { useLocation } from "wouter";
@@ -93,6 +94,19 @@ interface EnrolledCourse {
   enrolledAt: string;
 }
 
+interface VibecodingProgress {
+  completedLessons: string[];
+  passedQuizzes: string[];
+  hasCertificate: boolean;
+  certificateNumber?: string;
+  badges: Array<{
+    id: string;
+    badgeType: string;
+    badgeIcon: string;
+    earnedAt: string;
+  }>;
+}
+
 export default function ProfilePage() {
   const [, params] = useRoute("/profile/:id");
   const userId = params?.id;
@@ -119,6 +133,11 @@ export default function ProfilePage() {
 
   const { data: enrolledCourses } = useQuery<EnrolledCourse[]>({
     queryKey: ["/api/users", userId, "courses"],
+    enabled: !!userId,
+  });
+
+  const { data: vibecodingProgress } = useQuery<VibecodingProgress>({
+    queryKey: ["/api/users", userId, "vibecoding-progress"],
     enabled: !!userId,
   });
 
@@ -244,6 +263,16 @@ export default function ProfilePage() {
                     username: profile.username,
                     email: profile.user.email,
                   }) && <VerifiedBadge size="lg" />}
+                  {vibecodingProgress?.hasCertificate && (
+                    <Badge 
+                      variant="secondary" 
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 gap-1"
+                      data-testid="badge-vibecoder"
+                    >
+                      <GraduationCap className="h-3 w-3" />
+                      Vibecoder
+                    </Badge>
+                  )}
                 </div>
                 {profile.username && profile.user.firstName && (
                   <p className="text-muted-foreground">
