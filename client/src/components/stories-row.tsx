@@ -118,13 +118,6 @@ export function StoriesRow() {
     navigate(`/profile/${userId}`);
   };
 
-  const getInitials = (u: StoryUser | null) => {
-    if (u?.firstName && u?.lastName) {
-      return `${u.firstName[0]}${u.lastName[0]}`.toUpperCase();
-    }
-    return "U";
-  };
-
   const getStoryRingColor = (count: number) => {
     if (count >= 5) return "ring-purple-500";
     if (count >= 3) return "ring-orange-500";
@@ -147,21 +140,29 @@ export function StoriesRow() {
             className="hidden"
             onChange={handleFileSelect}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-16 w-16 rounded-full"
-            onClick={handleAddStory}
-            disabled={isUploading}
-            data-testid="button-add-story"
-          >
-            {isUploading ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : (
-              <Plus className="h-6 w-6" />
-            )}
-          </Button>
-          <span className="text-xs text-muted-foreground">Add Story</span>
+          <div className="relative">
+            <Avatar className="h-16 w-16 border-2 border-dashed border-muted-foreground/50">
+              <AvatarImage src={user.profileImageUrl || undefined} />
+              <AvatarFallback className="bg-muted">
+                <Plus className="h-6 w-6 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              variant="default"
+              size="icon"
+              className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full"
+              onClick={handleAddStory}
+              disabled={isUploading}
+              data-testid="button-add-story"
+            >
+              {isUploading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Plus className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+          <span className="text-xs text-muted-foreground">Your Story</span>
         </div>
 
         {isLoading ? (
@@ -182,7 +183,11 @@ export function StoriesRow() {
               <div className={`p-0.5 rounded-full ring-2 ${getStoryRingColor(group.storyCount)}`}>
                 <Avatar className="h-14 w-14 border-2 border-background">
                   <AvatarImage src={group.user?.profileImageUrl || undefined} />
-                  <AvatarFallback>{getInitials(group.user)}</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
+                    {group.user?.firstName?.[0]?.toUpperCase() || 
+                     group.user?.username?.[0]?.toUpperCase() || 
+                     "U"}
+                  </AvatarFallback>
                 </Avatar>
               </div>
               <span className="text-xs text-muted-foreground truncate max-w-[64px]">
@@ -194,42 +199,46 @@ export function StoriesRow() {
       </div>
 
       <Dialog open={!!viewingGroup} onOpenChange={() => setViewingGroup(null)}>
-        <DialogContent className="max-w-lg p-0 bg-black border-0">
+        <DialogContent className="max-w-full sm:max-w-md md:max-w-lg p-0 bg-black border-0 h-[100dvh] sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-lg">
           <VisuallyHidden>
             <DialogTitle>Story Viewer</DialogTitle>
           </VisuallyHidden>
           {currentStory && viewingGroup && (
-            <div className="relative aspect-[9/16] max-h-[80vh]">
-              <div className="absolute top-0 left-0 right-0 z-10 flex gap-1 p-2">
+            <div className="relative w-full h-full sm:aspect-[9/16] sm:max-h-[85vh] flex flex-col">
+              <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2 pt-3">
                 {viewingGroup.stories.map((_, i) => (
                   <div
                     key={i}
-                    className={`h-1 flex-1 rounded-full ${
+                    className={`h-1 flex-1 rounded-full transition-colors ${
                       i <= currentStoryIndex ? "bg-white" : "bg-white/30"
                     }`}
                   />
                 ))}
               </div>
 
-              <div className="absolute top-4 left-2 right-2 z-10 flex items-center justify-between">
+              <div className="absolute top-6 left-3 right-3 z-20 flex items-center justify-between">
                 <div 
                   className="flex items-center gap-2 cursor-pointer"
                   onClick={() => handleAvatarClick(viewingGroup.user?.id || "")}
                 >
-                  <Avatar className="h-8 w-8 border border-white/50">
+                  <Avatar className="h-10 w-10 border-2 border-white/50">
                     <AvatarImage src={viewingGroup.user?.profileImageUrl || undefined} />
-                    <AvatarFallback>{getInitials(viewingGroup.user)}</AvatarFallback>
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {viewingGroup.user?.firstName?.[0]?.toUpperCase() || 
+                       viewingGroup.user?.username?.[0]?.toUpperCase() || 
+                       "U"}
+                    </AvatarFallback>
                   </Avatar>
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-white text-sm font-medium drop-shadow-lg">
                     {viewingGroup.user?.username || viewingGroup.user?.firstName || "User"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {user?.id === viewingGroup.user?.id && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-white hover:bg-white/20"
+                      className="text-white hover:bg-white/20 h-10 w-10"
                       onClick={() => deleteStoryMutation.mutate(currentStory.id)}
                       data-testid="button-delete-story"
                     >
@@ -239,37 +248,40 @@ export function StoriesRow() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-white hover:bg-white/20"
+                    className="text-white hover:bg-white/20 h-10 w-10"
                     onClick={() => setViewingGroup(null)}
                     data-testid="button-close-story"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-6 w-6" />
                   </Button>
                 </div>
               </div>
 
-              {currentStory.mediaType === "image" ? (
-                <img
-                  src={currentStory.mediaUrl}
-                  alt=""
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <video
-                  src={currentStory.mediaUrl}
-                  controls
-                  autoPlay
-                  className="h-full w-full object-contain"
-                />
-              )}
+              <div className="flex-1 flex items-center justify-center bg-black">
+                {currentStory.mediaType === "image" ? (
+                  <img
+                    src={currentStory.mediaUrl}
+                    alt=""
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : (
+                  <video
+                    src={currentStory.mediaUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    className="max-w-full max-h-full object-contain"
+                  />
+                )}
+              </div>
 
               <button
-                className="absolute left-0 top-0 bottom-0 w-1/3 z-10"
+                className="absolute left-0 top-20 bottom-0 w-1/3 z-10"
                 onClick={prevStory}
                 aria-label="Previous story"
               />
               <button
-                className="absolute right-0 top-0 bottom-0 w-1/3 z-10"
+                className="absolute right-0 top-20 bottom-0 w-1/3 z-10"
                 onClick={nextStory}
                 aria-label="Next story"
               />
@@ -278,7 +290,7 @@ export function StoriesRow() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12 hidden sm:flex"
                   onClick={prevStory}
                 >
                   <ChevronLeft className="h-8 w-8" />
@@ -288,7 +300,7 @@ export function StoriesRow() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12 hidden sm:flex"
                   onClick={nextStory}
                 >
                   <ChevronRight className="h-8 w-8" />
