@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -65,18 +65,36 @@ export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
 
+  // Local optimistic state for instant UI updates
+  const [optimisticLiked, setOptimisticLiked] = useState(post.isLiked);
+  const [optimisticLikeCount, setOptimisticLikeCount] = useState(post.likeCount);
+
+  // Sync with server data when post updates
+  useEffect(() => {
+    setOptimisticLiked(post.isLiked);
+    setOptimisticLikeCount(post.likeCount);
+  }, [post.isLiked, post.likeCount]);
+
   const likeMutation = useMutation({
-    mutationFn: async () => {
-      if (post.isLiked) {
+    mutationFn: async (newLikedState: boolean) => {
+      if (!newLikedState) {
         return apiRequest("DELETE", `/api/posts/${post.id}/like`);
       }
       return apiRequest("POST", `/api/posts/${post.id}/like`);
+    },
+    onMutate: async (newLikedState: boolean) => {
+      // Optimistically update UI immediately
+      setOptimisticLiked(newLikedState);
+      setOptimisticLikeCount(prev => newLikedState ? prev + 1 : prev - 1);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
     },
     onError: () => {
+      // Revert on error
+      setOptimisticLiked(post.isLiked);
+      setOptimisticLikeCount(post.likeCount);
       toast({ title: "Failed to update like", variant: "destructive" });
     },
   });
@@ -123,7 +141,8 @@ export function PostCard({ post }: PostCardProps) {
       window.location.href = "/api/login";
       return;
     }
-    likeMutation.mutate();
+    // Pass the new desired state (toggle current)
+    likeMutation.mutate(!optimisticLiked);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -251,12 +270,11 @@ export function PostCard({ post }: PostCardProps) {
               variant="ghost"
               size="sm"
               onClick={handleLike}
-              disabled={likeMutation.isPending}
-              className={`gap-1 ${post.isLiked ? "text-red-500" : ""}`}
+              className={`gap-1 ${optimisticLiked ? "text-red-500" : ""}`}
               data-testid={`button-like-post-${post.id}`}
             >
-              <Heart className={`h-4 w-4 ${post.isLiked ? "fill-current" : ""}`} />
-              {post.likeCount > 0 && <span>{post.likeCount}</span>}
+              <Heart className={`h-4 w-4 ${optimisticLiked ? "fill-current" : ""}`} />
+              {optimisticLikeCount > 0 && <span>{optimisticLikeCount}</span>}
             </Button>
             <Button
               variant="ghost"
