@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow, format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Heart,
   ArrowLeft,
@@ -17,6 +17,8 @@ import {
   Send,
   Trash2,
   User as UserIcon,
+  Eye,
+  Share2,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 
@@ -44,6 +46,7 @@ interface Post {
   content: string | null;
   voiceNoteUrl: string | null;
   createdAt: string;
+  viewCount: number;
   user: PostUser | null;
   media: PostMedia[];
   likeCount: number;
@@ -73,6 +76,12 @@ export default function PostDetailPage() {
     queryKey: ["/api/posts", postId],
     enabled: !!postId,
   });
+
+  useEffect(() => {
+    if (postId) {
+      apiRequest("POST", `/api/posts/${postId}/view`).catch(() => {});
+    }
+  }, [postId]);
 
   const { data: comments, isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ["/api/posts", postId, "comments"],
@@ -279,6 +288,27 @@ export default function PostDetailPage() {
             <MessageCircle className="h-5 w-5" />
             <span>{post.commentCount} comments</span>
           </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Eye className="h-5 w-5" />
+            <span>{post.viewCount || 0} views</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const url = `${window.location.origin}/posts/${post.id}`;
+              navigator.clipboard.writeText(url);
+              toast({
+                title: "Link copied",
+                description: "Post link copied to clipboard",
+              });
+            }}
+            className="gap-2"
+            data-testid="button-share"
+          >
+            <Share2 className="h-5 w-5" />
+            Share
+          </Button>
         </div>
       </Card>
 

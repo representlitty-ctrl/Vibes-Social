@@ -202,6 +202,10 @@ export interface IStorage {
   markLessonComplete(lessonId: string, userId: string): Promise<void>;
   getCourseProgress(courseId: string, userId: string): Promise<any>;
   
+  // View Counts
+  incrementProjectViewCount(projectId: string): Promise<void>;
+  incrementPostViewCount(postId: string): Promise<void>;
+  
   // Stats
   getStats(): Promise<{ projectCount: number; userCount: number; grantCount: number }>;
   
@@ -1319,6 +1323,19 @@ export class DatabaseStorage implements IStorage {
       eq(reactions.targetType, targetType),
       eq(reactions.targetId, targetId)
     ));
+  }
+
+  // View Counts
+  async incrementProjectViewCount(projectId: string): Promise<void> {
+    await db.update(projects)
+      .set({ viewCount: sql`COALESCE(${projects.viewCount}, 0) + 1` })
+      .where(eq(projects.id, projectId));
+  }
+
+  async incrementPostViewCount(postId: string): Promise<void> {
+    await db.update(posts)
+      .set({ viewCount: sql`COALESCE(${posts.viewCount}, 0) + 1` })
+      .where(eq(posts.id, postId));
   }
 
   // Stats

@@ -327,6 +327,18 @@ export async function registerRoutes(
     }
   });
 
+  // Increment project view count
+  app.post("/api/projects/:id/view", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.incrementProjectViewCount(id);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
+      res.status(500).json({ message: "Failed to increment view count" });
+    }
+  });
+
   // Search users route
   app.get("/api/users/search", async (req, res) => {
     try {
@@ -1083,6 +1095,18 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error unliking post:", error);
       res.status(500).json({ message: "Failed to unlike post" });
+    }
+  });
+
+  // Increment post view count
+  app.post("/api/posts/:id/view", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.incrementPostViewCount(id);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
+      res.status(500).json({ message: "Failed to increment view count" });
     }
   });
 

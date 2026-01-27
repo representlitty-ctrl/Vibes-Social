@@ -36,6 +36,7 @@ export const projects = pgTable("projects", {
   tags: text("tags").array(),
   userId: varchar("user_id").notNull().references(() => users.id),
   isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -221,6 +222,7 @@ export const posts = pgTable("posts", {
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content"),
   voiceNoteUrl: varchar("voice_note_url"),
+  viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

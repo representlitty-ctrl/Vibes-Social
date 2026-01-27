@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -267,6 +267,24 @@ export function PostCard({ post }: PostCardProps) {
             >
               <MessageCircle className="h-4 w-4" />
               {post.commentCount > 0 && <span>{post.commentCount}</span>}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const url = `${window.location.origin}/posts/${post.id}`;
+                navigator.clipboard.writeText(url);
+                toast({
+                  title: "Link copied",
+                  description: "Post link copied to clipboard",
+                });
+              }}
+              className="gap-1"
+              data-testid={`button-share-post-${post.id}`}
+            >
+              <Share2 className="h-4 w-4" />
             </Button>
           </div>
 

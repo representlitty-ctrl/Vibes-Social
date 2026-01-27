@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow, format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronUp,
   ExternalLink,
@@ -22,6 +22,8 @@ import {
   Edit,
   Trash2,
   User as UserIcon,
+  Eye,
+  Share2,
 } from "lucide-react";
 import type { Project, User, Profile, ProjectComment } from "@shared/schema";
 
@@ -48,6 +50,12 @@ export default function ProjectDetailPage() {
     queryKey: ["/api/projects", projectId],
     enabled: !!projectId,
   });
+
+  useEffect(() => {
+    if (projectId) {
+      apiRequest("POST", `/api/projects/${projectId}/view`).catch(() => {});
+    }
+  }, [projectId]);
 
   const { data: comments, isLoading: commentsLoading } = useQuery<CommentWithUser[]>({
     queryKey: ["/api/projects", projectId, "comments"],
@@ -280,6 +288,28 @@ export default function ProjectDetailPage() {
               <MessageCircle className="h-4 w-4" />
               {project.commentCount} comment{project.commentCount !== 1 ? "s" : ""}
             </div>
+
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <Eye className="h-4 w-4" />
+              {project.viewCount || 0} view{(project.viewCount || 0) !== 1 ? "s" : ""}
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full mt-4 gap-2"
+              onClick={() => {
+                const url = `${window.location.origin}/projects/${project.id}`;
+                navigator.clipboard.writeText(url);
+                toast({
+                  title: "Link copied",
+                  description: "Project link copied to clipboard",
+                });
+              }}
+              data-testid="button-share-detail"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
 
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm text-muted-foreground mb-2">Reactions</p>

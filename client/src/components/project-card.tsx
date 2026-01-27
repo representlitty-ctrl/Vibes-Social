@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon } from "lucide-react";
+import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon, Share2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -146,6 +146,23 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                 </div>
               </Link>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const url = `${window.location.origin}/projects/${project.id}`;
+                    navigator.clipboard.writeText(url);
+                    toast({
+                      title: "Link copied",
+                      description: "Project link copied to clipboard",
+                    });
+                  }}
+                  data-testid={`button-share-project-${project.id}`}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

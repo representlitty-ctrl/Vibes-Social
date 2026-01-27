@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProjectCard } from "@/components/project-card";
 import { PostCard } from "@/components/post-card";
 import { useAuth } from "@/hooks/use-auth";
@@ -98,6 +100,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const [showProfilePicture, setShowProfilePicture] = useState(false);
 
   const { data: profile, isLoading } = useQuery<ProfileWithUser>({
     queryKey: ["/api/profiles", userId],
@@ -203,12 +206,33 @@ export default function ProfilePage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <Card className="p-6">
         <div className="flex flex-col items-start gap-6 sm:flex-row">
-          <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
-            <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
-            <AvatarFallback>
-              <UserIcon className="h-12 w-12 text-muted-foreground" />
-            </AvatarFallback>
-          </Avatar>
+          <div 
+            className="cursor-pointer"
+            onClick={() => {
+              if (profile.profileImageUrl || profile.user.profileImageUrl) {
+                setShowProfilePicture(true);
+              }
+            }}
+            data-testid="avatar-profile-clickable"
+          >
+            <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
+              <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
+              <AvatarFallback>
+                <UserIcon className="h-12 w-12 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+          </div>
+
+          <Dialog open={showProfilePicture} onOpenChange={setShowProfilePicture}>
+            <DialogContent className="max-w-lg p-0 overflow-hidden">
+              <img
+                src={profile.profileImageUrl || profile.user.profileImageUrl || ""}
+                alt={`${profile.username || profile.user.firstName || "User"}'s profile picture`}
+                className="w-full h-auto"
+                data-testid="img-profile-fullsize"
+              />
+            </DialogContent>
+          </Dialog>
 
           <div className="flex-1">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
