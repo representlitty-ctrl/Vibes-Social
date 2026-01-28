@@ -123,7 +123,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-4">
       {user && <StoriesRow />}
 
       {showPostComposer && user && (

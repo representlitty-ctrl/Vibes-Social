@@ -55,7 +55,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                 <FeedTabs />
               </div>
             </header>
-            <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+            <main className="flex-1 overflow-x-hidden overflow-y-auto">
               <div className="w-full max-w-full">
                 {children}
               </div>

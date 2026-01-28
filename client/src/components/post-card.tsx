@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +68,8 @@ export function PostCard({ post }: PostCardProps) {
   const [, navigate] = useLocation();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   // Local optimistic state for instant UI updates
   const [optimisticLiked, setOptimisticLiked] = useState(post.isLiked);
@@ -271,19 +277,28 @@ export function PostCard({ post }: PostCardProps) {
 
           {post.media && post.media.length > 0 && (
             <div className={`mt-3 grid gap-2 ${post.media.length === 1 ? "grid-cols-1" : post.media.length === 2 ? "grid-cols-2" : "grid-cols-2"}`}>
-              {post.media.map((m) => (
-                <div key={m.id} className="overflow-hidden rounded-lg">
+              {post.media.map((m, index) => (
+                <div 
+                  key={m.id} 
+                  className="overflow-hidden rounded-lg cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedMediaIndex(index);
+                    setMediaModalOpen(true);
+                  }}
+                >
                   {m.mediaType === "image" ? (
                     <img
                       src={m.mediaUrl}
                       alt=""
-                      className="w-full object-cover max-h-96"
+                      className="w-full object-cover max-h-96 hover:opacity-90 transition-opacity"
+                      data-testid={`img-post-media-${m.id}`}
                     />
                   ) : (
                     <video
                       src={m.mediaUrl}
-                      controls
                       className="w-full max-h-96"
+                      data-testid={`video-post-media-${m.id}`}
                     />
                   )}
                 </div>
@@ -405,6 +420,90 @@ export function PostCard({ post }: PostCardProps) {
           )}
         </div>
       </div>
+
+      {/* Media Modal */}
+      <Dialog open={mediaModalOpen} onOpenChange={setMediaModalOpen}>
+        <DialogContent 
+          className="max-w-4xl w-full p-0 bg-black/95 border-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative flex items-center justify-center min-h-[50vh]">
+            {/* Close button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-10 text-white hover:bg-white/20"
+              onClick={() => setMediaModalOpen(false)}
+              data-testid="button-close-media-modal"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+
+            {/* Navigation arrows */}
+            {post.media && post.media.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 z-10 text-white hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedMediaIndex((prev) => 
+                      prev === 0 ? post.media.length - 1 : prev - 1
+                    );
+                  }}
+                  data-testid="button-prev-media"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 z-10 text-white hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedMediaIndex((prev) => 
+                      prev === post.media.length - 1 ? 0 : prev + 1
+                    );
+                  }}
+                  data-testid="button-next-media"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              </>
+            )}
+
+            {/* Media content */}
+            {post.media && post.media[selectedMediaIndex] && (
+              <div className="w-full flex items-center justify-center p-4">
+                {post.media[selectedMediaIndex].mediaType === "image" ? (
+                  <img
+                    src={post.media[selectedMediaIndex].mediaUrl}
+                    alt=""
+                    className="max-w-full max-h-[80vh] object-contain"
+                    data-testid="img-media-modal"
+                  />
+                ) : (
+                  <video
+                    src={post.media[selectedMediaIndex].mediaUrl}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-[80vh]"
+                    data-testid="video-media-modal"
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Media counter */}
+            {post.media && post.media.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+                {selectedMediaIndex + 1} / {post.media.length}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

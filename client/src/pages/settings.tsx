@@ -72,7 +72,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-4 p-4">
       <div className="flex items-center gap-3">
         <Settings className="h-7 w-7" />
         <h1 className="text-2xl font-bold">Settings</h1>
