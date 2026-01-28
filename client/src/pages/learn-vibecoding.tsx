@@ -1259,15 +1259,19 @@ export default function LearnVibecodingPage() {
   const [readingTimeRemaining, setReadingTimeRemaining] = useState(READING_TIME_REQUIRED);
   const [hasMetReadingTime, setHasMetReadingTime] = useState(false);
   
-  // Alternative explanations state - max 2 per lesson, stored by lesson ID
-  const [lessonExplanations, setLessonExplanations] = useState<Record<string, string[]>>({});
-  const MAX_EXPLANATIONS_PER_LESSON = 2;
-
   // Fetch progress FIRST before using it in other functions
   const { data: progress, isLoading: progressLoading } = useQuery<UserProgress>({
     queryKey: ["/api/users", user?.id, "vibecoding-progress"],
     enabled: !!user,
   });
+  
+  // Fetch stored explanation for selected lesson
+  const { data: explanationData, isLoading: explanationLoading } = useQuery<{ explanation: string | null; exists: boolean }>({
+    queryKey: ["/api/vibecoding/lessons", selectedLesson?.id, "explanation"],
+    enabled: !!user && !!selectedLesson,
+  });
+  
+  const lessonExplanation = explanationData?.explanation || null;
 
   const allLessons = VIBECODING_SYLLABUS.flatMap(m => m.lessons);
   const currentLessonIndex = selectedLesson ? allLessons.findIndex(l => l.id === selectedLesson.id) : -1;
@@ -1350,18 +1354,14 @@ export default function LearnVibecodingPage() {
     },
   });
 
-  // Mutation to get alternative explanation
+  // Mutation to generate alternative explanation (one per lesson, stored permanently)
   const getExplanation = useMutation({
     mutationFn: async ({ lessonId, lessonTitle, lessonContent }: { lessonId: string; lessonTitle: string; lessonContent: string }) => {
       return apiRequest("POST", `/api/vibecoding/lessons/${lessonId}/explain`, { lessonTitle, lessonContent });
     },
-    onSuccess: (data: any, variables) => {
-      const { lessonId } = variables;
-      setLessonExplanations(prev => {
-        const existing = prev[lessonId] || [];
-        if (existing.length >= MAX_EXPLANATIONS_PER_LESSON) return prev;
-        return { ...prev, [lessonId]: [...existing, data.explanation] };
-      });
+    onSuccess: (_data: any, variables) => {
+      // Invalidate the explanation query to refetch the stored explanation
+      queryClient.invalidateQueries({ queryKey: ["/api/vibecoding/lessons", variables.lessonId, "explanation"] });
     },
     onError: () => {
       toast({
@@ -1994,23 +1994,23 @@ export default function LearnVibecodingPage() {
             {/* Alternative Explanation Section */}
             {user && selectedLesson && (
               <div className="mt-6 pt-4 border-t space-y-4">
-                {/* Show all generated explanations */}
-                {(lessonExplanations[selectedLesson.id] || []).map((explanation, index) => (
-                  <div key={index} className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                {/* Show stored explanation if it exists */}
+                {lessonExplanation && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Lightbulb className="h-5 w-5 text-primary" />
                       <span className="font-medium text-primary">
-                        Alternative Explanation {index + 1}
+                        Alternative Explanation
                       </span>
                     </div>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
-                      {formatContent(explanation)}
+                      {formatContent(lessonExplanation)}
                     </div>
                   </div>
-                ))}
+                )}
                 
-                {/* Button to generate more explanations (max 2) */}
-                {(lessonExplanations[selectedLesson.id]?.length || 0) < MAX_EXPLANATIONS_PER_LESSON && (
+                {/* Button to generate explanation - only show if no explanation exists and not loading */}
+                {!lessonExplanation && !explanationLoading && (
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -2034,19 +2034,18 @@ export default function LearnVibecodingPage() {
                     ) : (
                       <>
                         <Lightbulb className="h-4 w-4" />
-                        {(lessonExplanations[selectedLesson.id]?.length || 0) === 0 
-                          ? "Need a different explanation?" 
-                          : `Generate another (${lessonExplanations[selectedLesson.id]?.length || 0}/${MAX_EXPLANATIONS_PER_LESSON})`}
+                        Need a different explanation?
                       </>
                     )}
                   </Button>
                 )}
                 
-                {/* Show max reached message */}
-                {(lessonExplanations[selectedLesson.id]?.length || 0) >= MAX_EXPLANATIONS_PER_LESSON && (
-                  <p className="text-sm text-muted-foreground">
-                    Maximum of {MAX_EXPLANATIONS_PER_LESSON} alternative explanations reached for this lesson.
-                  </p>
+                {/* Show loading state */}
+                {explanationLoading && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading saved explanation...
+                  </div>
                 )}
               </div>
             )}

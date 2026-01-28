@@ -41,6 +41,7 @@ import {
   vibecodingQuizProgress,
   vibecodingCertificates,
   vibecodingLessonReads,
+  vibecodingLessonExplanations,
   userBlocks,
   userReports,
   type User,

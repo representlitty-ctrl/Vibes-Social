@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, primaryKey, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -748,3 +748,18 @@ export const userReports = pgTable("user_reports", {
 
 export type UserBlock = typeof userBlocks.$inferSelect;
 export type UserReport = typeof userReports.$inferSelect;
+
+// Vibecoding Lesson AI Explanations - stores permanently generated explanations for lessons
+export const vibecodingLessonExplanations = pgTable("vibecoding_lesson_explanations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  lessonId: varchar("lesson_id").notNull(),
+  explanation: text("explanation").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userLessonUnique: unique().on(table.userId, table.lessonId),
+}));
+
+export const insertVibecodingLessonExplanationSchema = createInsertSchema(vibecodingLessonExplanations).omit({ id: true, createdAt: true });
+export type VibecodingLessonExplanation = typeof vibecodingLessonExplanations.$inferSelect;
+export type InsertVibecodingLessonExplanation = z.infer<typeof insertVibecodingLessonExplanationSchema>;

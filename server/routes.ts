@@ -1,9 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema, insertCommunitySchema } from "@shared/schema";
+import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema, insertCommunitySchema, vibecodingLessonExplanations } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -1937,10 +1939,35 @@ export async function registerRoutes(
     }
   });
 
-  // Alternative lesson explanation using AI with rate limiting
-  const explanationRateLimit: Map<string, number> = new Map();
-  const EXPLANATION_RATE_LIMIT_MS = 60000; // 1 explanation per minute per user
+  // Get saved lesson explanation for user
+  app.get("/api/vibecoding/lessons/:lessonId/explanation", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+      const { lessonId } = req.params;
+      
+      const existing = await db
+        .select()
+        .from(vibecodingLessonExplanations)
+        .where(and(
+          eq(vibecodingLessonExplanations.userId, userId),
+          eq(vibecodingLessonExplanations.lessonId, lessonId)
+        ))
+        .limit(1);
+      
+      if (existing.length > 0) {
+        res.json({ explanation: existing[0].explanation, exists: true });
+      } else {
+        res.json({ explanation: null, exists: false });
+      }
+    } catch (error) {
+      console.error("Error fetching explanation:", error);
+      res.status(500).json({ message: "Failed to fetch explanation" });
+    }
+  });
+
+  // Alternative lesson explanation using AI - one per lesson, stored permanently
   app.post("/api/vibecoding/lessons/:lessonId/explain", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -1949,6 +1976,21 @@ export async function registerRoutes(
       const { lessonId } = req.params;
       const { lessonTitle, lessonContent } = req.body;
       
+      // Check if explanation already exists for this user+lesson
+      const existing = await db
+        .select()
+        .from(vibecodingLessonExplanations)
+        .where(and(
+          eq(vibecodingLessonExplanations.userId, userId),
+          eq(vibecodingLessonExplanations.lessonId, lessonId)
+        ))
+        .limit(1);
+      
+      if (existing.length > 0) {
+        // Return existing explanation
+        return res.json({ explanation: existing[0].explanation, alreadyExists: true });
+      }
+      
       // Validate input
       if (!lessonTitle || typeof lessonTitle !== "string" || lessonTitle.length > 200) {
         return res.status(400).json({ message: "Invalid lesson title" });
@@ -1956,14 +1998,6 @@ export async function registerRoutes(
       if (!lessonContent || typeof lessonContent !== "string" || lessonContent.length > 10000) {
         return res.status(400).json({ message: "Invalid lesson content" });
       }
-      
-      // Rate limiting per user
-      const lastRequest = explanationRateLimit.get(userId);
-      if (lastRequest && Date.now() - lastRequest < EXPLANATION_RATE_LIMIT_MS) {
-        const waitTime = Math.ceil((EXPLANATION_RATE_LIMIT_MS - (Date.now() - lastRequest)) / 1000);
-        return res.status(429).json({ message: `Please wait ${waitTime} seconds before requesting another explanation` });
-      }
-      explanationRateLimit.set(userId, Date.now());
 
       const OpenAI = (await import("openai")).default;
       const openai = new OpenAI({
@@ -1983,12 +2017,19 @@ export async function registerRoutes(
             content: `Please provide an alternative explanation for this lesson:\n\nTitle: ${lessonTitle.slice(0, 200)}\n\nOriginal Content:\n${lessonContent.slice(0, 5000)}`
           }
         ],
-        max_tokens: 500,
-        temperature: 0.7,
+        max_completion_tokens: 500,
       });
 
       const explanation = response.choices[0]?.message?.content || "Unable to generate explanation.";
-      res.json({ explanation });
+      
+      // Store the explanation permanently in database
+      await db.insert(vibecodingLessonExplanations).values({
+        userId,
+        lessonId,
+        explanation,
+      });
+
+      res.json({ explanation, alreadyExists: false });
     } catch (error) {
       console.error("Error generating explanation:", error);
       res.status(500).json({ message: "Failed to generate alternative explanation" });
