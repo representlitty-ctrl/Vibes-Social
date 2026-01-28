@@ -28,6 +28,7 @@ interface PostUser {
   email: string;
   profileImageUrl: string | null;
   username?: string;
+  isNewsBot?: boolean;
 }
 
 interface PostMedia {
@@ -42,6 +43,7 @@ interface Post {
   userId: string;
   content: string | null;
   voiceNoteUrl: string | null;
+  sourceUrl: string | null;
   createdAt: string;
   user: PostUser | null;
   media: PostMedia[];
