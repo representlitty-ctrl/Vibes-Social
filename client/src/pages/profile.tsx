@@ -31,6 +31,7 @@ import {
   User as UserIcon,
   GraduationCap,
   LogOut,
+  Award,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { useLocation } from "wouter";
@@ -496,62 +497,152 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="learning" className="mt-6">
-          {enrolledCourses && enrolledCourses.length > 0 ? (
-            <div className="space-y-4">
-              {enrolledCourses.map((course) => (
-                <Link key={course.id} href={`/courses/${course.id}`}>
-                  <Card className="p-4 hover-elevate cursor-pointer">
-                    <div className="flex gap-4">
-                      {course.thumbnailUrl && (
-                        <img
-                          src={course.thumbnailUrl}
-                          alt={course.title}
-                          className="h-20 w-32 rounded-md object-cover"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{course.title}</h3>
-                        {course.instructor && (
-                          <p className="text-sm text-muted-foreground">by {course.instructor}</p>
-                        )}
-                        <div className="mt-2 flex items-center gap-2">
-                          {course.difficulty && (
-                            <Badge variant="secondary" className="text-xs">
-                              {course.difficulty}
-                            </Badge>
-                          )}
-                          <span className="text-xs text-muted-foreground">
-                            {course.completedLessons} / {course.lessonCount} lessons
-                          </span>
-                        </div>
-                        <div className="mt-2">
-                          <Progress 
-                            value={course.lessonCount > 0 ? (course.completedLessons / course.lessonCount) * 100 : 0} 
-                            className="h-2"
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Main content area */}
+            <div className="lg:col-span-2 space-y-4">
+              {enrolledCourses && enrolledCourses.length > 0 ? (
+                enrolledCourses.map((course) => (
+                  <Link key={course.id} href={`/courses/${course.id}`}>
+                    <Card className="p-4 hover-elevate cursor-pointer">
+                      <div className="flex gap-4">
+                        {course.thumbnailUrl && (
+                          <img
+                            src={course.thumbnailUrl}
+                            alt={course.title}
+                            className="h-20 w-32 rounded-md object-cover"
                           />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{course.title}</h3>
+                          {course.instructor && (
+                            <p className="text-sm text-muted-foreground">by {course.instructor}</p>
+                          )}
+                          <div className="mt-2 flex items-center gap-2">
+                            {course.difficulty && (
+                              <Badge variant="secondary" className="text-xs">
+                                {course.difficulty}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {course.completedLessons} / {course.lessonCount} lessons
+                            </span>
+                          </div>
+                          <div className="mt-2">
+                            <Progress 
+                              value={course.lessonCount > 0 ? (course.completedLessons / course.lessonCount) * 100 : 0} 
+                              className="h-2"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
-              <BookOpen className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="text-lg font-semibold">No courses enrolled</h3>
-              <p className="mt-2 text-muted-foreground">
-                {isOwnProfile
-                  ? "You haven't enrolled in any courses yet."
-                  : "This user hasn't enrolled in any courses yet."}
-              </p>
-              {isOwnProfile && (
-                <Link href="/learn">
-                  <Button className="mt-6">Browse Courses</Button>
-                </Link>
+                    </Card>
+                  </Link>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+                  <BookOpen className="mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold">No courses enrolled</h3>
+                  <p className="mt-2 text-muted-foreground">
+                    {isOwnProfile
+                      ? "You haven't enrolled in any courses yet."
+                      : "This user hasn't enrolled in any courses yet."}
+                  </p>
+                  {isOwnProfile && (
+                    <Link href="/learn">
+                      <Button className="mt-6">Browse Courses</Button>
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
-          )}
+
+            {/* Vibes101 Side Panel */}
+            <div className="space-y-4">
+              <Card className="p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Vibes101</h3>
+                    <p className="text-xs text-muted-foreground">Learn Vibecoding</p>
+                  </div>
+                </div>
+                
+                {vibecodingProgress ? (
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span>Lessons Completed</span>
+                        <span className="font-medium" data-testid="text-lessons-progress">{vibecodingProgress.completedLessons.length} / 23</span>
+                      </div>
+                      <Progress 
+                        value={(vibecodingProgress.completedLessons.length / 23) * 100} 
+                        className="h-2"
+                        data-testid="progress-lessons"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span>Quizzes Passed</span>
+                        <span className="font-medium" data-testid="text-quizzes-progress">{vibecodingProgress.passedQuizzes.length} / 5</span>
+                      </div>
+                      <Progress 
+                        value={(vibecodingProgress.passedQuizzes.length / 5) * 100} 
+                        className="h-2"
+                        data-testid="progress-quizzes"
+                      />
+                    </div>
+
+                    {vibecodingProgress.hasCertificate && (
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-green-500/10 text-green-600 dark:text-green-400" data-testid="status-certificate-earned">
+                        <GraduationCap className="h-4 w-4" />
+                        <span className="text-sm font-medium">Certificate Earned</span>
+                      </div>
+                    )}
+
+                    {vibecodingProgress.badges && vibecodingProgress.badges.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Badges</p>
+                        <div className="flex flex-wrap gap-2">
+                          {vibecodingProgress.badges.map((badge) => (
+                            <Badge key={badge.id} variant="secondary" className="text-xs" data-testid={`badge-${badge.badgeType}`}>
+                              <Award className="h-3 w-3 mr-1" />
+                              {badge.badgeType}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {isOwnProfile && vibecodingProgress.completedLessons.length < 23 && (
+                      <Link href="/learn/vibecoding">
+                        <Button variant="outline" size="sm" className="w-full mt-2" data-testid="button-continue-learning">
+                          Continue Learning
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground mb-3" data-testid="text-vibecoding-not-started">
+                      {isOwnProfile 
+                        ? "Start your vibecoding journey!" 
+                        : "Not started yet"}
+                    </p>
+                    {isOwnProfile && (
+                      <Link href="/learn/vibecoding">
+                        <Button variant="outline" size="sm" data-testid="button-start-learning">
+                          Start Learning
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

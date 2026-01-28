@@ -727,3 +727,24 @@ export const vibecodingLessonReads = pgTable("vibecoding_lesson_reads", {
 export const insertVibecodingLessonReadSchema = createInsertSchema(vibecodingLessonReads).omit({ id: true, startedAt: true });
 export type VibecodingLessonRead = typeof vibecodingLessonReads.$inferSelect;
 export type InsertVibecodingLessonRead = z.infer<typeof insertVibecodingLessonReadSchema>;
+
+// User Blocks - for blocking other users
+export const userBlocks = pgTable("user_blocks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  blockerId: varchar("blocker_id").notNull().references(() => users.id),
+  blockedId: varchar("blocked_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Reports - for reporting other users
+export const userReports = pgTable("user_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").notNull().references(() => users.id),
+  reportedId: varchar("reported_id").notNull().references(() => users.id),
+  reason: text("reason"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type UserBlock = typeof userBlocks.$inferSelect;
+export type UserReport = typeof userReports.$inferSelect;

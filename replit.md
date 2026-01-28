@@ -109,6 +109,17 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - Added communities system with feed tabs and category filtering
 - Added verification badges for users with email, profile picture, and custom username
 - Removed @ prefix from usernames display
+- **User Online/Offline Status**: Track and display user online status in messages
+  - Heartbeat mechanism updates lastSeenAt every 60 seconds via POST /api/users/heartbeat
+  - Online threshold: users seen within 5 minutes are considered online
+  - Green/gray status indicators on avatar overlays in conversation list and chat header
+  - Text label shows "Online" or "Offline" in chat header
+- **Profile Vibes101 Panel**: Display vibecoding learning progress in profile learning tab
+  - Shows lessons completed (X / 23) with progress bar
+  - Shows quizzes passed (X / 5) with progress bar
+  - Displays earned badges with Award icons
+  - Shows certificate earned status when complete
+  - Continue/Start Learning buttons link to /learn/vibecoding
 - **Learn Vibecoding**: Comprehensive 5-module curriculum with real educational content
   - Content based on Andrej Karpathy's original vibecoding concept (February 2025)
   - 23 lessons covering fundamentals to advanced techniques (4+5+5+4+5 per module)

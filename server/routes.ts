@@ -832,6 +832,91 @@ export async function registerRoutes(
     }
   });
 
+  // Delete a notification
+  app.delete("/api/notifications/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.deleteNotification(req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
+  // Clear all notifications
+  app.delete("/api/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.clearAllNotifications(userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error clearing notifications:", error);
+      res.status(500).json({ message: "Failed to clear notifications" });
+    }
+  });
+
+  // Block a user
+  app.post("/api/users/:userId/block", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.blockUser(userId, req.params.userId);
+      res.status(200).json({ message: "User blocked" });
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  // Unblock a user
+  app.delete("/api/users/:userId/block", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.unblockUser(userId, req.params.userId);
+      res.status(200).json({ message: "User unblocked" });
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      res.status(500).json({ message: "Failed to unblock user" });
+    }
+  });
+
+  // Report a user
+  app.post("/api/users/:userId/report", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { reason } = req.body;
+      await storage.reportUser(userId, req.params.userId, reason);
+      res.status(200).json({ message: "User reported" });
+    } catch (error) {
+      console.error("Error reporting user:", error);
+      res.status(500).json({ message: "Failed to report user" });
+    }
+  });
+
+  // Update lastSeenAt for current user (heartbeat)
+  app.post("/api/users/heartbeat", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      await storage.updateLastSeen(userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error updating last seen:", error);
+      res.status(500).json({ message: "Failed to update last seen" });
+    }
+  });
+
   // ===== Messaging Routes =====
   
   // Get all conversations for current user

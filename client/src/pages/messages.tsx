@@ -28,6 +28,7 @@ interface Conversation {
     email: string;
     profileImageUrl: string | null;
     username: string | null;
+    lastSeenAt: string | null;
   } | null;
   unreadCount: number;
   lastMessage: {
@@ -36,6 +37,28 @@ interface Conversation {
     createdAt: string | null;
   } | null;
   lastMessageAt: string | null;
+}
+
+// Helper function to check if a user is online (active in the last 5 minutes)
+function isUserOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+  const lastSeen = new Date(lastSeenAt);
+  const now = new Date();
+  const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
+  return diffMinutes < 5;
+}
+
+// Online status indicator component
+function OnlineStatusIndicator({ lastSeenAt, size = "default" }: { lastSeenAt: string | null; size?: "small" | "default" }) {
+  const isOnline = isUserOnline(lastSeenAt);
+  const sizeClasses = size === "small" ? "h-2.5 w-2.5" : "h-3 w-3";
+  
+  return (
+    <div 
+      className={`${sizeClasses} rounded-full ${isOnline ? "bg-green-500" : "bg-gray-400"}`}
+      title={isOnline ? "Online" : "Offline"}
+    />
+  );
 }
 
 interface Message {
@@ -307,15 +330,23 @@ export default function MessagesPage() {
                 }`}
                 data-testid={`conversation-${convo.id}`}
               >
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={convo.otherUser?.profileImageUrl || undefined} />
-                  <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={convo.otherUser?.profileImageUrl || undefined} />
+                    <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
+                  </Avatar>
+                  <div 
+                    className="absolute -bottom-0.5 -right-0.5 border-2 border-background rounded-full"
+                    data-testid={`status-indicator-${convo.id}`}
+                  >
+                    <OnlineStatusIndicator lastSeenAt={convo.otherUser?.lastSeenAt || null} size="small" />
+                  </div>
+                </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-1">
                     <span className="font-medium truncate">{getUserName(convo.otherUser)}</span>
                     {convo.unreadCount > 0 && (
-                      <Badge variant="default" className="ml-2 h-5 min-w-[1.25rem] px-1.5">
+                      <Badge variant="default" className="ml-2 h-5 min-w-[1.25rem] px-1.5 flex-shrink-0">
                         {convo.unreadCount}
                       </Badge>
                     )}
@@ -349,11 +380,24 @@ export default function MessagesPage() {
                 </Button>
                 <Link href={`/profile/${selectedConvo.otherUser?.id}`}>
                   <div className="flex items-center gap-3 hover-elevate rounded-full pr-3 cursor-pointer">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
-                      <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
+                    <div className="relative">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={selectedConvo.otherUser?.profileImageUrl || undefined} />
+                        <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
+                      </Avatar>
+                      <div 
+                        className="absolute -bottom-0.5 -right-0.5 border-2 border-background rounded-full"
+                        data-testid="status-indicator-chat-header"
+                      >
+                        <OnlineStatusIndicator lastSeenAt={selectedConvo.otherUser?.lastSeenAt || null} size="small" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{getUserName(selectedConvo.otherUser)}</span>
+                      <span className="text-xs text-muted-foreground" data-testid="text-online-status">
+                        {isUserOnline(selectedConvo.otherUser?.lastSeenAt || null) ? "Online" : "Offline"}
+                      </span>
+                    </div>
                   </div>
                 </Link>
               </div>

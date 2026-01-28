@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { useHeartbeat } from "@/hooks/use-heartbeat";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import HomePage from "@/pages/home";
@@ -35,6 +36,9 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   } as React.CSSProperties;
+
+  // Track user online status with heartbeat
+  useHeartbeat();
 
   return (
     <FeedProvider>

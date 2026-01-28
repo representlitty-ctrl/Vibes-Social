@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect } from "react";
 import {
@@ -18,7 +20,29 @@ import {
   Sparkles,
   Mail,
   User as UserIcon,
+  Trash2,
+  MoreVertical,
+  UserMinus,
+  Flag,
+  Ban,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Notification, User } from "@shared/schema";
 
 type NotificationWithFromUser = Notification & {
@@ -28,6 +52,8 @@ type NotificationWithFromUser = Notification & {
 export default function NotificationsPage() {
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -50,6 +76,17 @@ export default function NotificationsPage() {
     },
   });
 
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", "/api/notifications");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+      toast({ title: "All notifications cleared" });
+    },
+  });
+
   const unreadCount = notifications?.filter((n) => !n.isRead).length || 0;
 
   if (authLoading || !user) {
@@ -62,7 +99,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
           <p className="text-muted-foreground">
@@ -71,18 +108,31 @@ export default function NotificationsPage() {
               : "You're all caught up!"}
           </p>
         </div>
-        {unreadCount > 0 && (
-          <Button
-            variant="outline"
-            onClick={() => markAllReadMutation.mutate()}
-            disabled={markAllReadMutation.isPending}
-            className="gap-2"
-            data-testid="button-mark-all-read"
-          >
-            <CheckCheck className="h-4 w-4" />
-            Mark all read
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {unreadCount > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending}
+              className="gap-2"
+              data-testid="button-mark-all-read"
+            >
+              <CheckCheck className="h-4 w-4" />
+              Mark all read
+            </Button>
+          )}
+          {notifications && notifications.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setShowClearDialog(true)}
+              className="gap-2"
+              data-testid="button-clear-all"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear all
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -102,19 +152,41 @@ export default function NotificationsPage() {
       ) : notifications && notifications.length > 0 ? (
         <div className="space-y-2">
           {notifications.map((notification) => (
-            <NotificationItem key={notification.id} notification={notification} />
+            <NotificationItem key={notification.id} notification={notification} currentUserId={user.id} />
           ))}
         </div>
       ) : (
         <EmptyState />
       )}
+
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all notifications?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all your notifications. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clearAllMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function NotificationItem({ notification }: { notification: NotificationWithFromUser }) {
+function NotificationItem({ notification, currentUserId }: { notification: NotificationWithFromUser; currentUserId: string }) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
 
   const markReadMutation = useMutation({
     mutationFn: async () => {
@@ -123,6 +195,45 @@ function NotificationItem({ notification }: { notification: NotificationWithFrom
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    },
+  });
+
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/notifications/${notification.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+      toast({ title: "Notification deleted" });
+    },
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/users/${notification.fromUserId}/follow`);
+    },
+    onSuccess: () => {
+      toast({ title: "Now following this user" });
+    },
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/users/${notification.fromUserId}/block`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      toast({ title: "User blocked" });
+    },
+  });
+
+  const reportMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/users/${notification.fromUserId}/report`, { reason: "Reported from notification" });
+    },
+    onSuccess: () => {
+      toast({ title: "User reported", description: "Thank you for helping keep our community safe" });
     },
   });
 
@@ -141,12 +252,6 @@ function NotificationItem({ notification }: { notification: NotificationWithFrom
       default:
         return <Sparkles className="h-4 w-4 text-primary" />;
     }
-  };
-
-  const getInitials = () => {
-    if (notification.fromUser?.firstName) return notification.fromUser.firstName[0].toUpperCase();
-    if (notification.fromUser?.email) return notification.fromUser.email[0].toUpperCase();
-    return "?";
   };
 
   const getLink = () => {
@@ -213,7 +318,81 @@ function NotificationItem({ notification }: { notification: NotificationWithFrom
         {!notification.isRead && (
           <div className="h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" data-testid={`notification-menu-${notification.id}`}>
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteNotificationMutation.mutate();
+              }}
+              data-testid="menu-delete-notification"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete notification
+            </DropdownMenuItem>
+            {notification.fromUserId && notification.fromUserId !== currentUserId && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    followMutation.mutate();
+                  }}
+                  data-testid="menu-follow-user"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Follow user
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowBlockDialog(true);
+                  }}
+                  data-testid="menu-block-user"
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Block user
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    reportMutation.mutate();
+                  }}
+                  data-testid="menu-report-user"
+                >
+                  <Flag className="mr-2 h-4 w-4" />
+                  Report user
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They won't be able to see your profile or interact with you. You can unblock them later from settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => blockMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Block
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 

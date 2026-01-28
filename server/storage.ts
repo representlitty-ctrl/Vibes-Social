@@ -41,6 +41,8 @@ import {
   vibecodingQuizProgress,
   vibecodingCertificates,
   vibecodingLessonReads,
+  userBlocks,
+  userReports,
   type User,
   type Profile,
   type InsertProfile,
@@ -153,7 +155,15 @@ export interface IStorage {
   getUnreadNotificationCount(userId: string): Promise<number>;
   markNotificationRead(notificationId: string, userId: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
+  deleteNotification(notificationId: string, userId: string): Promise<void>;
+  clearAllNotifications(userId: string): Promise<void>;
   createNotification(userId: string, type: string, title: string, message?: string, referenceId?: string, referenceType?: string, fromUserId?: string): Promise<void>;
+
+  // User actions
+  blockUser(blockerId: string, blockedId: string): Promise<void>;
+  unblockUser(blockerId: string, blockedId: string): Promise<void>;
+  reportUser(reporterId: string, reportedId: string, reason?: string): Promise<void>;
+  updateLastSeen(userId: string): Promise<void>;
   
   // Conversations & Messages
   getConversations(userId: string): Promise<any[]>;
@@ -1073,6 +1083,49 @@ export class DatabaseStorage implements IStorage {
       .update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+    await db
+      .delete(notifications)
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    await db
+      .delete(notifications)
+      .where(eq(notifications.userId, userId));
+  }
+
+  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+    await db.insert(userBlocks).values({
+      blockerId,
+      blockedId,
+    }).onConflictDoNothing();
+    // Also unfollow the blocked user
+    await db.delete(follows).where(and(
+      eq(follows.followerId, blockerId),
+      eq(follows.followingId, blockedId)
+    ));
+  }
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<void> {
+    await db.delete(userBlocks).where(and(
+      eq(userBlocks.blockerId, blockerId),
+      eq(userBlocks.blockedId, blockedId)
+    ));
+  }
+
+  async reportUser(reporterId: string, reportedId: string, reason?: string): Promise<void> {
+    await db.insert(userReports).values({
+      reporterId,
+      reportedId,
+      reason,
+    });
+  }
+
+  async updateLastSeen(userId: string): Promise<void> {
+    await db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, userId));
   }
 
   async createNotification(
