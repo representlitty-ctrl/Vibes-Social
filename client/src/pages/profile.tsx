@@ -273,7 +273,7 @@ export default function ProfilePage() {
                   {profile.isNewsBot ? (
                     <Badge variant="secondary" className="gap-1">
                       <Bot className="h-3 w-3" />
-                      Automated News
+                      AI-Curated
                     </Badge>
                   ) : (
                     <>

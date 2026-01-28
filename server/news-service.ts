@@ -59,14 +59,15 @@ async function fetchNewsWithAI(): Promise<Array<{ title: string; summary: string
       messages: [
         {
           role: "system",
-          content: `You are a news aggregator. Generate 10 current, realistic news headlines and brief summaries for a social platform. 
-Include a mix of: crypto/blockchain, technology, politics, finance, and AI news.
-Each item should be engaging and informative.
-Return JSON array with objects containing: title, summary (2-3 sentences), category (one of: crypto, tech, politics, finance, ai), sourceUrl (a plausible URL like https://example.com/news/article-slug).`
+          content: `You are an AI news curator. Generate 10 AI-curated news updates and analysis for a social platform. 
+Include a mix of: crypto/blockchain, technology, politics, finance, and AI topics.
+Each item should provide insightful analysis and commentary.
+These are AI-generated updates, not direct news reports. Do NOT include sourceUrl - these are original AI analyses.
+Return JSON array with objects containing: title, summary (2-3 sentences of analysis), category (one of: crypto, tech, politics, finance, ai).`
         },
         {
           role: "user",
-          content: `Generate 10 diverse, current news items for today (${new Date().toLocaleDateString()}). Make them realistic and engaging for a tech-savvy audience. Include plausible source URLs for each article.`
+          content: `Generate 10 diverse AI-curated updates for today (${new Date().toLocaleDateString()}). Make them insightful and engaging for a tech-savvy audience. These are AI analyses, not news reports.`
         }
       ],
       response_format: { type: "json_object" },
@@ -106,7 +107,7 @@ async function createNewsPost(
       ai: "AI",
     };
 
-    const content = `**${categoryLabels[category]} NEWS**
+    const content = `**${categoryLabels[category]} UPDATE** (AI-Curated)
 
 ${title}
 

@@ -9,7 +9,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot, ExternalLink } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -303,7 +303,7 @@ export function PostCard({ post }: PostCardProps) {
               {post.user?.isNewsBot ? (
                 <Badge variant="secondary" className="text-xs">
                   <Bot className="h-3 w-3 mr-1" />
-                  Automated News
+                  AI-Curated
                 </Badge>
               ) : (
                 isUserVerified(post.user) && <VerifiedBadge size="sm" />
