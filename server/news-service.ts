@@ -52,7 +52,7 @@ async function ensureNewsBotUser(): Promise<string> {
   return newUser.id;
 }
 
-async function fetchNewsWithAI(): Promise<Array<{ title: string; summary: string; category: NewsCategory }>> {
+async function fetchNewsWithAI(): Promise<Array<{ title: string; summary: string; category: NewsCategory; sourceUrl?: string }>> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -62,11 +62,11 @@ async function fetchNewsWithAI(): Promise<Array<{ title: string; summary: string
           content: `You are a news aggregator. Generate 10 current, realistic news headlines and brief summaries for a social platform. 
 Include a mix of: crypto/blockchain, technology, politics, finance, and AI news.
 Each item should be engaging and informative.
-Return JSON array with objects containing: title, summary (2-3 sentences), category (one of: crypto, tech, politics, finance, ai).`
+Return JSON array with objects containing: title, summary (2-3 sentences), category (one of: crypto, tech, politics, finance, ai), sourceUrl (a plausible URL like https://example.com/news/article-slug).`
         },
         {
           role: "user",
-          content: `Generate 10 diverse, current news items for today (${new Date().toLocaleDateString()}). Make them realistic and engaging for a tech-savvy audience.`
+          content: `Generate 10 diverse, current news items for today (${new Date().toLocaleDateString()}). Make them realistic and engaging for a tech-savvy audience. Include plausible source URLs for each article.`
         }
       ],
       response_format: { type: "json_object" },
@@ -94,7 +94,8 @@ async function createNewsPost(
   userId: string,
   title: string,
   summary: string,
-  category: NewsCategory
+  category: NewsCategory,
+  sourceUrl?: string
 ): Promise<string | null> {
   try {
     const categoryLabels: Record<NewsCategory, string> = {
@@ -116,6 +117,7 @@ ${summary}`;
       .values({
         userId,
         content,
+        sourceUrl: sourceUrl || null,
       })
       .returning();
 
@@ -147,6 +149,7 @@ export async function fetchAndStoreNews(): Promise<number> {
         title: item.title,
         summary: item.summary,
         category: item.category,
+        sourceUrl: item.sourceUrl || null,
       });
       
       storedCount++;
@@ -176,7 +179,8 @@ export async function postPendingNews(): Promise<number> {
       userId,
       article.title,
       article.summary,
-      article.category as NewsCategory
+      article.category as NewsCategory,
+      article.sourceUrl || undefined
     );
     
     if (postId) {

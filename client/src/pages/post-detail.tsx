@@ -19,8 +19,22 @@ import {
   User as UserIcon,
   Eye,
   Share2,
+  Bot,
+  ExternalLink,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
+import { Badge } from "@/components/ui/badge";
+
+// Render text with **bold** support
+function renderFormattedText(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 interface PostUser {
   id: string;
@@ -29,6 +43,7 @@ interface PostUser {
   email: string;
   profileImageUrl: string | null;
   username?: string;
+  isNewsBot?: boolean;
 }
 
 interface PostMedia {
@@ -45,6 +60,7 @@ interface Post {
   userId: string;
   content: string | null;
   voiceNoteUrl: string | null;
+  sourceUrl: string | null;
   createdAt: string;
   viewCount: number;
   user: PostUser | null;
@@ -207,18 +223,31 @@ export default function PostDetailPage() {
         <div className="flex items-start justify-between gap-4">
           <Link href={`/profile/${post.userId}`}>
             <div className="flex items-center gap-3 hover-elevate rounded-full pr-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={post.user?.profileImageUrl || undefined} />
-                <AvatarFallback><UserIcon className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
-              </Avatar>
+              {post.user?.isNewsBot ? (
+                <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
+                  <Bot className="h-6 w-6 text-primary-foreground" />
+                </div>
+              ) : (
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={post.user?.profileImageUrl || undefined} />
+                  <AvatarFallback><UserIcon className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
+                </Avatar>
+              )}
               <div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{displayName}</span>
-                  {post.user && isUserVerified({
-                    profileImageUrl: post.user.profileImageUrl,
-                    username: post.user.username,
-                    email: post.user.email,
-                  }) && <VerifiedBadge size="sm" />}
+                  {post.user?.isNewsBot ? (
+                    <Badge variant="secondary" className="text-xs">
+                      <Bot className="h-3 w-3 mr-1" />
+                      Automated News
+                    </Badge>
+                  ) : (
+                    post.user && isUserVerified({
+                      profileImageUrl: post.user.profileImageUrl,
+                      username: post.user.username,
+                      email: post.user.email,
+                    }) && <VerifiedBadge size="sm" />
+                  )}
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {post.createdAt && format(new Date(post.createdAt), "MMMM d, yyyy 'at' h:mm a")}
@@ -240,7 +269,20 @@ export default function PostDetailPage() {
         </div>
 
         {post.content && (
-          <p className="mt-4 whitespace-pre-wrap text-lg">{post.content}</p>
+          <p className="mt-4 whitespace-pre-wrap text-lg">{renderFormattedText(post.content)}</p>
+        )}
+
+        {post.sourceUrl && (
+          <a
+            href={post.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-2 text-primary hover:underline"
+            data-testid="link-source"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View Source
+          </a>
         )}
 
         {post.media && post.media.length > 0 && (

@@ -9,7 +9,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,6 +52,7 @@ interface Post {
   userId: string;
   content: string | null;
   voiceNoteUrl: string | null;
+  sourceUrl: string | null;
   createdAt: string;
   user: PostUser | null;
   media: PostMedia[];
@@ -325,9 +326,46 @@ export function PostCard({ post }: PostCardProps) {
           </div>
 
           {post.content && (
-            <p className="mt-2 whitespace-pre-wrap" data-testid={`text-post-content-${post.id}`}>
-              {renderFormattedText(post.content)}
-            </p>
+            <div className="mt-2" data-testid={`text-post-content-${post.id}`}>
+              {post.user?.isNewsBot ? (
+                // News bot posts: show only title + preview
+                <div>
+                  {(() => {
+                    const lines = post.content.split('\n').filter(l => l.trim());
+                    const title = lines[0] || '';
+                    const preview = lines.slice(1, 3).join(' ').slice(0, 150);
+                    return (
+                      <>
+                        <p className="font-semibold">{renderFormattedText(title)}</p>
+                        {preview && (
+                          <p className="text-muted-foreground mt-1 line-clamp-2">
+                            {preview}{preview.length >= 150 ? '...' : ''}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="text-primary text-sm">Read more</span>
+                          {post.sourceUrl && (
+                            <a
+                              href={post.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+                              data-testid={`link-source-${post.id}`}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Source
+                            </a>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap">{renderFormattedText(post.content)}</p>
+              )}
+            </div>
           )}
 
           {post.voiceNoteUrl && (

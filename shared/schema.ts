@@ -228,6 +228,7 @@ export const posts = pgTable("posts", {
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content"),
   voiceNoteUrl: varchar("voice_note_url"),
+  sourceUrl: varchar("source_url"),
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
