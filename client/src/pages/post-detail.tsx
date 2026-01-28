@@ -67,7 +67,10 @@ interface Post {
   media: PostMedia[];
   likeCount: number;
   commentCount: number;
+  repostCount?: number;
   isLiked: boolean;
+  isReposted?: boolean;
+  type?: "post";
 }
 
 interface PostComment {
