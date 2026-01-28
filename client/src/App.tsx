@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { VibesLogo } from "@/components/vibes-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import NotFound from "@/pages/not-found";
@@ -48,12 +49,15 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
             <header className="sticky top-0 z-40 flex flex-col bg-background/80 backdrop-blur-md">
               <div className="flex h-12 items-center justify-between px-4 border-b">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <ThemeToggle />
+                </div>
                 <div className="flex items-center gap-1" data-testid="text-brand-name">
                   <VibesLogo className="h-5" />
-                  <h1 className="text-xl text-[#080707] font-bold ml-[-13px] mr-[-13px]">Vibes</h1>
+                  <h1 className="text-xl text-foreground font-bold ml-[-13px] mr-[-13px]">Vibes</h1>
                 </div>
-                <div className="w-7" />
+                <div className="w-16" />
               </div>
               <div className="px-4 py-2 border-b overflow-hidden min-w-0">
                 <FeedTabs />
