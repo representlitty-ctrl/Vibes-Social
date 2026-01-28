@@ -51,7 +51,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
                 <div className="flex items-center gap-1" data-testid="text-brand-name">
                   <VibesLogo className="h-5" />
-                  <h1 className="text-xl font-bold text-primary -ml-0.5">Vibes</h1>
+                  <h1 className="text-xl ml-[-17px] mr-[-17px] text-[#080707] font-normal">Vibes</h1>
                 </div>
                 <div className="w-7" />
               </div>
