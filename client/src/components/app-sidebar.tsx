@@ -88,12 +88,11 @@ export function AppSidebar() {
         <div className="flex items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-1" onClick={handleNavClick}>
             <VibesLogo className="h-5" />
-            <span className="text-xl font-bold -ml-0.5">Vibes</span>
+            <span className="text-xl font-bold ml-[-13px] mr-[-13px]">Vibes</span>
           </Link>
           <UserSearch />
         </div>
       </SidebarHeader>
-
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigate</SidebarGroupLabel>
