@@ -163,9 +163,6 @@ export function AppSidebar() {
               <span className="truncate text-sm font-medium">
                 {user?.firstName} {user?.lastName}
               </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {user?.email}
-              </span>
             </div>
           </div>
         </Link>
