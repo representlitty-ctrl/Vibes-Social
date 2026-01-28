@@ -627,7 +627,13 @@ export async function registerRoutes(
       const userId = getUserId(req);
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-      const data = insertGrantSchema.parse(req.body);
+      // Convert deadline string to Date if present
+      const body = { ...req.body };
+      if (body.deadline && typeof body.deadline === 'string') {
+        body.deadline = new Date(body.deadline);
+      }
+
+      const data = insertGrantSchema.parse(body);
       const grant = await storage.createGrant(userId, data);
       res.status(201).json(grant);
     } catch (error) {
@@ -657,8 +663,14 @@ export async function registerRoutes(
       const userId = getUserId(req);
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+      // Convert deadline string to Date if present
+      const body = { ...req.body };
+      if (body.deadline && typeof body.deadline === 'string') {
+        body.deadline = new Date(body.deadline);
+      }
+
       const { id } = req.params;
-      const data = insertGrantSchema.partial().parse(req.body);
+      const data = insertGrantSchema.partial().parse(body);
       const grant = await storage.updateGrant(id, userId, data);
       res.json(grant);
     } catch (error) {
