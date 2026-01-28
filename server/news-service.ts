@@ -97,21 +97,19 @@ async function createNewsPost(
   category: NewsCategory
 ): Promise<string | null> {
   try {
-    const categoryEmojis: Record<NewsCategory, string> = {
-      crypto: "₿",
-      tech: "💻",
-      politics: "🏛️",
-      finance: "📊",
-      ai: "🤖",
+    const categoryLabels: Record<NewsCategory, string> = {
+      crypto: "CRYPTO",
+      tech: "TECH",
+      politics: "POLITICS",
+      finance: "FINANCE",
+      ai: "AI",
     };
 
-    const content = `${categoryEmojis[category]} **${category.toUpperCase()} NEWS**
+    const content = `**${categoryLabels[category]} NEWS**
 
 ${title}
 
-${summary}
-
-#${category} #news #vibes`;
+${summary}`;
 
     const [post] = await db
       .insert(posts)

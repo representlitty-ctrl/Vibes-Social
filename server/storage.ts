@@ -1725,10 +1725,19 @@ export class DatabaseStorage implements IStorage {
     const followingUserIds = followingIds.map(f => f.followingId);
     followingUserIds.push(userId);
 
+    // Get news bot user IDs to always include their posts
+    const newsBotProfiles = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(eq(profiles.isNewsBot, true));
+    
+    const newsBotUserIds = newsBotProfiles.map(p => p.userId);
+    const allFeedUserIds = [...new Set([...followingUserIds, ...newsBotUserIds])];
+
     const feedPosts = await db
       .select()
       .from(posts)
-      .where(inArray(posts.userId, followingUserIds))
+      .where(inArray(posts.userId, allFeedUserIds))
       .orderBy(desc(posts.createdAt))
       .limit(30);
 
@@ -1770,6 +1779,7 @@ export class DatabaseStorage implements IStorage {
           email: user.email,
           profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
           username: profile?.username,
+          isNewsBot: profile?.isNewsBot || false,
         } : null,
         media,
         likeCount: likeCount?.count || 0,

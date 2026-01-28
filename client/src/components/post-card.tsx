@@ -9,7 +9,8 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,18 @@ interface PostUser {
   email: string;
   profileImageUrl: string | null;
   username?: string;
+  isNewsBot?: boolean;
+}
+
+// Render text with **bold** support
+function renderFormattedText(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
 }
 
 interface PostMedia {
@@ -265,22 +278,35 @@ export function PostCard({ post }: PostCardProps) {
           className="cursor-pointer" 
           onClick={(e) => handleAvatarClick(e, post.userId)}
         >
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={post.user?.profileImageUrl || undefined} />
-            <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
-          </Avatar>
+          {post.user?.isNewsBot ? (
+            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+              <Bot className="h-5 w-5 text-primary-foreground" />
+            </div>
+          ) : (
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.user?.profileImageUrl || undefined} />
+              <AvatarFallback><User className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
+            </Avatar>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <span 
                 className="font-semibold truncate cursor-pointer hover:underline"
                 onClick={(e) => handleAvatarClick(e, post.userId)}
               >
                 {displayName}
               </span>
-              {isUserVerified(post.user) && <VerifiedBadge size="sm" />}
+              {post.user?.isNewsBot ? (
+                <Badge variant="secondary" className="text-xs">
+                  <Bot className="h-3 w-3 mr-1" />
+                  Automated News
+                </Badge>
+              ) : (
+                isUserVerified(post.user) && <VerifiedBadge size="sm" />
+              )}
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
               </span>
@@ -300,7 +326,7 @@ export function PostCard({ post }: PostCardProps) {
 
           {post.content && (
             <p className="mt-2 whitespace-pre-wrap" data-testid={`text-post-content-${post.id}`}>
-              {post.content}
+              {renderFormattedText(post.content)}
             </p>
           )}
 

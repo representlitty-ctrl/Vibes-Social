@@ -32,6 +32,7 @@ import {
   GraduationCap,
   LogOut,
   Award,
+  Bot,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { useLocation } from "wouter";
@@ -44,6 +45,7 @@ type ProfileWithUser = Profile & {
   postCount: number;
   projectCount: number;
   isFollowing: boolean;
+  isNewsBot?: boolean;
 };
 
 type ProjectWithDetails = Project & {
@@ -230,18 +232,24 @@ export default function ProfilePage() {
           <div 
             className="cursor-pointer"
             onClick={() => {
-              if (profile.profileImageUrl || profile.user.profileImageUrl) {
+              if (!profile.isNewsBot && (profile.profileImageUrl || profile.user.profileImageUrl)) {
                 setShowProfilePicture(true);
               }
             }}
             data-testid="avatar-profile-clickable"
           >
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
-              <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
-              <AvatarFallback>
-                <UserIcon className="h-12 w-12 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
+            {profile.isNewsBot ? (
+              <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-primary flex items-center justify-center">
+                <Bot className="h-12 w-12 sm:h-16 sm:w-16 text-primary-foreground" />
+              </div>
+            ) : (
+              <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
+                <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
+                <AvatarFallback>
+                  <UserIcon className="h-12 w-12 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+            )}
           </div>
 
           <Dialog open={showProfilePicture} onOpenChange={setShowProfilePicture}>
@@ -258,22 +266,31 @@ export default function ProfilePage() {
           <div className="flex-1">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl font-bold">{displayName}</h1>
-                  {isUserVerified({
-                    profileImageUrl: profile.profileImageUrl || profile.user.profileImageUrl,
-                    username: profile.username,
-                    email: profile.user.email,
-                  }) && <VerifiedBadge size="lg" />}
-                  {vibecodingProgress?.hasCertificate && (
-                    <Badge 
-                      variant="secondary" 
-                      className="bg-gradient-to-r from-sky-400 to-blue-500 text-white border-0 gap-1"
-                      data-testid="badge-vibecoder"
-                    >
-                      <GraduationCap className="h-3 w-3" />
-                      Vibecoder
+                  {profile.isNewsBot ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <Bot className="h-3 w-3" />
+                      Automated News
                     </Badge>
+                  ) : (
+                    <>
+                      {isUserVerified({
+                        profileImageUrl: profile.profileImageUrl || profile.user.profileImageUrl,
+                        username: profile.username,
+                        email: profile.user.email,
+                      }) && <VerifiedBadge size="lg" />}
+                      {vibecodingProgress?.hasCertificate && (
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-gradient-to-r from-sky-400 to-blue-500 text-white border-0 gap-1"
+                          data-testid="badge-vibecoder"
+                        >
+                          <GraduationCap className="h-3 w-3" />
+                          Vibecoder
+                        </Badge>
+                      )}
+                    </>
                   )}
                 </div>
                 {profile.username && profile.user.firstName && (
@@ -352,23 +369,25 @@ export default function ProfilePage() {
               <p className="mt-4 whitespace-pre-wrap">{profile.bio}</p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <FileText className="h-4 w-4" />
-                <span className="font-medium text-foreground">{profile.postCount}</span> posts
+            {!profile.isNewsBot && (
+              <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <FileText className="h-4 w-4" />
+                  <span className="font-medium text-foreground">{profile.postCount}</span> posts
+                </div>
+                <div className="flex items-center gap-1">
+                  <Grid3X3 className="h-4 w-4" />
+                  <span className="font-medium text-foreground">{profile.projectCount}</span> projects
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span className="font-medium text-foreground">{profile.followerCount}</span> followers
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium text-foreground">{profile.followingCount}</span> following
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Grid3X3 className="h-4 w-4" />
-                <span className="font-medium text-foreground">{profile.projectCount}</span> projects
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span className="font-medium text-foreground">{profile.followerCount}</span> followers
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="font-medium text-foreground">{profile.followingCount}</span> following
-              </div>
-            </div>
+            )}
 
             {((profile.skills?.length ?? 0) > 0 || (profile.tools?.length ?? 0) > 0) && (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -441,14 +460,18 @@ export default function ProfilePage() {
             <FileText className="h-4 w-4" />
             Posts
           </TabsTrigger>
-          <TabsTrigger value="projects" className="gap-2" data-testid="tab-projects">
-            <Grid3X3 className="h-4 w-4" />
-            Projects
-          </TabsTrigger>
-          <TabsTrigger value="learning" className="gap-2" data-testid="tab-learning">
-            <BookOpen className="h-4 w-4" />
-            Learning
-          </TabsTrigger>
+          {!profile.isNewsBot && (
+            <>
+              <TabsTrigger value="projects" className="gap-2" data-testid="tab-projects">
+                <Grid3X3 className="h-4 w-4" />
+                Projects
+              </TabsTrigger>
+              <TabsTrigger value="learning" className="gap-2" data-testid="tab-learning">
+                <BookOpen className="h-4 w-4" />
+                Learning
+              </TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="posts" className="mt-6">
