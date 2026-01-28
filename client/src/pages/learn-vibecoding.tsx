@@ -1259,8 +1259,9 @@ export default function LearnVibecodingPage() {
   const [readingTimeRemaining, setReadingTimeRemaining] = useState(READING_TIME_REQUIRED);
   const [hasMetReadingTime, setHasMetReadingTime] = useState(false);
   
-  // Alternative explanation state
-  const [alternativeExplanation, setAlternativeExplanation] = useState<string | null>(null);
+  // Alternative explanations state - max 2 per lesson, stored by lesson ID
+  const [lessonExplanations, setLessonExplanations] = useState<Record<string, string[]>>({});
+  const MAX_EXPLANATIONS_PER_LESSON = 2;
 
   // Fetch progress FIRST before using it in other functions
   const { data: progress, isLoading: progressLoading } = useQuery<UserProgress>({
@@ -1354,8 +1355,13 @@ export default function LearnVibecodingPage() {
     mutationFn: async ({ lessonId, lessonTitle, lessonContent }: { lessonId: string; lessonTitle: string; lessonContent: string }) => {
       return apiRequest("POST", `/api/vibecoding/lessons/${lessonId}/explain`, { lessonTitle, lessonContent });
     },
-    onSuccess: (data: any) => {
-      setAlternativeExplanation(data.explanation);
+    onSuccess: (data: any, variables) => {
+      const { lessonId } = variables;
+      setLessonExplanations(prev => {
+        const existing = prev[lessonId] || [];
+        if (existing.length >= MAX_EXPLANATIONS_PER_LESSON) return prev;
+        return { ...prev, [lessonId]: [...existing, data.explanation] };
+      });
     },
     onError: () => {
       toast({
@@ -1369,10 +1375,9 @@ export default function LearnVibecodingPage() {
   // Reading timer effect - countdown when lesson is open
   useEffect(() => {
     if (!selectedLesson) {
-      // Reset when lesson closes
+      // Reset timer when lesson closes (keep explanations)
       setReadingTimeRemaining(READING_TIME_REQUIRED);
       setHasMetReadingTime(false);
-      setAlternativeExplanation(null);
       return;
     }
 
@@ -1702,12 +1707,17 @@ export default function LearnVibecodingPage() {
                                   <div className={`text-sm font-medium ${isLocked ? "text-muted-foreground" : ""}`}>
                                     {lesson.title}
                                   </div>
-                                  <div className="flex items-center gap-2 mt-1">
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     {getLessonBadge(lesson.type)}
                                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                                       <Clock className="h-3 w-3" />
                                       {lesson.duration}
                                     </span>
+                                    {!completed && (
+                                      <Badge variant="outline" className="text-[10px] py-0 h-4">
+                                        30s min read
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
                                 {isLocked ? (
@@ -1983,8 +1993,24 @@ export default function LearnVibecodingPage() {
             
             {/* Alternative Explanation Section */}
             {user && selectedLesson && (
-              <div className="mt-6 pt-4 border-t">
-                {!alternativeExplanation ? (
+              <div className="mt-6 pt-4 border-t space-y-4">
+                {/* Show all generated explanations */}
+                {(lessonExplanations[selectedLesson.id] || []).map((explanation, index) => (
+                  <div key={index} className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lightbulb className="h-5 w-5 text-primary" />
+                      <span className="font-medium text-primary">
+                        Alternative Explanation {index + 1}
+                      </span>
+                    </div>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {formatContent(explanation)}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Button to generate more explanations (max 2) */}
+                {(lessonExplanations[selectedLesson.id]?.length || 0) < MAX_EXPLANATIONS_PER_LESSON && (
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -2008,20 +2034,19 @@ export default function LearnVibecodingPage() {
                     ) : (
                       <>
                         <Lightbulb className="h-4 w-4" />
-                        Need a different explanation?
+                        {(lessonExplanations[selectedLesson.id]?.length || 0) === 0 
+                          ? "Need a different explanation?" 
+                          : `Generate another (${lessonExplanations[selectedLesson.id]?.length || 0}/${MAX_EXPLANATIONS_PER_LESSON})`}
                       </>
                     )}
                   </Button>
-                ) : (
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Lightbulb className="h-5 w-5 text-primary" />
-                      <span className="font-medium text-primary">Alternative Explanation</span>
-                    </div>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      {formatContent(alternativeExplanation)}
-                    </div>
-                  </div>
+                )}
+                
+                {/* Show max reached message */}
+                {(lessonExplanations[selectedLesson.id]?.length || 0) >= MAX_EXPLANATIONS_PER_LESSON && (
+                  <p className="text-sm text-muted-foreground">
+                    Maximum of {MAX_EXPLANATIONS_PER_LESSON} alternative explanations reached for this lesson.
+                  </p>
                 )}
               </div>
             )}
