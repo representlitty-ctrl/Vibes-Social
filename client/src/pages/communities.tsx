@@ -73,10 +73,7 @@ export default function CommunitiesPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof newCommunity) => {
-      return apiRequest("/api/communities", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/communities", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities"] });
@@ -92,9 +89,7 @@ export default function CommunitiesPage() {
 
   const joinMutation = useMutation({
     mutationFn: async (communityId: string) => {
-      return apiRequest(`/api/communities/${communityId}/join`, {
-        method: "POST",
-      });
+      return apiRequest("POST", `/api/communities/${communityId}/join`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities"] });
@@ -105,9 +100,7 @@ export default function CommunitiesPage() {
 
   const leaveMutation = useMutation({
     mutationFn: async (communityId: string) => {
-      return apiRequest(`/api/communities/${communityId}/leave`, {
-        method: "POST",
-      });
+      return apiRequest("POST", `/api/communities/${communityId}/leave`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities"] });
