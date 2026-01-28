@@ -156,7 +156,6 @@ export function AppSidebar() {
         <Link href="/profile" onClick={handleNavClick} data-testid="link-profile-sidebar">
           <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3 hover-elevate cursor-pointer">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
               <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-1 flex-col overflow-hidden">
