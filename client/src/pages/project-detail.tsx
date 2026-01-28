@@ -103,15 +103,51 @@ export default function ProjectDetailPage() {
     mutationFn: async () => {
       return apiRequest("DELETE", `/api/projects/${projectId}`);
     },
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/projects"] });
+      await queryClient.cancelQueries({ queryKey: ["/api/feed"] });
+      await queryClient.cancelQueries({ queryKey: ["/api/projects/featured"] });
+
+      // Snapshot previous values
+      const previousProjects = queryClient.getQueryData(["/api/projects"]);
+      const previousFeed = queryClient.getQueryData(["/api/feed"]);
+      const previousFeatured = queryClient.getQueryData(["/api/projects/featured"]);
+
+      // Optimistically remove from cache
+      queryClient.setQueryData(["/api/projects"], (old: Array<{ id: string }> | undefined) => 
+        old ? old.filter(p => p.id !== projectId) : []
+      );
+      queryClient.setQueryData(["/api/feed"], (old: Array<{ id: string }> | undefined) => 
+        old ? old.filter(item => item.id !== projectId) : []
+      );
+      queryClient.setQueryData(["/api/projects/featured"], (old: Array<{ id: string }> | undefined) => 
+        old ? old.filter(p => p.id !== projectId) : []
+      );
+
+      return { previousProjects, previousFeed, previousFeatured };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
       toast({
         title: "Project deleted",
         description: "Your project has been deleted successfully.",
       });
       setLocation("/");
     },
-    onError: () => {
+    onError: (_err, _vars, context) => {
+      // Restore cache on error
+      if (context?.previousProjects) {
+        queryClient.setQueryData(["/api/projects"], context.previousProjects);
+      }
+      if (context?.previousFeed) {
+        queryClient.setQueryData(["/api/feed"], context.previousFeed);
+      }
+      if (context?.previousFeatured) {
+        queryClient.setQueryData(["/api/projects/featured"], context.previousFeatured);
+      }
       toast({
         title: "Error",
         description: "Failed to delete project. Please try again.",

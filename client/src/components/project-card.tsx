@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -31,20 +32,41 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Local optimistic state for instant UI updates
+  const [optimisticUpvoted, setOptimisticUpvoted] = useState(project.hasUpvoted);
+  const [optimisticUpvoteCount, setOptimisticUpvoteCount] = useState(project.upvoteCount);
+  const [optimisticBookmarked, setOptimisticBookmarked] = useState(project.hasBookmarked);
+
+  // Sync with server data when project updates
+  useEffect(() => {
+    setOptimisticUpvoted(project.hasUpvoted);
+    setOptimisticUpvoteCount(project.upvoteCount);
+    setOptimisticBookmarked(project.hasBookmarked);
+  }, [project.hasUpvoted, project.upvoteCount, project.hasBookmarked]);
+
   const upvoteMutation = useMutation({
-    mutationFn: async () => {
-      if (project.hasUpvoted) {
+    mutationFn: async (newUpvotedState: boolean) => {
+      if (!newUpvotedState) {
         return apiRequest("DELETE", `/api/projects/${project.id}/upvote`);
       }
       return apiRequest("POST", `/api/projects/${project.id}/upvote`);
+    },
+    onMutate: async (newUpvotedState: boolean) => {
+      // Optimistically update UI immediately
+      setOptimisticUpvoted(newUpvotedState);
+      setOptimisticUpvoteCount(prev => newUpvotedState ? prev + 1 : prev - 1);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects/bookmarked"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
     },
     onError: () => {
+      // Revert on error
+      setOptimisticUpvoted(project.hasUpvoted);
+      setOptimisticUpvoteCount(project.upvoteCount);
       toast({
         title: "Error",
         description: "Failed to update upvote. Please try again.",
@@ -54,19 +76,26 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
   });
 
   const bookmarkMutation = useMutation({
-    mutationFn: async () => {
-      if (project.hasBookmarked) {
+    mutationFn: async (newBookmarkedState: boolean) => {
+      if (!newBookmarkedState) {
         return apiRequest("DELETE", `/api/projects/${project.id}/bookmark`);
       }
       return apiRequest("POST", `/api/projects/${project.id}/bookmark`);
+    },
+    onMutate: async (newBookmarkedState: boolean) => {
+      // Optimistically update UI immediately
+      setOptimisticBookmarked(newBookmarkedState);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects/bookmarked"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
     },
     onError: () => {
+      // Revert on error
+      setOptimisticBookmarked(project.hasBookmarked);
       toast({
         title: "Error",
         description: "Failed to update bookmark. Please try again.",
@@ -82,7 +111,8 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
       window.location.href = "/api/login";
       return;
     }
-    upvoteMutation.mutate();
+    // Pass the new desired state (toggle current)
+    upvoteMutation.mutate(!optimisticUpvoted);
   };
 
   const handleBookmark = (e: React.MouseEvent) => {
@@ -92,7 +122,8 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
       window.location.href = "/api/login";
       return;
     }
-    bookmarkMutation.mutate();
+    // Pass the new desired state (toggle current)
+    bookmarkMutation.mutate(!optimisticBookmarked);
   };
 
   const getInitials = () => {
@@ -170,14 +201,14 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                   disabled={bookmarkMutation.isPending}
                   data-testid={`button-bookmark-${project.id}`}
                 >
-                  {project.hasBookmarked ? (
+                  {optimisticBookmarked ? (
                     <BookmarkCheck className="h-4 w-4 text-primary" />
                   ) : (
                     <Bookmark className="h-4 w-4" />
                   )}
                 </Button>
                 <Button
-                  variant={project.hasUpvoted ? "default" : "outline"}
+                  variant={optimisticUpvoted ? "default" : "outline"}
                   size="sm"
                   onClick={handleUpvote}
                   disabled={upvoteMutation.isPending}
@@ -185,7 +216,7 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                   data-testid={`button-upvote-${project.id}`}
                 >
                   <ChevronUp className="h-4 w-4" />
-                  {project.upvoteCount}
+                  {optimisticUpvoteCount}
                 </Button>
               </div>
             </div>
@@ -232,14 +263,14 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                   disabled={bookmarkMutation.isPending}
                   data-testid={`button-bookmark-${project.id}`}
                 >
-                  {project.hasBookmarked ? (
+                  {optimisticBookmarked ? (
                     <BookmarkCheck className="h-4 w-4 text-primary" />
                   ) : (
                     <Bookmark className="h-4 w-4" />
                   )}
                 </Button>
                 <Button
-                  variant={project.hasUpvoted ? "default" : "outline"}
+                  variant={optimisticUpvoted ? "default" : "outline"}
                   size="sm"
                   onClick={handleUpvote}
                   disabled={upvoteMutation.isPending}
@@ -247,7 +278,7 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                   data-testid={`button-upvote-${project.id}`}
                 >
                   <ChevronUp className="h-4 w-4" />
-                  <span className="text-xs font-bold">{project.upvoteCount}</span>
+                  <span className="text-xs font-bold">{optimisticUpvoteCount}</span>
                 </Button>
               </div>
             </div>

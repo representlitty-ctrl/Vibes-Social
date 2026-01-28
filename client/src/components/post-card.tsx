@@ -103,12 +103,38 @@ export function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       return apiRequest("DELETE", `/api/posts/${post.id}`);
     },
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/posts"] });
+      await queryClient.cancelQueries({ queryKey: ["/api/feed"] });
+
+      // Snapshot previous values
+      const previousPosts = queryClient.getQueryData(["/api/posts"]);
+      const previousFeed = queryClient.getQueryData(["/api/feed"]);
+
+      // Optimistically remove the post from cache
+      queryClient.setQueryData(["/api/posts"], (old: Post[] | undefined) => 
+        old ? old.filter(p => p.id !== post.id) : []
+      );
+      queryClient.setQueryData(["/api/feed"], (old: Array<{ id: string }> | undefined) => 
+        old ? old.filter(item => item.id !== post.id) : []
+      );
+
+      return { previousPosts, previousFeed };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
       toast({ title: "Post deleted" });
     },
-    onError: () => {
+    onError: (_err, _vars, context) => {
+      // Restore cache on error
+      if (context?.previousPosts) {
+        queryClient.setQueryData(["/api/posts"], context.previousPosts);
+      }
+      if (context?.previousFeed) {
+        queryClient.setQueryData(["/api/feed"], context.previousFeed);
+      }
       toast({ title: "Failed to delete post", variant: "destructive" });
     },
   });
