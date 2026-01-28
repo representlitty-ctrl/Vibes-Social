@@ -651,6 +651,20 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/resources/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.deleteResource(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting resource:", error);
+      res.status(500).json({ message: "Failed to delete resource" });
+    }
+  });
+
   // Grant routes
   app.get("/api/grants", async (req, res) => {
     try {
@@ -743,10 +757,24 @@ export async function registerRoutes(
 
       const { id } = req.params;
       await storage.deleteGrant(id, userId);
-      res.status(204).send();
+      res.json({ message: "Grant scheduled for deletion in 24 hours" });
     } catch (error) {
       console.error("Error deleting grant:", error);
       res.status(500).json({ message: "Failed to delete grant" });
+    }
+  });
+
+  app.post("/api/grants/:id/cancel-deletion", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.cancelGrantDeletion(id, userId);
+      res.json({ message: "Grant deletion cancelled" });
+    } catch (error) {
+      console.error("Error cancelling grant deletion:", error);
+      res.status(500).json({ message: "Failed to cancel deletion" });
     }
   });
 

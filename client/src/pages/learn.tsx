@@ -27,7 +27,15 @@ import {
   PlayCircle,
   CheckCircle,
   User as UserIcon,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Resource, User, Profile, Course } from "@shared/schema";
 
 type ResourceWithDetails = Resource & {
@@ -130,13 +138,13 @@ export default function LearnPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="courses" className="space-y-6">
+      <Tabs defaultValue="resources" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="resources">All Resources</TabsTrigger>
           <TabsTrigger value="courses" className="gap-2">
             <GraduationCap className="h-4 w-4" />
             Courses
           </TabsTrigger>
-          <TabsTrigger value="resources">All Resources</TabsTrigger>
           {user && (
             <TabsTrigger value="enrolled" className="gap-2">
               <PlayCircle className="h-4 w-4" />
@@ -150,28 +158,6 @@ export default function LearnPage() {
             </TabsTrigger>
           )}
         </TabsList>
-
-        <TabsContent value="courses" className="mt-6 space-y-6">
-          {coursesLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="p-4">
-                  <Skeleton className="h-40 w-full rounded-lg" />
-                  <Skeleton className="mt-3 h-5 w-3/4" />
-                  <Skeleton className="mt-2 h-4 w-full" />
-                </Card>
-              ))}
-            </div>
-          ) : filteredCourses && filteredCourses.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
-          ) : (
-            <EmptyCourseState />
-          )}
-        </TabsContent>
 
         <TabsContent value="resources" className="mt-6 space-y-6">
           <div className="flex flex-wrap gap-2">
@@ -207,6 +193,28 @@ export default function LearnPage() {
             </div>
           ) : (
             <EmptyState />
+          )}
+        </TabsContent>
+
+        <TabsContent value="courses" className="mt-6 space-y-6">
+          {coursesLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="p-4">
+                  <Skeleton className="h-40 w-full rounded-lg" />
+                  <Skeleton className="mt-3 h-5 w-3/4" />
+                  <Skeleton className="mt-2 h-4 w-full" />
+                </Card>
+              ))}
+            </div>
+          ) : filteredCourses && filteredCourses.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredCourses.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          ) : (
+            <EmptyCourseState />
           )}
         </TabsContent>
 
@@ -439,6 +447,27 @@ function ResourceCard({ resource }: { resource: ResourceWithDetails }) {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/resources/${resource.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resources/bookmarked"] });
+      toast({
+        title: "Resource deleted",
+        description: "Your resource has been removed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete resource.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpvote = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!user) {
@@ -458,7 +487,28 @@ function ResourceCard({ resource }: { resource: ResourceWithDetails }) {
   };
 
   return (
-    <Card className="group flex flex-col p-4 transition-all hover-elevate" data-testid={`resource-${resource.id}`}>
+    <Card className="group relative flex flex-col p-4 transition-all hover-elevate" data-testid={`resource-${resource.id}`}>
+      {user && user.id === resource.userId && (
+        <div className="absolute right-2 top-2 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-options-resource-${resource.id}`}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => deleteMutation.mutate()}
+                className="text-destructive"
+                data-testid={`button-delete-resource-${resource.id}`}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       {resource.imageUrl && (
         <div className="mb-3 overflow-hidden rounded-lg">
           <img

@@ -45,7 +45,17 @@ import {
   Plus,
   FileText,
   Loader2,
+  MoreHorizontal,
+  Trash2,
+  AlertTriangle,
+  Undo2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Grant, Project, GrantSubmission } from "@shared/schema";
 
 type GrantApplication = {
@@ -61,6 +71,7 @@ type GrantWithDetails = Grant & {
   hasApplied: boolean;
   userSubmission?: GrantSubmission;
   userApplication?: GrantApplication;
+  scheduledDeletionAt?: string | null;
 };
 
 type ProjectForSubmission = Pick<Project, "id" | "title">;
@@ -202,8 +213,50 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/grants/${grant.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/grants"] });
+      toast({
+        title: "Grant scheduled for deletion",
+        description: "This grant will be permanently deleted in 24 hours.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to schedule grant deletion.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelDeletionMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/grants/${grant.id}/cancel-deletion`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/grants"] });
+      toast({
+        title: "Deletion cancelled",
+        description: "The grant will no longer be deleted.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to cancel deletion.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const isOpen = grant.status === "open";
   const isPastDeadline = grant.deadline && new Date(grant.deadline) < new Date();
+  const isScheduledForDeletion = grant.scheduledDeletionAt;
+  const deletionTime = grant.scheduledDeletionAt ? new Date(grant.scheduledDeletionAt) : null;
 
   const getStatusBadge = () => {
     if (grant.status === "open") {
@@ -263,7 +316,53 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
   const hasAlreadyAppliedOrSubmitted = grant.hasApplied || grant.hasSubmitted;
 
   return (
-    <Card className="flex flex-col p-6" data-testid={`grant-${grant.id}`}>
+    <Card className="relative flex flex-col p-6" data-testid={`grant-${grant.id}`}>
+      {isScheduledForDeletion && deletionTime && (
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-md bg-destructive/10 p-3 text-destructive">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Scheduled for deletion {formatDistanceToNow(deletionTime, { addSuffix: true })}
+            </span>
+          </div>
+          {user && user.id === grant.userId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => cancelDeletionMutation.mutate()}
+              disabled={cancelDeletionMutation.isPending}
+              className="gap-1"
+              data-testid={`button-cancel-deletion-${grant.id}`}
+            >
+              <Undo2 className="h-3 w-3" />
+              Cancel
+            </Button>
+          )}
+        </div>
+      )}
+      
+      {user && user.id === grant.userId && !isScheduledForDeletion && (
+        <div className="absolute right-2 top-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-options-grant-${grant.id}`}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => deleteMutation.mutate()}
+                className="text-destructive"
+                data-testid={`button-delete-grant-${grant.id}`}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Grant
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+      
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">{grant.title}</h3>

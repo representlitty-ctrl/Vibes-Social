@@ -5,7 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon, Share2, Repeat2 } from "lucide-react";
+import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon, Share2, Repeat2, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -133,6 +139,29 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
       toast({
         title: "Error",
         description: "Failed to update repost. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/projects/${project.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/mine"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      toast({
+        title: "Project deleted",
+        description: "Your project has been removed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
         variant: "destructive",
       });
     },
@@ -303,7 +332,32 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
 
   return (
     <Link href={`/projects/${project.id}`}>
-      <Card className="group flex gap-4 p-4 transition-all hover-elevate" data-testid={`card-project-${project.id}`}>
+      <Card className="group relative flex gap-4 p-4 transition-all hover-elevate" data-testid={`card-project-${project.id}`}>
+        {user && user.id === project.userId && (
+          <div className="absolute right-2 top-2 z-10">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-options-project-${project.id}`}>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    deleteMutation.mutate();
+                  }}
+                  className="text-destructive"
+                  data-testid={`button-delete-project-${project.id}`}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+        
         {rank && (
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-lg font-bold text-muted-foreground">
             {rank}

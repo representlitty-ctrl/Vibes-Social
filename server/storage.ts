@@ -143,6 +143,7 @@ export interface IStorage {
   removeResourceDownvote(resourceId: string, userId: string): Promise<void>;
   bookmarkResource(resourceId: string, userId: string): Promise<void>;
   removeResourceBookmark(resourceId: string, userId: string): Promise<void>;
+  deleteResource(resourceId: string, userId: string): Promise<void>;
   
   // Grants
   getGrants(currentUserId?: string): Promise<any[]>;
@@ -151,6 +152,8 @@ export interface IStorage {
   createGrant(userId: string, data: InsertGrant): Promise<Grant>;
   updateGrant(id: string, userId: string, data: Partial<InsertGrant>): Promise<Grant>;
   deleteGrant(id: string, userId: string): Promise<void>;
+  cancelGrantDeletion(id: string, userId: string): Promise<void>;
+  processScheduledGrantDeletions(): Promise<void>;
   submitToGrant(grantId: string, projectId: string, userId: string): Promise<GrantSubmission>;
   
   // Grant Applications
@@ -889,6 +892,18 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(resourceBookmarks.resourceId, resourceId), eq(resourceBookmarks.userId, userId)));
   }
 
+  async deleteResource(resourceId: string, userId: string): Promise<void> {
+    const resource = await db.select().from(resources).where(eq(resources.id, resourceId)).limit(1);
+    if (resource.length === 0 || resource[0].userId !== userId) {
+      throw new Error("Unauthorized or resource not found");
+    }
+    
+    await db.delete(resourceUpvotes).where(eq(resourceUpvotes.resourceId, resourceId));
+    await db.delete(resourceDownvotes).where(eq(resourceDownvotes.resourceId, resourceId));
+    await db.delete(resourceBookmarks).where(eq(resourceBookmarks.resourceId, resourceId));
+    await db.delete(resources).where(eq(resources.id, resourceId));
+  }
+
   // Grants
   async getGrants(currentUserId?: string): Promise<any[]> {
     const allGrants = await db.select().from(grants).orderBy(desc(grants.createdAt));
@@ -965,7 +980,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteGrant(id: string, userId: string): Promise<void> {
-    await db.delete(grants).where(and(eq(grants.id, id), eq(grants.userId, userId)));
+    const deletionTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db.update(grants)
+      .set({ scheduledDeletionAt: deletionTime })
+      .where(and(eq(grants.id, id), eq(grants.userId, userId)));
+  }
+
+  async cancelGrantDeletion(id: string, userId: string): Promise<void> {
+    await db.update(grants)
+      .set({ scheduledDeletionAt: null })
+      .where(and(eq(grants.id, id), eq(grants.userId, userId)));
+  }
+
+  async processScheduledGrantDeletions(): Promise<void> {
+    const now = new Date();
+    const scheduledGrants = await db.select().from(grants)
+      .where(and(
+        sql`${grants.scheduledDeletionAt} IS NOT NULL`,
+        sql`${grants.scheduledDeletionAt} <= ${now}`
+      ));
+    
+    for (const grant of scheduledGrants) {
+      await db.delete(grantSubmissions).where(eq(grantSubmissions.grantId, grant.id));
+      await db.delete(grantApplications).where(eq(grantApplications.grantId, grant.id));
+      await db.delete(grants).where(eq(grants.id, grant.id));
+    }
   }
 
   private async enrichGrant(grant: Grant, currentUserId?: string): Promise<any> {

@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { VibesLogo } from "@/components/vibes-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import NotFound from "@/pages/not-found";
@@ -48,7 +49,10 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
             <header className="sticky top-0 z-40 flex flex-col bg-background/80 backdrop-blur-md">
               <div className="flex h-12 items-center justify-between px-4 border-b">
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <h1 className="text-xl font-bold text-primary" data-testid="text-brand-name">Vibes</h1>
+                <div className="flex items-center gap-1" data-testid="text-brand-name">
+                  <VibesLogo className="h-5" />
+                  <h1 className="text-xl font-bold text-primary -ml-0.5">Vibes</h1>
+                </div>
                 <div className="w-7" />
               </div>
               <div className="px-4 py-2 border-b overflow-hidden min-w-0">

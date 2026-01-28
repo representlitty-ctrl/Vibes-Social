@@ -148,6 +148,7 @@ export const grants = pgTable("grants", {
   imageUrl: varchar("image_url"),
   userId: varchar("user_id").notNull().references(() => users.id),
   status: varchar("status", { length: 50 }).default("open"),
+  scheduledDeletionAt: timestamp("scheduled_deletion_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
