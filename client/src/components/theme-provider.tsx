@@ -41,6 +41,11 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = window.document.documentElement;
+    
+    // Disable transitions during theme switch for instant change
+    root.style.setProperty('--theme-transition', 'none');
+    root.classList.add('theme-switching');
+    
     root.classList.remove("light", "dark");
 
     if (theme === "system") {
@@ -48,16 +53,36 @@ export function ThemeProvider({
         ? "dark"
         : "light";
       root.classList.add(systemTheme);
-      return;
+    } else {
+      root.classList.add(theme);
     }
-
-    root.classList.add(theme);
+    
+    // Re-enable transitions after paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.style.removeProperty('--theme-transition');
+        root.classList.remove('theme-switching');
+      });
+    });
   }, [theme]);
 
   useEffect(() => {
     const root = window.document.documentElement;
+    
+    // Disable transitions during color theme switch
+    root.style.setProperty('--theme-transition', 'none');
+    root.classList.add('theme-switching');
+    
     root.classList.remove("theme-red", "theme-blue", "theme-green", "theme-purple", "theme-orange");
     root.classList.add(`theme-${colorTheme}`);
+    
+    // Re-enable transitions after paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.style.removeProperty('--theme-transition');
+        root.classList.remove('theme-switching');
+      });
+    });
   }, [colorTheme]);
 
   const value = {
