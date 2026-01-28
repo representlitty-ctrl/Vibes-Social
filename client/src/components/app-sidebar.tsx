@@ -151,21 +151,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="p-4">
-        <Link href="/profile" onClick={handleNavClick} data-testid="link-profile-sidebar">
-          <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3 hover-elevate cursor-pointer">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{getInitials()}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <span className="truncate text-sm font-medium">
-                {user?.firstName} {user?.lastName}
-              </span>
-            </div>
-          </div>
-        </Link>
-      </SidebarFooter>
     </Sidebar>
   );
 }
