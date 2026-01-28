@@ -378,15 +378,36 @@ export function PostCard({ post }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const url = `${window.location.origin}/posts/${post.id}`;
-                navigator.clipboard.writeText(url);
-                toast({
-                  title: "Link copied",
-                  description: "Post link copied to clipboard",
-                });
+                const shareData = {
+                  title: `Post by ${displayName}`,
+                  text: post.content?.substring(0, 100) || "Check out this post on Vibes",
+                  url: url,
+                };
+                
+                if (navigator.share && navigator.canShare?.(shareData)) {
+                  try {
+                    await navigator.share(shareData);
+                  } catch (err) {
+                    // User cancelled or share failed, fall back to copy
+                    if ((err as Error).name !== "AbortError") {
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Link copied",
+                        description: "Post link copied to clipboard",
+                      });
+                    }
+                  }
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast({
+                    title: "Link copied",
+                    description: "Post link copied to clipboard",
+                  });
+                }
               }}
               className="gap-1"
               data-testid={`button-share-post-${post.id}`}

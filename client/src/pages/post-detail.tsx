@@ -295,13 +295,33 @@ export default function PostDetailPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
+            onClick={async () => {
               const url = `${window.location.origin}/posts/${post.id}`;
-              navigator.clipboard.writeText(url);
-              toast({
-                title: "Link copied",
-                description: "Post link copied to clipboard",
-              });
+              const shareData = {
+                title: "Post on Vibes",
+                text: post.content?.substring(0, 100) || "Check out this post on Vibes",
+                url: url,
+              };
+              
+              if (navigator.share && navigator.canShare?.(shareData)) {
+                try {
+                  await navigator.share(shareData);
+                } catch (err) {
+                  if ((err as Error).name !== "AbortError") {
+                    navigator.clipboard.writeText(url);
+                    toast({
+                      title: "Link copied",
+                      description: "Post link copied to clipboard",
+                    });
+                  }
+                }
+              } else {
+                navigator.clipboard.writeText(url);
+                toast({
+                  title: "Link copied",
+                  description: "Post link copied to clipboard",
+                });
+              }
             }}
             className="gap-2"
             data-testid="button-share"

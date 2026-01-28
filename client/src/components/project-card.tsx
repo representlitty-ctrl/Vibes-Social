@@ -224,15 +224,35 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     const url = `${window.location.origin}/projects/${project.id}`;
-                    navigator.clipboard.writeText(url);
-                    toast({
-                      title: "Link copied",
-                      description: "Project link copied to clipboard",
-                    });
+                    const shareData = {
+                      title: project.name,
+                      text: project.tagline || `Check out ${project.name} on Vibes`,
+                      url: url,
+                    };
+                    
+                    if (navigator.share && navigator.canShare?.(shareData)) {
+                      try {
+                        await navigator.share(shareData);
+                      } catch (err) {
+                        if ((err as Error).name !== "AbortError") {
+                          navigator.clipboard.writeText(url);
+                          toast({
+                            title: "Link copied",
+                            description: "Project link copied to clipboard",
+                          });
+                        }
+                      }
+                    } else {
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Link copied",
+                        description: "Project link copied to clipboard",
+                      });
+                    }
                   }}
                   data-testid={`button-share-project-${project.id}`}
                 >

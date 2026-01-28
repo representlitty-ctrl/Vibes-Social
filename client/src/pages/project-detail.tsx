@@ -333,13 +333,33 @@ export default function ProjectDetailPage() {
             <Button
               variant="outline"
               className="w-full mt-4 gap-2"
-              onClick={() => {
+              onClick={async () => {
                 const url = `${window.location.origin}/projects/${project.id}`;
-                navigator.clipboard.writeText(url);
-                toast({
-                  title: "Link copied",
-                  description: "Project link copied to clipboard",
-                });
+                const shareData = {
+                  title: project.name,
+                  text: project.tagline || `Check out ${project.name} on Vibes`,
+                  url: url,
+                };
+                
+                if (navigator.share && navigator.canShare?.(shareData)) {
+                  try {
+                    await navigator.share(shareData);
+                  } catch (err) {
+                    if ((err as Error).name !== "AbortError") {
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Link copied",
+                        description: "Project link copied to clipboard",
+                      });
+                    }
+                  }
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast({
+                    title: "Link copied",
+                    description: "Project link copied to clipboard",
+                  });
+                }
               }}
               data-testid="button-share-detail"
             >
