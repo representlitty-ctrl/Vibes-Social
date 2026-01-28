@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,9 +8,12 @@ import { ProjectCard } from "@/components/project-card";
 import { PostCard } from "@/components/post-card";
 import { PostComposer } from "@/components/post-composer";
 import { StoriesRow } from "@/components/stories-row";
-import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X } from "lucide-react";
+import { Sparkles, Plus, Compass, PenSquare, FolderPlus, X, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeed } from "@/contexts/feed-context";
+import { useUpload } from "@/hooks/use-upload";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Project, User, Profile, Community } from "@shared/schema";
 
 type ProjectWithDetails = Project & {
@@ -66,6 +69,36 @@ export default function HomePage() {
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showPostComposer, setShowPostComposer] = useState(false);
   const { feedType } = useFeed();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const storyFileInputRef = useRef<HTMLInputElement>(null);
+
+  const { uploadFile: uploadStory, isUploading: isUploadingStory } = useUpload({
+    onSuccess: async (response) => {
+      const isVideo = response.metadata.contentType.startsWith("video/");
+      try {
+        await apiRequest("POST", "/api/stories", {
+          mediaType: isVideo ? "video" : "image",
+          mediaUrl: response.objectPath,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
+        toast({ title: "Story added!" });
+      } catch {
+        toast({ title: "Failed to create story", variant: "destructive" });
+      }
+    },
+    onError: () => {
+      toast({ title: "Failed to upload story", variant: "destructive" });
+    },
+  });
+
+  const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadStory(file);
+    }
+    e.target.value = "";
+  };
 
   const { data: feed, isLoading: feedLoading } = useQuery<FeedItem[]>({
     queryKey: ["/api/feed"],
@@ -124,6 +157,11 @@ export default function HomePage() {
   const handleNewProject = () => {
     setShowCreateMenu(false);
     navigate("/submit");
+  };
+
+  const handleNewStory = () => {
+    setShowCreateMenu(false);
+    storyFileInputRef.current?.click();
   };
 
   return (
@@ -192,8 +230,25 @@ export default function HomePage() {
 
       {user && (
         <div className="fixed bottom-6 right-6 z-50">
+          <input
+            type="file"
+            ref={storyFileInputRef}
+            onChange={handleStoryFileSelect}
+            accept="image/*,video/*"
+            className="hidden"
+            data-testid="input-story-file"
+          />
           {showCreateMenu && (
             <div className="absolute bottom-16 right-0 flex flex-col gap-2 mb-2">
+              <Button
+                onClick={handleNewStory}
+                disabled={isUploadingStory}
+                className="gap-2 shadow-lg"
+                data-testid="button-create-story"
+              >
+                <Camera className="h-4 w-4" />
+                {isUploadingStory ? "Uploading..." : "New Story"}
+              </Button>
               <Button
                 onClick={handleNewPost}
                 className="gap-2 shadow-lg"

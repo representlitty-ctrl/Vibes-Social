@@ -25,12 +25,12 @@ import {
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { Badge } from "@/components/ui/badge";
 
-// Render text with **bold** support
+// Render text with **bold** support (single weight, not super bold)
 function renderFormattedText(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      return <span key={i} className="font-semibold">{part.slice(2, -2)}</span>;
     }
     return part;
   });
@@ -214,7 +214,7 @@ export default function PostDetailPage() {
   const isOwner = user?.id === post.userId;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6 p-4">
       <Link href="/">
         <Button variant="ghost" className="gap-2" data-testid="button-back">
           <ArrowLeft className="h-4 w-4" />
@@ -329,17 +329,17 @@ export default function PostDetailPage() {
             <Heart className={`h-5 w-5 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} />
             <span className="font-medium">{post.likeCount}</span>
           </Button>
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-1 text-muted-foreground">
             <MessageCircle className="h-5 w-5" />
-            <span>{post.commentCount} comments</span>
+            <span>{post.commentCount}</span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-1 text-muted-foreground">
             <Eye className="h-5 w-5" />
-            <span>{post.viewCount || 0} views</span>
+            <span>{post.viewCount || 0}</span>
           </div>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={async () => {
               const url = `${window.location.origin}/posts/${post.id}`;
               const shareData = {
@@ -368,11 +368,9 @@ export default function PostDetailPage() {
                 });
               }
             }}
-            className="gap-2"
             data-testid="button-share"
           >
             <Share2 className="h-5 w-5" />
-            Share
           </Button>
         </div>
       </Card>

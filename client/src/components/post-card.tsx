@@ -27,12 +27,12 @@ interface PostUser {
   isNewsBot?: boolean;
 }
 
-// Render text with **bold** support
+// Render text with **bold** support (single weight, not super bold)
 function renderFormattedText(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      return <span key={i} className="font-semibold">{part.slice(2, -2)}</span>;
     }
     return part;
   });
@@ -342,22 +342,7 @@ export function PostCard({ post }: PostCardProps) {
                             {preview}{preview.length >= 150 ? '...' : ''}
                           </p>
                         )}
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="text-primary text-sm">Read more</span>
-                          {post.sourceUrl && (
-                            <a
-                              href={post.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-                              data-testid={`link-source-${post.id}`}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Source
-                            </a>
-                          )}
-                        </div>
+                        <span className="text-primary text-sm mt-2 inline-block">Read more</span>
                       </>
                     );
                   })()}
