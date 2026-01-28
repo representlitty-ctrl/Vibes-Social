@@ -461,16 +461,10 @@ export default function ProfilePage() {
             Posts
           </TabsTrigger>
           {!profile.isNewsBot && (
-            <>
-              <TabsTrigger value="projects" className="gap-2" data-testid="tab-projects">
-                <Grid3X3 className="h-4 w-4" />
-                Projects
-              </TabsTrigger>
-              <TabsTrigger value="learning" className="gap-2" data-testid="tab-learning">
-                <BookOpen className="h-4 w-4" />
-                Learning
-              </TabsTrigger>
-            </>
+            <TabsTrigger value="learning" className="gap-2" data-testid="tab-learning">
+              <BookOpen className="h-4 w-4" />
+              Learning
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -494,30 +488,6 @@ export default function ProfilePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="projects" className="mt-6">
-          {projects && projects.length > 0 ? (
-            <div className="space-y-4">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 text-center">
-              <Grid3X3 className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="text-lg font-semibold">No projects yet</h3>
-              <p className="mt-2 text-muted-foreground">
-                {isOwnProfile
-                  ? "You haven't submitted any projects yet."
-                  : "This user hasn't submitted any projects yet."}
-              </p>
-              {isOwnProfile && (
-                <Link href="/submit">
-                  <Button className="mt-6">Submit Your First Project</Button>
-                </Link>
-              )}
-            </div>
-          )}
-        </TabsContent>
 
         <TabsContent value="learning" className="mt-6">
           <div className="grid gap-6 lg:grid-cols-3">
