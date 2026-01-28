@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
@@ -46,12 +45,15 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden">
           <AppSidebar />
           <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
-            <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <div className="flex-1 overflow-hidden min-w-0">
+            <header className="sticky top-0 z-40 flex flex-col bg-background/80 backdrop-blur-md">
+              <div className="flex h-12 items-center justify-between px-4 border-b">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <h1 className="text-xl font-bold text-primary" data-testid="text-brand-name">Vibes</h1>
+                <div className="w-7" />
+              </div>
+              <div className="px-4 py-2 border-b overflow-hidden min-w-0">
                 <FeedTabs />
               </div>
-              <ThemeToggle />
             </header>
             <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
               <div className="w-full max-w-full">

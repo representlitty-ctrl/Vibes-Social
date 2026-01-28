@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useFeed } from "@/contexts/feed-context";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Globe, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Community } from "@shared/schema";
 
 type CommunityWithDetails = Community & {
@@ -24,43 +23,32 @@ export function FeedTabs() {
   // Only show feed tabs on the home page
   if (!user || location !== "/") return null;
 
+  // Build list of tabs - always Feed and Global, plus any communities
+  const tabs = [
+    { id: "following", label: "Feed" },
+    { id: "global", label: "Global" },
+    ...(joinedCommunities?.map(c => ({ id: c.id, label: c.name })) || []),
+  ];
+
   return (
     <div 
-      className="flex gap-1 overflow-x-auto scrollbar-hide px-2"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      className="flex w-full"
       data-testid="feed-tabs-header"
     >
-      <Button
-        variant={feedType === "following" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setFeedType("following")}
-        className="gap-1.5 shrink-0 rounded-full"
-        data-testid="tab-your-feed"
-      >
-        <Users className="h-3.5 w-3.5" />
-        Your Feed
-      </Button>
-      <Button
-        variant={feedType === "global" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setFeedType("global")}
-        className="gap-1.5 shrink-0 rounded-full"
-        data-testid="tab-global"
-      >
-        <Globe className="h-3.5 w-3.5" />
-        Global
-      </Button>
-      {joinedCommunities?.map((community) => (
-        <Button
-          key={community.id}
-          variant={feedType === community.id ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setFeedType(community.id)}
-          className="gap-1.5 shrink-0 rounded-full"
-          data-testid={`tab-community-${community.id}`}
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setFeedType(tab.id)}
+          className={cn(
+            "flex-1 py-2 text-sm font-medium text-center transition-colors border-b-2",
+            feedType === tab.id
+              ? "text-primary border-primary"
+              : "text-muted-foreground border-transparent hover:text-foreground hover:border-muted"
+          )}
+          data-testid={`tab-${tab.id}`}
         >
-          {community.name}
-        </Button>
+          {tab.label}
+        </button>
       ))}
     </div>
   );

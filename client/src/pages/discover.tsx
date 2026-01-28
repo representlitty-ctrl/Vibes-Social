@@ -45,17 +45,9 @@ export default function DiscoverPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
-          <p className="text-muted-foreground">Explore vibecoded projects from the community</p>
-        </div>
-        <Link href="/submit">
-          <Button className="gap-2" data-testid="button-new-project">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
+        <p className="text-muted-foreground">Explore vibecoded projects from the community</p>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
