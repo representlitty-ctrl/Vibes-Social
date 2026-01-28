@@ -43,18 +43,20 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <FeedProvider>
       <SidebarProvider style={style}>
-        <div className="flex min-h-screen w-full">
+        <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden">
           <AppSidebar />
-          <div className="flex flex-1 flex-col">
+          <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
             <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-w-0">
                 <FeedTabs />
               </div>
               <ThemeToggle />
             </header>
-            <main className="flex-1 overflow-auto p-4 md:p-6">
-              {children}
+            <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+              <div className="w-full max-w-full">
+                {children}
+              </div>
             </main>
           </div>
         </div>
