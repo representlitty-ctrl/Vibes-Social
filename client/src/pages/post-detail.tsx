@@ -242,7 +242,7 @@ export default function PostDetailPage() {
                   {post.user?.isNewsBot ? (
                     <Badge variant="secondary" className="text-xs">
                       <Bot className="h-3 w-3 mr-1" />
-                      AI-Curated
+                      Automated
                     </Badge>
                   ) : (
                     post.user && isUserVerified({

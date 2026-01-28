@@ -1585,7 +1585,7 @@ export default function LearnVibecodingPage() {
   ) || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">

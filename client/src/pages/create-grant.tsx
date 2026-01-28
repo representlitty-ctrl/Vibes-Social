@@ -139,7 +139,7 @@ export default function CreateGrantPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 p-4">
       <Link href="/grants">
         <Button variant="ghost" className="gap-2" data-testid="button-back">
           <ArrowLeft className="h-4 w-4" />

@@ -149,7 +149,7 @@ export default function CourseDetailPage() {
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <div className="flex items-center gap-4">
         <Link href="/learn">
           <Button variant="ghost" size="icon" data-testid="button-back">

@@ -212,7 +212,7 @@ export default function ProjectDetailPage() {
   const isOwner = user?.id === project.userId;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6 p-4">
       <Link href="/">
         <Button variant="ghost" className="gap-2" data-testid="button-back">
           <ArrowLeft className="h-4 w-4" />
@@ -336,8 +336,8 @@ export default function ProjectDetailPage() {
               onClick={async () => {
                 const url = `${window.location.origin}/projects/${project.id}`;
                 const shareData = {
-                  title: project.name,
-                  text: project.tagline || `Check out ${project.name} on Vibes`,
+                  title: project.title,
+                  text: project.description || `Check out ${project.title} on Vibes`,
                   url: url,
                 };
                 
