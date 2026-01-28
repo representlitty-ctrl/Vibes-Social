@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useTheme, COLOR_THEMES } from "@/components/theme-provider";
-import { Settings, Palette, Bell, Shield, Eye, Moon, Sun, Monitor, Check } from "lucide-react";
+import { Settings, Palette, Bell, Shield, Eye, Moon, Sun, Monitor, Check, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 const SETTINGS_KEY = "vibes-settings";
 
@@ -62,6 +65,24 @@ function saveSettings(settings: UserSettings) {
 export default function SettingsPage() {
   const { theme, setTheme, colorTheme, setColorTheme } = useTheme();
   const [settings, setSettings] = useState<UserSettings>(loadSettings);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: serverSettings } = useQuery<{ showNewsPosts: boolean }>({
+    queryKey: ["/api/settings"],
+    enabled: !!user,
+  });
+
+  const newsSettingMutation = useMutation({
+    mutationFn: async (showNewsPosts: boolean) => {
+      return apiRequest("PUT", "/api/settings", { showNewsPosts });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/global"] });
+    },
+  });
 
   useEffect(() => {
     saveSettings(settings);
@@ -221,6 +242,36 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {user && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Newspaper className="h-5 w-5" />
+              News Feed
+            </CardTitle>
+            <CardDescription>
+              Control news content in your feed
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Show News Posts</Label>
+                <p className="text-sm text-muted-foreground">
+                  See crypto, tech, AI, finance, and political news in your feed
+                </p>
+              </div>
+              <Switch
+                data-testid="switch-show-news"
+                checked={serverSettings?.showNewsPosts ?? true}
+                disabled={newsSettingMutation.isPending}
+                onCheckedChange={(checked) => newsSettingMutation.mutate(checked)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

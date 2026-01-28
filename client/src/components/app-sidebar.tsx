@@ -86,9 +86,9 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between gap-2">
-          <Link href="/" className="flex items-center gap-2" onClick={handleNavClick}>
+          <Link href="/" className="flex items-center gap-1" onClick={handleNavClick}>
             <VibesLogo className="h-5" />
-            <span className="text-xl font-bold">Vibes</span>
+            <span className="text-xl font-bold -ml-0.5">Vibes</span>
           </Link>
           <UserSearch />
         </div>

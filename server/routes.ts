@@ -5,7 +5,7 @@ import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema, insertCommunitySchema, vibecodingLessonExplanations } from "@shared/schema";
+import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema, insertCommunitySchema, vibecodingLessonExplanations, userSettings } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -2143,6 +2143,52 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error generating explanation:", error);
       res.status(500).json({ message: "Failed to generate alternative explanation" });
+    }
+  });
+
+  // User Settings Routes
+  app.get("/api/settings", isAuthenticated, async (req, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+      if (!settings) {
+        return res.json({ showNewsPosts: true });
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/settings", isAuthenticated, async (req, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const { showNewsPosts } = req.body;
+      
+      const [existing] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+      
+      if (existing) {
+        await db
+          .update(userSettings)
+          .set({ showNewsPosts, updatedAt: new Date() })
+          .where(eq(userSettings.userId, userId));
+      } else {
+        await db.insert(userSettings).values({
+          userId,
+          showNewsPosts: showNewsPosts ?? true,
+        });
+      }
+
+      const [updated] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating user settings:", error);
+      res.status(500).json({ message: "Failed to update settings" });
     }
   });
 

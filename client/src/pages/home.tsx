@@ -68,11 +68,13 @@ export default function HomePage() {
   const { data: feed, isLoading: feedLoading } = useQuery<FeedItem[]>({
     queryKey: ["/api/feed"],
     enabled: !!user && feedType === "following",
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
   const { data: globalFeed, isLoading: globalFeedLoading } = useQuery<FeedItem[]>({
     queryKey: ["/api/feed/global"],
     enabled: feedType === "global",
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
   const { data: joinedCommunities } = useQuery<CommunityWithDetails[]>({

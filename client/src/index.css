@@ -405,3 +405,127 @@
   --accent-foreground: 25 80% 70%;
   --ring: 25 90% 50%;
 }
+
+/* Global Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Smooth transitions for interactive elements */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Card and button hover animations */
+.hover-elevate {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-elevate:hover {
+  transform: translateY(-1px);
+}
+
+/* Page transition wrapper */
+main > * {
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* Feed item animations */
+[data-testid^="card-post-"],
+[data-testid^="card-project-"] {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Stagger animation for lists */
+[data-testid^="card-post-"]:nth-child(1),
+[data-testid^="card-project-"]:nth-child(1) { animation-delay: 0ms; }
+[data-testid^="card-post-"]:nth-child(2),
+[data-testid^="card-project-"]:nth-child(2) { animation-delay: 50ms; }
+[data-testid^="card-post-"]:nth-child(3),
+[data-testid^="card-project-"]:nth-child(3) { animation-delay: 100ms; }
+[data-testid^="card-post-"]:nth-child(4),
+[data-testid^="card-project-"]:nth-child(4) { animation-delay: 150ms; }
+[data-testid^="card-post-"]:nth-child(5),
+[data-testid^="card-project-"]:nth-child(5) { animation-delay: 200ms; }
+
+/* Smooth button interactions */
+button, a {
+  transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Modal animations */
+[role="dialog"] {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Avatar hover effect */
+.avatar-hover:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.1) 50%, hsl(var(--muted)) 100%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Notification badge pulse */
+.notification-badge {
+  animation: pulse-soft 2s infinite;
+}
+
+/* Smooth scroll for the whole page */
+html {
+  scroll-behavior: smooth;
+}

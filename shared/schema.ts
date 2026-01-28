@@ -22,6 +22,8 @@ export const profiles = pgTable("profiles", {
   linkedinUrl: varchar("linkedin_url"),
   profileImageUrl: varchar("profile_image_url"),
   isAdmin: boolean("is_admin").default(false),
+  isStaff: boolean("is_staff").default(false), // Staff/news accounts
+  isNewsBot: boolean("is_news_bot").default(false), // Automated news bots
 });
 
 // Import users from auth for relations
@@ -803,3 +805,31 @@ export const vibecodingLessonExplanations = pgTable("vibecoding_lesson_explanati
 export const insertVibecodingLessonExplanationSchema = createInsertSchema(vibecodingLessonExplanations).omit({ id: true, createdAt: true });
 export type VibecodingLessonExplanation = typeof vibecodingLessonExplanations.$inferSelect;
 export type InsertVibecodingLessonExplanation = z.infer<typeof insertVibecodingLessonExplanationSchema>;
+
+// User Settings - for user preferences like news feed toggle
+export const userSettings = pgTable("user_settings", {
+  userId: varchar("user_id").primaryKey().references(() => users.id),
+  showNewsPosts: boolean("show_news_posts").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({ createdAt: true, updatedAt: true });
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+
+// News Articles - fetched news that get posted
+export const newsArticles = pgTable("news_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 500 }).notNull(),
+  summary: text("summary").notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // crypto, tech, politics, finance, ai
+  sourceUrl: varchar("source_url"),
+  postId: varchar("post_id").references(() => posts.id), // link to created post
+  fetchedAt: timestamp("fetched_at").defaultNow(),
+  postedAt: timestamp("posted_at"),
+});
+
+export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({ id: true, fetchedAt: true, postedAt: true });
+export type NewsArticle = typeof newsArticles.$inferSelect;
+export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;
