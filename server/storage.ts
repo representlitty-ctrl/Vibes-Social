@@ -25,6 +25,8 @@ import {
   postMedia,
   postLikes,
   postComments,
+  postReposts,
+  projectReposts,
   stories,
   courses,
   courseLessons,
@@ -68,6 +70,8 @@ import {
   type PostMedia,
   type PostLike,
   type PostComment,
+  type PostRepost,
+  type ProjectRepost,
   type Story,
   type Course,
   type CourseLesson,
@@ -114,6 +118,10 @@ export interface IStorage {
   bookmarkProject(projectId: string, userId: string): Promise<void>;
   removeProjectBookmark(projectId: string, userId: string): Promise<void>;
   getBookmarkedProjects(userId: string): Promise<any[]>;
+  repostProject(projectId: string, userId: string, comment?: string): Promise<void>;
+  unrepostProject(projectId: string, userId: string): Promise<void>;
+  getProjectRepostCount(projectId: string): Promise<number>;
+  hasUserRepostedProject(projectId: string, userId: string): Promise<boolean>;
   
   // Project Comments
   getProjectComments(projectId: string): Promise<any[]>;
@@ -191,6 +199,10 @@ export interface IStorage {
   deletePost(id: string, userId: string): Promise<void>;
   likePost(postId: string, userId: string): Promise<void>;
   unlikePost(postId: string, userId: string): Promise<void>;
+  repostPost(postId: string, userId: string, comment?: string): Promise<void>;
+  unrepostPost(postId: string, userId: string): Promise<void>;
+  getPostRepostCount(postId: string): Promise<number>;
+  hasUserRepostedPost(postId: string, userId: string): Promise<boolean>;
   getPostComments(postId: string): Promise<any[]>;
   createPostComment(postId: string, userId: string, content: string): Promise<any>;
   deletePostComment(commentId: string, userId: string): Promise<void>;
@@ -451,9 +463,15 @@ export class DatabaseStorage implements IStorage {
       .from(projectComments)
       .where(eq(projectComments.projectId, project.id));
 
+    const [repostResult] = await db
+      .select({ count: count() })
+      .from(projectReposts)
+      .where(eq(projectReposts.projectId, project.id));
+
     let hasUpvoted = false;
     let hasDownvoted = false;
     let hasBookmarked = false;
+    let hasReposted = false;
 
     if (currentUserId) {
       const [upvote] = await db
@@ -473,6 +491,12 @@ export class DatabaseStorage implements IStorage {
         .from(projectBookmarks)
         .where(and(eq(projectBookmarks.projectId, project.id), eq(projectBookmarks.userId, currentUserId)));
       hasBookmarked = !!bookmark;
+
+      const [repost] = await db
+        .select()
+        .from(projectReposts)
+        .where(and(eq(projectReposts.projectId, project.id), eq(projectReposts.userId, currentUserId)));
+      hasReposted = !!repost;
     }
 
     return {
@@ -481,9 +505,11 @@ export class DatabaseStorage implements IStorage {
       upvoteCount: upvoteResult?.count || 0,
       downvoteCount: downvoteResult?.count || 0,
       commentCount: commentResult?.count || 0,
+      repostCount: repostResult?.count || 0,
       hasUpvoted,
       hasDownvoted,
       hasBookmarked,
+      hasReposted,
     };
   }
 
@@ -602,6 +628,36 @@ export class DatabaseStorage implements IStorage {
     );
 
     return bookmarkedProjects.filter(Boolean);
+  }
+
+  async repostProject(projectId: string, userId: string, comment?: string): Promise<void> {
+    const existing = await db.select().from(projectReposts).where(and(
+      eq(projectReposts.projectId, projectId),
+      eq(projectReposts.userId, userId)
+    ));
+    if (existing.length === 0) {
+      await db.insert(projectReposts).values({ projectId, userId, comment });
+    }
+  }
+
+  async unrepostProject(projectId: string, userId: string): Promise<void> {
+    await db.delete(projectReposts).where(and(
+      eq(projectReposts.projectId, projectId),
+      eq(projectReposts.userId, userId)
+    ));
+  }
+
+  async getProjectRepostCount(projectId: string): Promise<number> {
+    const result = await db.select({ count: count() }).from(projectReposts).where(eq(projectReposts.projectId, projectId));
+    return result[0]?.count || 0;
+  }
+
+  async hasUserRepostedProject(projectId: string, userId: string): Promise<boolean> {
+    const result = await db.select().from(projectReposts).where(and(
+      eq(projectReposts.projectId, projectId),
+      eq(projectReposts.userId, userId)
+    ));
+    return result.length > 0;
   }
 
   // Project Comments
@@ -1583,14 +1639,21 @@ export class DatabaseStorage implements IStorage {
       const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
       const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
       const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+      const [repostCount] = await db.select({ count: count() }).from(postReposts).where(eq(postReposts.postId, post.id));
       
       let isLiked = false;
+      let isReposted = false;
       if (currentUserId) {
         const [like] = await db.select().from(postLikes).where(and(
           eq(postLikes.postId, post.id),
           eq(postLikes.userId, currentUserId)
         ));
         isLiked = !!like;
+        const [repost] = await db.select().from(postReposts).where(and(
+          eq(postReposts.postId, post.id),
+          eq(postReposts.userId, currentUserId)
+        ));
+        isReposted = !!repost;
       }
 
       return {
@@ -1607,7 +1670,9 @@ export class DatabaseStorage implements IStorage {
         media,
         likeCount: likeCount?.count || 0,
         commentCount: commentCount?.count || 0,
+        repostCount: repostCount?.count || 0,
         isLiked,
+        isReposted,
       };
     }));
   }
@@ -1641,13 +1706,20 @@ export class DatabaseStorage implements IStorage {
       const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
       const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
       const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+      const [repostCount] = await db.select({ count: count() }).from(postReposts).where(eq(postReposts.postId, post.id));
       
       let isLiked = false;
+      let isReposted = false;
       const [like] = await db.select().from(postLikes).where(and(
         eq(postLikes.postId, post.id),
         eq(postLikes.userId, userId)
       ));
       isLiked = !!like;
+      const [repost] = await db.select().from(postReposts).where(and(
+        eq(postReposts.postId, post.id),
+        eq(postReposts.userId, userId)
+      ));
+      isReposted = !!repost;
 
       return {
         ...post,
@@ -1663,7 +1735,9 @@ export class DatabaseStorage implements IStorage {
         media,
         likeCount: likeCount?.count || 0,
         commentCount: commentCount?.count || 0,
+        repostCount: repostCount?.count || 0,
         isLiked,
+        isReposted,
       };
     }));
 
@@ -1672,13 +1746,20 @@ export class DatabaseStorage implements IStorage {
       const [profile] = await db.select().from(profiles).where(eq(profiles.userId, project.userId));
       const [upvoteCount] = await db.select({ count: count() }).from(projectUpvotes).where(eq(projectUpvotes.projectId, project.id));
       const [commentCount] = await db.select({ count: count() }).from(projectComments).where(eq(projectComments.projectId, project.id));
+      const [repostCount] = await db.select({ count: count() }).from(projectReposts).where(eq(projectReposts.projectId, project.id));
       
       let isUpvoted = false;
+      let hasReposted = false;
       const [upvote] = await db.select().from(projectUpvotes).where(and(
         eq(projectUpvotes.projectId, project.id),
         eq(projectUpvotes.userId, userId)
       ));
       isUpvoted = !!upvote;
+      const [repost] = await db.select().from(projectReposts).where(and(
+        eq(projectReposts.projectId, project.id),
+        eq(projectReposts.userId, userId)
+      ));
+      hasReposted = !!repost;
 
       return {
         ...project,
@@ -1693,7 +1774,9 @@ export class DatabaseStorage implements IStorage {
         } : null,
         upvoteCount: upvoteCount?.count || 0,
         commentCount: commentCount?.count || 0,
+        repostCount: repostCount?.count || 0,
         isUpvoted,
+        hasReposted,
       };
     }));
 
@@ -1716,14 +1799,21 @@ export class DatabaseStorage implements IStorage {
     const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
     const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
     const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+    const [repostCount] = await db.select({ count: count() }).from(postReposts).where(eq(postReposts.postId, post.id));
     
     let isLiked = false;
+    let isReposted = false;
     if (currentUserId) {
       const [like] = await db.select().from(postLikes).where(and(
         eq(postLikes.postId, post.id),
         eq(postLikes.userId, currentUserId)
       ));
       isLiked = !!like;
+      const [repost] = await db.select().from(postReposts).where(and(
+        eq(postReposts.postId, post.id),
+        eq(postReposts.userId, currentUserId)
+      ));
+      isReposted = !!repost;
     }
 
     return {
@@ -1740,7 +1830,9 @@ export class DatabaseStorage implements IStorage {
       media,
       likeCount: likeCount?.count || 0,
       commentCount: commentCount?.count || 0,
+      repostCount: repostCount?.count || 0,
       isLiked,
+      isReposted,
     };
   }
 
@@ -1757,14 +1849,21 @@ export class DatabaseStorage implements IStorage {
       const media = await db.select().from(postMedia).where(eq(postMedia.postId, post.id)).orderBy(postMedia.orderIndex);
       const [likeCount] = await db.select({ count: count() }).from(postLikes).where(eq(postLikes.postId, post.id));
       const [commentCount] = await db.select({ count: count() }).from(postComments).where(eq(postComments.postId, post.id));
+      const [repostCount] = await db.select({ count: count() }).from(postReposts).where(eq(postReposts.postId, post.id));
       
       let isLiked = false;
+      let isReposted = false;
       if (currentUserId) {
         const [like] = await db.select().from(postLikes).where(and(
           eq(postLikes.postId, post.id),
           eq(postLikes.userId, currentUserId)
         ));
         isLiked = !!like;
+        const [repost] = await db.select().from(postReposts).where(and(
+          eq(postReposts.postId, post.id),
+          eq(postReposts.userId, currentUserId)
+        ));
+        isReposted = !!repost;
       }
 
       return {
@@ -1781,7 +1880,9 @@ export class DatabaseStorage implements IStorage {
         media,
         likeCount: likeCount?.count || 0,
         commentCount: commentCount?.count || 0,
+        repostCount: repostCount?.count || 0,
         isLiked,
+        isReposted,
       };
     }));
   }
@@ -1805,6 +1906,36 @@ export class DatabaseStorage implements IStorage {
       eq(postLikes.postId, postId),
       eq(postLikes.userId, userId)
     ));
+  }
+
+  async repostPost(postId: string, userId: string, comment?: string): Promise<void> {
+    const existing = await db.select().from(postReposts).where(and(
+      eq(postReposts.postId, postId),
+      eq(postReposts.userId, userId)
+    ));
+    if (existing.length === 0) {
+      await db.insert(postReposts).values({ postId, userId, comment });
+    }
+  }
+
+  async unrepostPost(postId: string, userId: string): Promise<void> {
+    await db.delete(postReposts).where(and(
+      eq(postReposts.postId, postId),
+      eq(postReposts.userId, userId)
+    ));
+  }
+
+  async getPostRepostCount(postId: string): Promise<number> {
+    const result = await db.select({ count: count() }).from(postReposts).where(eq(postReposts.postId, postId));
+    return result[0]?.count || 0;
+  }
+
+  async hasUserRepostedPost(postId: string, userId: string): Promise<boolean> {
+    const result = await db.select().from(postReposts).where(and(
+      eq(postReposts.postId, postId),
+      eq(postReposts.userId, userId)
+    ));
+    return result.length > 0;
   }
 
   async getPostComments(postId: string): Promise<any[]> {

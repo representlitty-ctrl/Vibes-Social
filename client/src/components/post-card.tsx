@@ -9,7 +9,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +44,9 @@ interface Post {
   media: PostMedia[];
   likeCount: number;
   commentCount: number;
+  repostCount?: number;
   isLiked: boolean;
+  isReposted?: boolean;
   type: "post";
 }
 
@@ -74,12 +76,16 @@ export function PostCard({ post }: PostCardProps) {
   // Local optimistic state for instant UI updates
   const [optimisticLiked, setOptimisticLiked] = useState(post.isLiked);
   const [optimisticLikeCount, setOptimisticLikeCount] = useState(post.likeCount);
+  const [optimisticReposted, setOptimisticReposted] = useState(post.isReposted || false);
+  const [optimisticRepostCount, setOptimisticRepostCount] = useState(post.repostCount || 0);
 
   // Sync with server data when post updates
   useEffect(() => {
     setOptimisticLiked(post.isLiked);
     setOptimisticLikeCount(post.likeCount);
-  }, [post.isLiked, post.likeCount]);
+    setOptimisticReposted(post.isReposted || false);
+    setOptimisticRepostCount(post.repostCount || 0);
+  }, [post.isLiked, post.likeCount, post.isReposted, post.repostCount]);
 
   const likeMutation = useMutation({
     mutationFn: async (newLikedState: boolean) => {
@@ -102,6 +108,29 @@ export function PostCard({ post }: PostCardProps) {
       setOptimisticLiked(post.isLiked);
       setOptimisticLikeCount(post.likeCount);
       toast({ title: "Failed to update like", variant: "destructive" });
+    },
+  });
+
+  const repostMutation = useMutation({
+    mutationFn: async (newRepostedState: boolean) => {
+      if (!newRepostedState) {
+        return apiRequest("DELETE", `/api/posts/${post.id}/repost`);
+      }
+      return apiRequest("POST", `/api/posts/${post.id}/repost`);
+    },
+    onMutate: async (newRepostedState: boolean) => {
+      setOptimisticReposted(newRepostedState);
+      setOptimisticRepostCount(prev => newRepostedState ? prev + 1 : Math.max(0, prev - 1));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts", post.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+    },
+    onError: () => {
+      setOptimisticReposted(post.isReposted || false);
+      setOptimisticRepostCount(post.repostCount || 0);
+      toast({ title: "Failed to update repost", variant: "destructive" });
     },
   });
 
@@ -175,6 +204,15 @@ export function PostCard({ post }: PostCardProps) {
     }
     // Pass the new desired state (toggle current)
     likeMutation.mutate(!optimisticLiked);
+  };
+
+  const handleRepost = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      window.location.href = "/api/login";
+      return;
+    }
+    repostMutation.mutate(!optimisticReposted);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -326,6 +364,16 @@ export function PostCard({ post }: PostCardProps) {
             >
               <MessageCircle className="h-4 w-4" />
               {post.commentCount > 0 && <span>{post.commentCount}</span>}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRepost}
+              className={`gap-1 ${optimisticReposted ? "text-green-500" : ""}`}
+              data-testid={`button-repost-post-${post.id}`}
+            >
+              <Repeat2 className={`h-4 w-4 ${optimisticReposted ? "text-green-500" : ""}`} />
+              {optimisticRepostCount > 0 && <span>{optimisticRepostCount}</span>}
             </Button>
             <Button
               variant="ghost"

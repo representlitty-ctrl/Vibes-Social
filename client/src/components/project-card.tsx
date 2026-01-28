@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon, Share2 } from "lucide-react";
+import { ChevronUp, MessageCircle, ExternalLink, Github, Sparkles, Bookmark, BookmarkCheck, User as UserIcon, Share2, Repeat2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -17,8 +17,10 @@ type ProjectWithDetails = Project & {
   user: User & { profile: Profile | null };
   upvoteCount: number;
   commentCount: number;
+  repostCount?: number;
   hasUpvoted: boolean;
   hasBookmarked?: boolean;
+  hasReposted?: boolean;
 };
 
 interface ProjectCardProps {
@@ -36,13 +38,17 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
   const [optimisticUpvoted, setOptimisticUpvoted] = useState(project.hasUpvoted);
   const [optimisticUpvoteCount, setOptimisticUpvoteCount] = useState(project.upvoteCount);
   const [optimisticBookmarked, setOptimisticBookmarked] = useState(project.hasBookmarked);
+  const [optimisticReposted, setOptimisticReposted] = useState(project.hasReposted || false);
+  const [optimisticRepostCount, setOptimisticRepostCount] = useState(project.repostCount || 0);
 
   // Sync with server data when project updates
   useEffect(() => {
     setOptimisticUpvoted(project.hasUpvoted);
     setOptimisticUpvoteCount(project.upvoteCount);
     setOptimisticBookmarked(project.hasBookmarked);
-  }, [project.hasUpvoted, project.upvoteCount, project.hasBookmarked]);
+    setOptimisticReposted(project.hasReposted || false);
+    setOptimisticRepostCount(project.repostCount || 0);
+  }, [project.hasUpvoted, project.upvoteCount, project.hasBookmarked, project.hasReposted, project.repostCount]);
 
   const upvoteMutation = useMutation({
     mutationFn: async (newUpvotedState: boolean) => {
@@ -104,6 +110,34 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
     },
   });
 
+  const repostMutation = useMutation({
+    mutationFn: async (newRepostedState: boolean) => {
+      if (!newRepostedState) {
+        return apiRequest("DELETE", `/api/projects/${project.id}/repost`);
+      }
+      return apiRequest("POST", `/api/projects/${project.id}/repost`);
+    },
+    onMutate: async (newRepostedState: boolean) => {
+      setOptimisticReposted(newRepostedState);
+      setOptimisticRepostCount(prev => newRepostedState ? prev + 1 : Math.max(0, prev - 1));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/featured"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+    },
+    onError: () => {
+      setOptimisticReposted(project.hasReposted || false);
+      setOptimisticRepostCount(project.repostCount || 0);
+      toast({
+        title: "Error",
+        description: "Failed to update repost. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpvote = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -124,6 +158,16 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
     }
     // Pass the new desired state (toggle current)
     bookmarkMutation.mutate(!optimisticBookmarked);
+  };
+
+  const handleRepost = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      window.location.href = "/api/login";
+      return;
+    }
+    repostMutation.mutate(!optimisticReposted);
   };
 
   const getInitials = () => {
@@ -193,6 +237,17 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                   data-testid={`button-share-project-${project.id}`}
                 >
                   <Share2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRepost}
+                  disabled={repostMutation.isPending}
+                  className={`gap-1 ${optimisticReposted ? "text-green-500" : ""}`}
+                  data-testid={`button-repost-project-${project.id}`}
+                >
+                  <Repeat2 className={`h-4 w-4 ${optimisticReposted ? "text-green-500" : ""}`} />
+                  {optimisticRepostCount > 0 && <span>{optimisticRepostCount}</span>}
                 </Button>
                 <Button
                   variant="ghost"

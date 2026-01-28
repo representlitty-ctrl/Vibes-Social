@@ -340,6 +340,61 @@ export async function registerRoutes(
     }
   });
 
+  // Repost a project
+  app.post("/api/projects/:id/repost", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const { comment } = req.body;
+      await storage.repostProject(id, userId, comment);
+      
+      const project = await storage.getProjectById(id);
+      if (project && project.userId !== userId) {
+        await storage.createNotification(
+          project.userId,
+          userId,
+          "repost",
+          `reposted your project "${project.title}"`,
+          `/projects/${id}`
+        );
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error reposting project:", error);
+      res.status(500).json({ message: "Failed to repost" });
+    }
+  });
+
+  // Unrepost a project
+  app.delete("/api/projects/:id/repost", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.unrepostProject(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unreposting project:", error);
+      res.status(500).json({ message: "Failed to unrepost" });
+    }
+  });
+
+  // Get project reposts count
+  app.get("/api/projects/:id/reposts", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const count = await storage.getProjectRepostCount(id);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error getting repost count:", error);
+      res.status(500).json({ message: "Failed to get repost count" });
+    }
+  });
+
   // Project comment routes
   app.get("/api/projects/:id/comments", async (req, res) => {
     try {
@@ -1251,6 +1306,61 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error unliking post:", error);
       res.status(500).json({ message: "Failed to unlike post" });
+    }
+  });
+
+  // Repost a post
+  app.post("/api/posts/:id/repost", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const { comment } = req.body;
+      await storage.repostPost(id, userId, comment);
+      
+      const post = await storage.getPostById(id);
+      if (post && post.userId !== userId) {
+        await storage.createNotification(
+          post.userId,
+          userId,
+          "repost",
+          `reposted your post`,
+          `/posts/${id}`
+        );
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error reposting post:", error);
+      res.status(500).json({ message: "Failed to repost" });
+    }
+  });
+
+  // Unrepost a post
+  app.delete("/api/posts/:id/repost", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      await storage.unrepostPost(id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unreposting post:", error);
+      res.status(500).json({ message: "Failed to unrepost" });
+    }
+  });
+
+  // Get post reposts count
+  app.get("/api/posts/:id/reposts", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const count = await storage.getPostRepostCount(id);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error getting repost count:", error);
+      res.status(500).json({ message: "Failed to get repost count" });
     }
   });
 

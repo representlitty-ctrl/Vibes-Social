@@ -259,6 +259,28 @@ export const postComments = pgTable("post_comments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Post Reposts
+export const postReposts = pgTable("post_reposts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  unique().on(table.postId, table.userId)
+]);
+
+// Project Reposts
+export const projectReposts = pgTable("project_reposts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  unique().on(table.projectId, table.userId)
+]);
+
 // Stories
 export const stories = pgTable("stories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -521,6 +543,16 @@ export const postCommentsRelations = relations(postComments, ({ one }) => ({
   user: one(users, { fields: [postComments.userId], references: [users.id] }),
 }));
 
+export const postRepostsRelations = relations(postReposts, ({ one }) => ({
+  post: one(posts, { fields: [postReposts.postId], references: [posts.id] }),
+  user: one(users, { fields: [postReposts.userId], references: [users.id] }),
+}));
+
+export const projectRepostsRelations = relations(projectReposts, ({ one }) => ({
+  project: one(projects, { fields: [projectReposts.projectId], references: [projects.id] }),
+  user: one(users, { fields: [projectReposts.userId], references: [users.id] }),
+}));
+
 export const storiesRelations = relations(stories, ({ one }) => ({
   user: one(users, { fields: [stories.userId], references: [users.id] }),
 }));
@@ -595,6 +627,8 @@ export const insertReactionSchema = createInsertSchema(reactions).omit({ id: tru
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, userId: true, createdAt: true, updatedAt: true });
 export const insertPostMediaSchema = createInsertSchema(postMedia).omit({ id: true, createdAt: true });
 export const insertPostCommentSchema = createInsertSchema(postComments).omit({ id: true, userId: true, createdAt: true });
+export const insertPostRepostSchema = createInsertSchema(postReposts).omit({ id: true, userId: true, createdAt: true });
+export const insertProjectRepostSchema = createInsertSchema(projectReposts).omit({ id: true, userId: true, createdAt: true });
 export const insertStorySchema = createInsertSchema(stories).omit({ id: true, userId: true, createdAt: true });
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, instructorId: true, createdAt: true, updatedAt: true, isFeatured: true });
 export const insertCourseLessonSchema = createInsertSchema(courseLessons).omit({ id: true, createdAt: true });
@@ -655,6 +689,12 @@ export type PostLike = typeof postLikes.$inferSelect;
 
 export type PostComment = typeof postComments.$inferSelect;
 export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
+
+export type PostRepost = typeof postReposts.$inferSelect;
+export type InsertPostRepost = z.infer<typeof insertPostRepostSchema>;
+
+export type ProjectRepost = typeof projectReposts.$inferSelect;
+export type InsertProjectRepost = z.infer<typeof insertProjectRepostSchema>;
 
 export type Story = typeof stories.$inferSelect;
 export type InsertStory = z.infer<typeof insertStorySchema>;
