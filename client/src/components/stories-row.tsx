@@ -1,12 +1,10 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Plus, X, ChevronLeft, ChevronRight, Loader2, Trash2, User } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Trash2, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useUpload } from "@/hooks/use-upload";
-import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -37,35 +35,14 @@ interface StoryGroup {
 
 export function StoriesRow() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [viewingGroup, setViewingGroup] = useState<StoryGroup | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: storyGroups, isLoading } = useQuery<StoryGroup[]>({
     queryKey: ["/api/stories"],
     enabled: !!user,
-  });
-
-  const { uploadFile, isUploading } = useUpload({
-    onSuccess: async (response) => {
-      const isVideo = response.metadata.contentType.startsWith("video/");
-      try {
-        await apiRequest("POST", "/api/stories", {
-          mediaType: isVideo ? "video" : "image",
-          mediaUrl: response.objectPath,
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
-        toast({ title: "Story added!" });
-      } catch {
-        toast({ title: "Failed to create story", variant: "destructive" });
-      }
-    },
-    onError: () => {
-      toast({ title: "Failed to upload story", variant: "destructive" });
-    },
   });
 
   const deleteStoryMutation = useMutation({
@@ -77,22 +54,6 @@ export function StoriesRow() {
       setViewingGroup(null);
     },
   });
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadFile(file);
-    }
-    e.target.value = "";
-  };
-
-  const handleAddStory = () => {
-    if (!user) {
-      window.location.href = "/api/login";
-      return;
-    }
-    fileInputRef.current?.click();
-  };
 
   const openStoryViewer = (group: StoryGroup) => {
     setViewingGroup(group);
@@ -132,29 +93,6 @@ export function StoriesRow() {
   return (
     <>
       <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide" data-testid="stories-row">
-        <div className="flex flex-col items-center gap-1 flex-shrink-0">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          <button
-            className="h-16 w-16 rounded-full border-2 border-dashed border-muted-foreground/50 bg-muted flex items-center justify-center hover-elevate"
-            onClick={handleAddStory}
-            disabled={isUploading}
-            data-testid="button-add-story"
-          >
-            {isUploading ? (
-              <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
-            ) : (
-              <Plus className="h-6 w-6 text-muted-foreground" />
-            )}
-          </button>
-          <span className="text-xs text-muted-foreground">Your Story</span>
-        </div>
-
         {isLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
