@@ -290,7 +290,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   return (
-    <Card className="p-4 cursor-pointer hover-elevate mx-1 px-4" onClick={handleCardClick} data-testid={`card-post-${post.id}`}>
+    <Card className="p-4 cursor-pointer hover-elevate" onClick={handleCardClick} data-testid={`card-post-${post.id}`}>
       <div className="flex gap-3">
         <div 
           className="cursor-pointer" 
