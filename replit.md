@@ -105,8 +105,9 @@ Vibes is a social community platform built for vibecoders - creative developers 
   - Categories: Crypto, AI, Finance, Politics (no tech)
   - Uses **bold text** formatting (no hashtags or markdown headers)
   - Only includes headlines with real information (filters out vague/clickbait)
+  - Header shows exact 24-hour time range covered (e.g., "Wed, Jan 28, 5:11 AM UTC to Thu, Jan 29, 5:11 AM UTC")
   - Appears in all users' feeds automatically
-  - Posts once per day at 8 AM (and on app startup)
+  - Posts autonomously at 8:00 AM daily (checks every 5 minutes)
 - Added posts feature with text, images, videos, and voice notes support
 - Added stories feature with 24-hour expiry and circular profile previews
 - Added unified feed combining posts and projects from followed users

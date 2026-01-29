@@ -220,13 +220,35 @@ async function hasPostedToday(): Promise<boolean> {
   return lastPostDate.getTime() === today.getTime();
 }
 
+function generateTimeHeader(): string {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  
+  const formatTime = (date: Date) => {
+    return date.toLocaleString('en-US', { 
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    });
+  };
+  
+  return `**Daily News Summary**\nCovering news from **${formatTime(yesterday)}** to **${formatTime(now)}**\nPosted daily at 8:00 AM\n\n---\n\n`;
+}
+
 async function createDailySummaryPost(content: string): Promise<string | null> {
   try {
+    const header = generateTimeHeader();
+    const fullContent = header + content;
+    
     const [post] = await db
       .insert(posts)
       .values({
         userId: NEWS_BOT_USER_ID,
-        content,
+        content: fullContent,
       })
       .returning();
 

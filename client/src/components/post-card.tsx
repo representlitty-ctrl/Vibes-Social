@@ -27,14 +27,31 @@ interface PostUser {
   isNewsBot?: boolean;
 }
 
-// Render text with **bold** support (single weight, not super bold)
+// Render text with **bold** support and --- divider support
 function renderFormattedText(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <span key={i} className="font-semibold">{part.slice(2, -2)}</span>;
+  // First split by line breaks to handle dividers
+  const lines = text.split('\n');
+  
+  return lines.map((line, lineIndex) => {
+    // Check if line is a divider (--- or ---)
+    if (line.trim() === '---' || line.trim() === '—') {
+      return <hr key={lineIndex} className="my-3 border-t border-border" />;
     }
-    return part;
+    
+    // Split line by bold markers
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    const formattedParts = parts.map((part, i) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <span key={i} className="font-semibold">{part.slice(2, -2)}</span>;
+      }
+      return part;
+    });
+    
+    // Add line break after each line (except last)
+    if (lineIndex < lines.length - 1) {
+      return <span key={lineIndex}>{formattedParts}{'\n'}</span>;
+    }
+    return <span key={lineIndex}>{formattedParts}</span>;
   });
 }
 
