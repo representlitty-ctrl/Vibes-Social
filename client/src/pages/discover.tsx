@@ -178,14 +178,6 @@ export default function DiscoverPage() {
                   ? "Try adjusting your search or filters."
                   : "Be the first to submit a project!"}
               </p>
-              {!searchQuery && !selectedTag && (
-                <Link href="/submit">
-                  <Button className="mt-6 gap-2">
-                    <Plus className="h-4 w-4" />
-                    Submit Your Project
-                  </Button>
-                </Link>
-              )}
             </div>
           )}
         </TabsContent>
