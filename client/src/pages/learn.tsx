@@ -29,6 +29,8 @@ import {
   User as UserIcon,
   MoreHorizontal,
   Trash2,
+  Flame,
+  TrendingUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -107,8 +109,15 @@ export default function LearnPage() {
     return matchesSearch;
   });
 
+  // Get trending resources sorted by upvotes (copy array to avoid mutation)
+  const trendingResources = resources
+    ? [...resources]
+        .sort((a, b) => (b.upvoteCount || 0) - (a.upvoteCount || 0))
+        .slice(0, 6)
+    : [];
+
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-4">
+    <div className="mx-auto max-w-6xl space-y-4 px-2 py-4 md:px-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Learning Hub</h1>
@@ -123,6 +132,43 @@ export default function LearnPage() {
           </Link>
         )}
       </div>
+
+      {/* Trending Resources Section */}
+      {trendingResources.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Trending Resources</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {trendingResources.map((resource) => (
+              <a
+                key={resource.id}
+                href={resource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 w-[200px]"
+              >
+                <Card className="p-3 h-full hover-elevate cursor-pointer">
+                  <Badge variant="outline" className="text-xs mb-2">
+                    {resource.category}
+                  </Badge>
+                  <h3 className="font-medium text-sm line-clamp-2">{resource.title}</h3>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      {resource.upvoteCount || 0}
+                    </span>
+                    <Badge variant="secondary" className={`text-xs ${difficultyColors[resource.difficulty || "beginner"]}`}>
+                      {resource.difficulty}
+                    </Badge>
+                  </div>
+                </Card>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">

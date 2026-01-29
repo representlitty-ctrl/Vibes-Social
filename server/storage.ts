@@ -149,6 +149,7 @@ export interface IStorage {
   getGrants(currentUserId?: string): Promise<any[]>;
   getGrantById(id: string, currentUserId?: string): Promise<any>;
   getGrantsByUser(userId: string): Promise<any[]>;
+  getGrantSubmissions(grantId: string, userId: string): Promise<any[]>;
   createGrant(userId: string, data: InsertGrant): Promise<Grant>;
   updateGrant(id: string, userId: string, data: Partial<InsertGrant>): Promise<Grant>;
   deleteGrant(id: string, userId: string): Promise<void>;
@@ -907,31 +908,33 @@ export class DatabaseStorage implements IStorage {
   // Grants
   async getGrants(currentUserId?: string): Promise<any[]> {
     const allGrants = await db.select().from(grants).orderBy(desc(grants.createdAt));
+    return Promise.all(allGrants.map((grant) => this.enrichGrant(grant, currentUserId)));
+  }
+
+  async getGrantSubmissions(grantId: string, userId: string): Promise<any[]> {
+    // First verify the user owns this grant
+    const [grant] = await db.select().from(grants).where(eq(grants.id, grantId));
+    if (!grant || grant.userId !== userId) {
+      return [];
+    }
+
+    // Get all submissions with user and project info
+    const submissions = await db
+      .select()
+      .from(grantSubmissions)
+      .where(eq(grantSubmissions.grantId, grantId))
+      .orderBy(desc(grantSubmissions.createdAt));
 
     return Promise.all(
-      allGrants.map(async (grant) => {
-        const [submissionResult] = await db
-          .select({ count: count() })
-          .from(grantSubmissions)
-          .where(eq(grantSubmissions.grantId, grant.id));
-
-        let hasSubmitted = false;
-        let userSubmission = undefined;
-
-        if (currentUserId) {
-          const [submission] = await db
-            .select()
-            .from(grantSubmissions)
-            .where(and(eq(grantSubmissions.grantId, grant.id), eq(grantSubmissions.userId, currentUserId)));
-          hasSubmitted = !!submission;
-          userSubmission = submission;
-        }
-
+      submissions.map(async (submission) => {
+        const [submittingUser] = await db.select().from(users).where(eq(users.id, submission.userId));
+        const [userProfile] = await db.select().from(profiles).where(eq(profiles.userId, submission.userId));
+        const [project] = await db.select().from(projects).where(eq(projects.id, submission.projectId));
+        
         return {
-          ...grant,
-          submissionCount: submissionResult?.count || 0,
-          hasSubmitted,
-          userSubmission,
+          ...submission,
+          user: submittingUser ? { ...submittingUser, profile: userProfile } : null,
+          project: project || null,
         };
       })
     );

@@ -49,6 +49,8 @@ import {
   Trash2,
   AlertTriangle,
   Undo2,
+  Flame,
+  TrendingUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -56,12 +58,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User, Users } from "lucide-react";
 import type { Grant, Project, GrantSubmission } from "@shared/schema";
 
 type GrantApplication = {
   id: string;
   status: string;
   title: string;
+};
+
+type GrantUser = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  profileImageUrl: string | null;
+  profile?: {
+    username: string | null;
+  } | null;
 };
 
 type GrantWithDetails = Grant & {
@@ -72,6 +87,12 @@ type GrantWithDetails = Grant & {
   userSubmission?: GrantSubmission;
   userApplication?: GrantApplication;
   scheduledDeletionAt?: string | null;
+  user?: GrantUser;
+};
+
+type SubmissionWithDetails = GrantSubmission & {
+  user: GrantUser | null;
+  project: Project | null;
 };
 
 type ProjectForSubmission = Pick<Project, "id" | "title">;
@@ -85,9 +106,16 @@ export default function GrantsPage() {
 
   const openGrants = grants?.filter((g) => g.status === "open");
   const closedGrants = grants?.filter((g) => g.status !== "open");
+  
+  // Get trending grants sorted by submission and application counts (copy array to avoid mutation)
+  const trendingGrants = openGrants
+    ? [...openGrants]
+        .sort((a, b) => ((b.submissionCount || 0) + (b.applicationCount || 0)) - ((a.submissionCount || 0) + (a.applicationCount || 0)))
+        .slice(0, 4)
+    : [];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-4">
+    <div className="mx-auto max-w-6xl space-y-6 px-2 py-4 md:px-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Grants</h1>
@@ -104,6 +132,48 @@ export default function GrantsPage() {
           </Link>
         )}
       </div>
+
+      {/* Trending Grants Section */}
+      {trendingGrants.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Popular Grants</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {trendingGrants.map((grant) => (
+              <div
+                key={grant.id}
+                onClick={() => {
+                  const grantCard = document.querySelector(`[data-grant-id="${grant.id}"]`);
+                  grantCard?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                <Card className="flex-shrink-0 w-[250px] p-3 hover-elevate cursor-pointer">
+                  {grant.imageUrl && (
+                    <div className="aspect-video w-full rounded-md overflow-hidden mb-2 bg-muted">
+                      <img src={grant.imageUrl} alt={grant.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <h3 className="font-medium text-sm line-clamp-1">{grant.title}</h3>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {(grant.submissionCount || 0) + (grant.applicationCount || 0)} entries
+                    </span>
+                    {grant.amount && (
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        {grant.amount}
+                      </span>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <section>
         <div className="mb-4 flex items-center gap-2">
@@ -154,13 +224,21 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [showSubmissions, setShowSubmissions] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [applicationTitle, setApplicationTitle] = useState("");
   const [applicationPitch, setApplicationPitch] = useState("");
 
+  const isCreator = user && user.id === grant.userId;
+
   const { data: projects } = useQuery<ProjectForSubmission[]>({
     queryKey: ["/api/projects/mine"],
     enabled: !!user && open,
+  });
+
+  const { data: submissions } = useQuery<SubmissionWithDetails[]>({
+    queryKey: ["/api/grants", grant.id, "submissions"],
+    enabled: !!isCreator && showSubmissions,
   });
 
   const submitMutation = useMutation({
@@ -316,7 +394,7 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
   const hasAlreadyAppliedOrSubmitted = grant.hasApplied || grant.hasSubmitted;
 
   return (
-    <Card className="relative flex flex-col p-6" data-testid={`grant-${grant.id}`}>
+    <Card className="relative flex flex-col p-6" data-testid={`grant-${grant.id}`} data-grant-id={grant.id}>
       {isScheduledForDeletion && deletionTime && (
         <div className="mb-4 flex items-center justify-between gap-2 rounded-md bg-destructive/10 p-3 text-destructive">
           <div className="flex items-center gap-2">
@@ -351,6 +429,13 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
+                onClick={() => setShowSubmissions(true)}
+                data-testid={`button-view-submissions-${grant.id}`}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                View Submissions ({grant.submissionCount})
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => deleteMutation.mutate()}
                 className="text-destructive"
                 data-testid={`button-delete-grant-${grant.id}`}
@@ -382,6 +467,21 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
       <p className="mt-4 flex-1 text-sm text-muted-foreground line-clamp-3">
         {grant.description}
       </p>
+
+      {/* Creator info */}
+      {grant.user && (
+        <Link href={`/profile/${grant.user.id}`} className="mt-4 flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={grant.user.profileImageUrl || undefined} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+              <User className="h-3 w-3" />
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm text-muted-foreground">
+            Created by <span className="font-medium text-foreground">{grant.user.profile?.username || grant.user.firstName || "User"}</span>
+          </span>
+        </Link>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
         {grant.deadline && (
@@ -452,7 +552,7 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Your Pitch</label>
+                      <label className="text-sm font-medium">Your Pitch <span className="text-muted-foreground text-xs">(optional)</span></label>
                       <Textarea
                         placeholder="Describe your project idea, what you want to build, and why you'd be a great fit for this grant..."
                         value={applicationPitch}
@@ -463,18 +563,13 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
                     </div>
                     <Button
                       onClick={() => applyMutation.mutate()}
-                      disabled={!applicationTitle || !applicationPitch || applicationPitch.length < 50 || applyMutation.isPending}
+                      disabled={!applicationTitle || applyMutation.isPending}
                       className="w-full"
                       data-testid="button-confirm-apply"
                     >
                       {applyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Submit Application
                     </Button>
-                    {applicationPitch && applicationPitch.length < 50 && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        Pitch must be at least 50 characters
-                      </p>
-                    )}
                   </TabsContent>
 
                   <TabsContent value="project" className="space-y-4 mt-4">
@@ -523,6 +618,68 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
           </Button>
         )}
       </div>
+
+      {/* Submissions Dialog for Grant Creator */}
+      <Dialog open={showSubmissions} onOpenChange={setShowSubmissions}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Submissions for {grant.title}</DialogTitle>
+            <DialogDescription>
+              {grant.submissionCount} project{grant.submissionCount !== 1 ? "s" : ""} submitted
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            {submissions && submissions.length > 0 ? (
+              submissions.map((submission) => (
+                <Card key={submission.id} className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Link href={`/profile/${submission.user?.id}`}>
+                      <Avatar className="h-10 w-10 cursor-pointer">
+                        <AvatarImage src={submission.user?.profileImageUrl || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          <User className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/profile/${submission.user?.id}`}>
+                          <span className="font-medium hover:underline cursor-pointer">
+                            {submission.user?.profile?.username || submission.user?.firstName || "User"}
+                          </span>
+                        </Link>
+                        <span className="text-xs text-muted-foreground">
+                          {submission.createdAt && formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      {submission.project && (
+                        <Link href={`/project/${submission.project.id}`}>
+                          <div className="mt-2 p-3 bg-muted rounded-lg hover:bg-muted/80 cursor-pointer">
+                            <h4 className="font-medium">{submission.project.title}</h4>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {submission.project.description}
+                            </p>
+                          </div>
+                        </Link>
+                      )}
+                      <div className="mt-2">
+                        <Badge variant={submission.status === "pending" ? "outline" : submission.isWinner ? "default" : "secondary"}>
+                          {submission.isWinner ? "Winner" : submission.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No submissions yet</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

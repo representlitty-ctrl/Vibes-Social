@@ -624,7 +624,9 @@ export const insertProjectCommentSchema = createInsertSchema(projectComments).om
 export const insertResourceSchema = createInsertSchema(resources).omit({ id: true, userId: true, createdAt: true, isFeatured: true, isApproved: true });
 export const insertResourceCommentSchema = createInsertSchema(resourceComments).omit({ id: true, userId: true, createdAt: true });
 export const insertGrantSchema = createInsertSchema(grants).omit({ id: true, userId: true, createdAt: true, status: true });
-export const insertGrantApplicationSchema = createInsertSchema(grantApplications).omit({ id: true, userId: true, createdAt: true, status: true });
+export const insertGrantApplicationSchema = createInsertSchema(grantApplications).omit({ id: true, userId: true, createdAt: true, status: true }).extend({
+  pitch: z.string().optional().default(""),
+});
 export const insertGrantSubmissionSchema = createInsertSchema(grantSubmissions).omit({ id: true, userId: true, createdAt: true, status: true, isWinner: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, senderId: true, createdAt: true, isRead: true });
 export const insertReactionSchema = createInsertSchema(reactions).omit({ id: true, userId: true, createdAt: true });

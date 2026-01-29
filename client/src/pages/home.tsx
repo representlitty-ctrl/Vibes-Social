@@ -165,7 +165,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4">
+    <div className="mx-auto max-w-6xl space-y-4 px-2 py-4 md:px-4">
       {user && <StoriesRow />}
 
       {showPostComposer && user && (

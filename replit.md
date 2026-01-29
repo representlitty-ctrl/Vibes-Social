@@ -219,9 +219,14 @@ These are permanent rules that must always be followed:
   - **Certificate & Badge**: Earned upon completing all 23 lessons and passing all 5 quizzes
   - Database tables: vibecodingProgress, vibecodingQuizProgress, vibecodingCertificates
 - **Layout Standardization**: Consistent page layouts with centered content
-  - Feed pages (home, discover, grants): mx-auto max-w-4xl p-4
-  - Wide content pages (learn, communities): mx-auto max-w-5xl p-4
+  - Main content pages (home, discover, grants, learn, profile, communities): mx-auto max-w-6xl with responsive padding (px-2 py-4 md:px-4)
   - Form/settings pages (notifications, settings): mx-auto max-w-2xl p-4
-  - Profile page: mx-auto max-w-4xl p-4
   - Stories dialog: Proper centered modal with 9:16 aspect ratio, max-w-[min(400px,90vw)]
   - All dialogs/popups use Radix UI primitives for proper positioning
+- **Trending Sections**: Horizontal scrollable trending content on discovery pages
+  - Discover page: "Trending Projects" sorted by upvotes and views
+  - Learn page: "Trending Resources" sorted by upvotes
+  - Grants page: "Popular Grants" sorted by submission and application counts
+- **Optional Grant Pitch**: Grant application pitch field is now optional
+  - Users can submit applications with just a title
+  - Pitch field shows "(optional)" label

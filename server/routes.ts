@@ -785,6 +785,7 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
       const { id } = req.params;
+      // Schema handles optional pitch with default empty string
       const data = insertGrantApplicationSchema.parse({ ...req.body, grantId: id });
       const application = await storage.applyToGrant(id, userId, data);
       res.status(201).json(application);
@@ -808,6 +809,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching grant applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  app.get("/api/grants/:id/submissions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id } = req.params;
+      const submissions = await storage.getGrantSubmissions(id, userId);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching grant submissions:", error);
+      res.status(500).json({ message: "Failed to fetch submissions" });
     }
   });
 

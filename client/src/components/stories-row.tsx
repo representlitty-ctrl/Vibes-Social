@@ -137,12 +137,16 @@ export function StoriesRow() {
       </div>
 
       <Dialog open={!!viewingGroup} onOpenChange={() => setViewingGroup(null)}>
-        <DialogContent className="max-w-[min(400px,90vw)] w-full p-0 bg-black border-0 aspect-[9/16] max-h-[85vh] rounded-lg overflow-hidden" hideCloseButton>
+        <DialogContent 
+          className="flex flex-col items-center justify-center max-w-[min(400px,90vw)] w-full h-[85vh] max-h-[85vh] p-0 bg-black border-0 rounded-lg overflow-hidden" 
+          hideCloseButton
+        >
           <VisuallyHidden>
             <DialogTitle>Story Viewer</DialogTitle>
           </VisuallyHidden>
           {currentStory && viewingGroup && (
-            <div className="relative w-full h-full flex flex-col">
+            <div className="relative w-full h-full flex flex-col" style={{ aspectRatio: '9/16', maxHeight: '100%' }}>
+              {/* Progress indicators */}
               <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2 pt-3">
                 {viewingGroup.stories.map((_, i) => (
                   <div
@@ -154,6 +158,7 @@ export function StoriesRow() {
                 ))}
               </div>
 
+              {/* Header with user info and close button */}
               <div className="absolute top-6 left-3 right-3 z-20 flex items-center justify-between">
                 <div 
                   className="flex items-center gap-2 cursor-pointer"
@@ -193,7 +198,8 @@ export function StoriesRow() {
                 </div>
               </div>
 
-              <div className="flex-1 flex items-center justify-center bg-black">
+              {/* Story content - centered */}
+              <div className="flex-1 flex items-center justify-center bg-black w-full overflow-auto">
                 {currentStory.mediaType === "image" ? (
                   <img
                     src={currentStory.mediaUrl}
@@ -211,6 +217,7 @@ export function StoriesRow() {
                 )}
               </div>
 
+              {/* Touch areas for navigation */}
               <button
                 className="absolute left-0 top-20 bottom-0 w-1/3 z-10"
                 onClick={prevStory}
@@ -222,11 +229,12 @@ export function StoriesRow() {
                 aria-label="Next story"
               />
 
+              {/* Navigation arrows */}
               {currentStoryIndex > 0 && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10 z-30"
                   onClick={prevStory}
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -236,7 +244,7 @@ export function StoriesRow() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10 z-30"
                   onClick={nextStory}
                 >
                   <ChevronRight className="h-6 w-6" />

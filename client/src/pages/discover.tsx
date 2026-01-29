@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectCard } from "@/components/project-card";
 import { useAuth } from "@/hooks/use-auth";
-import { Search, Rocket, Plus, Bookmark } from "lucide-react";
+import { Search, Rocket, Plus, Bookmark, TrendingUp, Flame } from "lucide-react";
 import type { Project, User, Profile } from "@shared/schema";
 
 type ProjectWithDetails = Project & {
@@ -43,12 +44,53 @@ export default function DiscoverPage() {
     return matchesSearch && matchesTag;
   });
 
+  // Get trending projects sorted by upvotes and views (copy array to avoid mutation)
+  const trendingProjects = projects
+    ? [...projects]
+        .sort((a, b) => {
+          const scoreA = (a.upvoteCount || 0) * 2 + (a.viewCount || 0);
+          const scoreB = (b.upvoteCount || 0) * 2 + (b.viewCount || 0);
+          return scoreB - scoreA;
+        })
+        .slice(0, 6)
+    : [];
+
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4">
+    <div className="mx-auto max-w-6xl space-y-4 px-2 py-4 md:px-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
         <p className="text-muted-foreground">Explore vibecoded projects from the community</p>
       </div>
+
+      {/* Trending Section */}
+      {trendingProjects.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Trending Projects</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {trendingProjects.map((project) => (
+              <Link key={project.id} href={`/project/${project.id}`}>
+                <Card className="flex-shrink-0 w-[200px] p-3 hover-elevate cursor-pointer">
+                  {project.imageUrl && (
+                    <div className="aspect-video w-full rounded-md overflow-hidden mb-2 bg-muted">
+                      <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <h3 className="font-medium text-sm line-clamp-1">{project.title}</h3>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      {project.upvoteCount || 0}
+                    </span>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
