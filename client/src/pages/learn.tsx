@@ -118,14 +118,12 @@ export default function LearnPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 md:px-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Learning Hub</h1>
-          <p className="text-muted-foreground">Curated resources and courses to level up your vibecoding skills</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Learning Hub</h1>
+        <p className="text-muted-foreground">Curated resources and courses to level up your vibecoding skills</p>
         {user && (
           <Link href="/learn/submit">
-            <Button className="gap-2" data-testid="button-submit-resource">
+            <Button className="gap-2 mt-3" data-testid="button-submit-resource">
               <Plus className="h-4 w-4" />
               Submit Resource
             </Button>

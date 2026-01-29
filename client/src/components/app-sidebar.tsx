@@ -45,9 +45,9 @@ const mainNavItems = [
 ];
 
 const secondaryNavItems = [
+  { title: "Profile", url: "/profile", icon: UserIcon },
   { title: "Messages", url: "/messages", icon: MessageCircle },
   { title: "Notifications", url: "/notifications", icon: Bell },
-  { title: "Profile", url: "/profile", icon: UserIcon },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -95,7 +95,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigate</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (

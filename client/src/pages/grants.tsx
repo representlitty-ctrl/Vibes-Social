@@ -116,16 +116,14 @@ export default function GrantsPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-5 md:px-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Grants</h1>
-          <p className="text-muted-foreground">
-            Submit your projects to grant programs and compete for funding
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Grants</h1>
+        <p className="text-muted-foreground">
+          Submit your projects to grant programs and compete for funding
+        </p>
         {user && (
           <Link href="/grants/create">
-            <Button className="gap-2" data-testid="button-create-grant">
+            <Button className="gap-2 mt-3" data-testid="button-create-grant">
               <Plus className="h-4 w-4" />
               Create Grant
             </Button>

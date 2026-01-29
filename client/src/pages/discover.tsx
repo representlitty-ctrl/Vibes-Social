@@ -60,6 +60,14 @@ export default function DiscoverPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
         <p className="text-muted-foreground">Explore vibecoded projects from the community</p>
+        {user && (
+          <Link href="/submit">
+            <Button className="gap-2 mt-3" data-testid="button-submit-project">
+              <Plus className="h-4 w-4" />
+              Submit Project
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Trending Section */}
