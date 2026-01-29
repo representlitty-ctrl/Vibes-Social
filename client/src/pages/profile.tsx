@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ProjectCard } from "@/components/project-card";
 import { PostCard } from "@/components/post-card";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,6 +34,7 @@ import {
   LogOut,
   Award,
   Bot,
+  X,
 } from "lucide-react";
 import { VerifiedBadge, isUserVerified } from "@/components/verified-badge";
 import { useLocation } from "wouter";
@@ -255,13 +257,24 @@ export default function ProfilePage() {
           </div>
 
           <Dialog open={showProfilePicture} onOpenChange={setShowProfilePicture}>
-            <DialogContent className="max-w-lg p-0 overflow-hidden">
+            <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 max-w-lg p-0 overflow-hidden" hideCloseButton>
+              <VisuallyHidden>
+                <DialogTitle>Profile Picture</DialogTitle>
+              </VisuallyHidden>
               <img
                 src={profile.profileImageUrl || profile.user.profileImageUrl || ""}
                 alt={`${profile.username || profile.user.firstName || "User"}'s profile picture`}
                 className="w-full h-auto"
                 data-testid="img-profile-fullsize"
               />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 bg-black/50 text-white hover:bg-black/70"
+                onClick={() => setShowProfilePicture(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </DialogContent>
           </Dialog>
 

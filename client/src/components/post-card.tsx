@@ -558,7 +558,7 @@ export function PostCard({ post }: PostCardProps) {
       {/* Media Modal */}
       <Dialog open={mediaModalOpen} onOpenChange={setMediaModalOpen}>
         <DialogContent 
-          className="max-w-4xl w-full p-0 bg-black/95 border-none"
+          className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 max-w-4xl w-full p-0 bg-black/95 border-none"
           onClick={(e) => e.stopPropagation()}
           hideCloseButton
         >

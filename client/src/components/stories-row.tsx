@@ -138,7 +138,7 @@ export function StoriesRow() {
 
       <Dialog open={!!viewingGroup} onOpenChange={() => setViewingGroup(null)}>
         <DialogContent 
-          className="flex flex-col items-center justify-center max-w-[min(400px,90vw)] w-full h-[85vh] max-h-[85vh] p-0 bg-black border-0 rounded-lg overflow-hidden" 
+          className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 flex flex-col items-center justify-center max-w-[min(400px,90vw)] w-full h-[85vh] max-h-[85vh] p-0 bg-black border-0 rounded-lg overflow-hidden" 
           hideCloseButton
         >
           <VisuallyHidden>
