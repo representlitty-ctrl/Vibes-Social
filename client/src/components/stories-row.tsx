@@ -90,6 +90,18 @@ export function StoriesRow() {
 
   if (!user) return null;
 
+  // Sort story groups to put current user's stories first, then followed users
+  const sortedGroups = storyGroups?.slice().sort((a, b) => {
+    if (a.user?.id === user.id) return -1;
+    if (b.user?.id === user.id) return 1;
+    return 0;
+  });
+
+  // Hide stories section entirely if no stories exist (only show when loading or has content)
+  if (!isLoading && (!sortedGroups || sortedGroups.length === 0)) {
+    return null;
+  }
+
   return (
     <>
       <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide" data-testid="stories-row">
@@ -101,7 +113,7 @@ export function StoriesRow() {
             </div>
           ))
         ) : (
-          storyGroups?.map((group) => (
+          sortedGroups?.map((group) => (
             <div
               key={group.user?.id}
               className="flex flex-col items-center gap-1 flex-shrink-0 cursor-pointer"

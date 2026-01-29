@@ -590,3 +590,37 @@ html {
   opacity: 0.9;
   transition: opacity 0ms;
 }
+
+/* PERFORMANCE OPTIMIZATIONS */
+/* Instant theme switching - no transitions during theme change */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Disable tap highlight on touch devices */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* GPU-accelerated scrolling */
+.overflow-auto, .overflow-y-auto, .overflow-x-auto, .overflow-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile touch target sizing */
+@media (max-width: 768px) {
+  button:not([data-no-minsize]), [role="button"]:not([data-no-minsize]) {
+    min-height: 40px;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

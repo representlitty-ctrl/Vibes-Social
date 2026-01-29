@@ -137,6 +137,24 @@ These are permanent rules that must always be followed:
 - All numbers MUST reflect real database counts
 - Resources and grants added by admins only
 
+### Stories Section
+- Stories section MUST hide completely when no stories exist (no empty space)
+- User's own story MUST appear first (leftmost position)
+- Stories from followed users appear after the user's own story
+- Posts feed takes over the full space when no stories are available
+
+### Performance
+- Theme switching MUST be instant (no visible delay or flicker)
+- All button/click interactions MUST be responsive (under 50ms visual feedback)
+- App optimized for both mobile and desktop
+- Touch targets sized appropriately for mobile devices (min 40px height)
+- GPU-accelerated scrolling enabled
+
+### Settings
+- All settings options MUST be functional (not simulated or mock)
+- Theme, notification, and privacy settings save to localStorage or server
+- Settings persist across sessions
+
 ## User Preferences
 - Red primary color (hue 0) with 5 theme options available
 - Facebook-style social media aesthetic with light gray background
