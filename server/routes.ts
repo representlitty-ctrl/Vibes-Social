@@ -7,6 +7,7 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { insertProjectSchema, insertProfileSchema, insertProjectCommentSchema, insertResourceSchema, insertGrantSchema, insertGrantApplicationSchema, insertCommunitySchema, vibecodingLessonExplanations, userSettings } from "@shared/schema";
 import { z } from "zod";
+import { forceGenerateNewsSummary } from "./news-service";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -2232,6 +2233,31 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating user settings:", error);
       res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  // Admin endpoint to manually trigger news generation
+  // Access via POST /api/admin/generate-news with a secret key
+  app.post("/api/admin/generate-news", async (req, res) => {
+    const adminKey = req.headers["x-admin-key"] || req.body.adminKey;
+    
+    // Simple admin key check - in production this should be a proper secret
+    if (adminKey !== "vibes-admin-2024") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      console.log("[Admin] Manually triggering news generation...");
+      const success = await forceGenerateNewsSummary();
+      
+      if (success) {
+        res.json({ success: true, message: "News summary generated successfully" });
+      } else {
+        res.json({ success: false, message: "Failed to generate news summary" });
+      }
+    } catch (error) {
+      console.error("[Admin] Error generating news:", error);
+      res.status(500).json({ message: "Failed to generate news" });
     }
   });
 
