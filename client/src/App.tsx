@@ -59,7 +59,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="w-16" />
               </div>
-              <div className="px-4 py-2 overflow-hidden min-w-0">
+              <div className="px-4 py-1 overflow-hidden min-w-0">
                 <FeedTabs />
               </div>
             </header>
