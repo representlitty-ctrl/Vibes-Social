@@ -3,7 +3,7 @@ import { posts, users, profiles } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import OpenAI from "openai";
 
-const NEWS_CATEGORIES = ["crypto", "tech", "politics", "finance", "ai"] as const;
+const NEWS_CATEGORIES = ["crypto", "politics", "finance", "ai"] as const;
 type NewsCategory = typeof NEWS_CATEGORIES[number];
 
 const NEWS_BOT_USER_ID = "6df3ace0-03f7-4987-9a43-8078f4d1487f";
@@ -32,8 +32,7 @@ function categorizeBySearchTerm(searchTerm: string): NewsCategory {
   if (term.includes("crypto") || term.includes("bitcoin") || term.includes("blockchain")) return "crypto";
   if (term.includes("ai") || term.includes("artificial intelligence") || term.includes("machine learning")) return "ai";
   if (term.includes("politics") || term.includes("election") || term.includes("government")) return "politics";
-  if (term.includes("finance") || term.includes("stock") || term.includes("economy") || term.includes("market")) return "finance";
-  return "tech";
+  return "finance"; // default to finance
 }
 
 function parseRSSDate(dateString: string): Date {
@@ -104,9 +103,8 @@ async function fetchAllCategoryNews(): Promise<RSSNewsItem[]> {
   const searchQueries: { query: string; category: NewsCategory }[] = [
     { query: "cryptocurrency bitcoin blockchain", category: "crypto" },
     { query: "artificial intelligence AI machine learning", category: "ai" },
-    { query: "technology startup innovation", category: "tech" },
-    { query: "stock market finance economy", category: "finance" },
-    { query: "US politics government election", category: "politics" },
+    { query: "stock market finance economy investing", category: "finance" },
+    { query: "US politics government election policy", category: "politics" },
   ];
   
   const allNews: RSSNewsItem[] = [];
@@ -139,7 +137,6 @@ async function summarizeNewsWithAI(newsItems: RSSNewsItem[]): Promise<string> {
   const groupedNews: Record<NewsCategory, RSSNewsItem[]> = {
     crypto: [],
     ai: [],
-    tech: [],
     finance: [],
     politics: [],
   };
@@ -160,11 +157,21 @@ async function summarizeNewsWithAI(newsItems: RSSNewsItem[]): Promise<string> {
       messages: [
         {
           role: "system",
-          content: `You are a professional news curator for Vibes, a social platform for tech-savvy developers. Write a concise, engaging daily news summary. Format the summary with clear category sections. Use markdown formatting. Keep each category to 2-3 key headlines with brief context. Make it informative but easy to scan. Total length should be 400-600 words.`
+          content: `You are a professional news curator for Vibes, a social platform for developers. Write a concise, engaging daily news summary.
+
+IMPORTANT RULES:
+- DO NOT use hashtags (no # symbols anywhere)
+- DO NOT use markdown headers (no # or ## at start of lines)
+- Use **bold text** with double asterisks for emphasis and section titles
+- Only include headlines that contain real, specific information (names, numbers, dates, concrete facts)
+- Skip vague headlines that are just teasers without substance
+- Categories: CRYPTO, AI, FINANCE, POLITICS (no tech)
+- Keep each category to 2-3 key headlines with brief context
+- Total length: 400-600 words`
         },
         {
           role: "user",
-          content: `Create a daily news summary for today (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}) from these headlines:\n${newsListText}\n\nFormat with clear section headers for each category (use the category name in caps) and bullet points for headlines. End with a brief takeaway or trend observation. Do not use emoji icons.`
+          content: `Create a daily news summary for today (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}) from these headlines:\n${newsListText}\n\nFormat each section title as **CATEGORY** in bold (NOT with # or ## headers). Use bullet points for headlines. Only include news with real, specific information - skip vague or clickbait headlines. End with a brief takeaway. No emojis, no hashtags.`
         }
       ],
       max_tokens: 1000,
@@ -179,10 +186,9 @@ async function summarizeNewsWithAI(newsItems: RSSNewsItem[]): Promise<string> {
     for (const cat of NEWS_CATEGORIES) {
       const items = groupedNews[cat].slice(0, 3);
       if (items.length > 0) {
-        const emoji = cat === "crypto" ? "₿" : cat === "ai" ? "🤖" : cat === "tech" ? "💻" : cat === "finance" ? "📈" : "🏛";
-        fallbackSummary += `**${emoji} ${cat.toUpperCase()}**\n`;
+        fallbackSummary += `**${cat.toUpperCase()}**\n`;
         for (const item of items) {
-          fallbackSummary += `• ${item.title}\n`;
+          fallbackSummary += `- ${item.title}\n`;
         }
         fallbackSummary += "\n";
       }

@@ -102,7 +102,9 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - **Daily News Summary**: Vibesnews bot posts one daily summary
   - Uses Google News RSS (free) to gather real news from past 24 hours
   - AI-powered summarization using Replit AI integration
-  - Categories: Crypto, Tech, AI, Finance, Politics
+  - Categories: Crypto, AI, Finance, Politics (no tech)
+  - Uses **bold text** formatting (no hashtags or markdown headers)
+  - Only includes headlines with real information (filters out vague/clickbait)
   - Appears in all users' feeds automatically
   - Posts once per day at 8 AM (and on app startup)
 - Added posts feature with text, images, videos, and voice notes support
