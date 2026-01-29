@@ -120,7 +120,7 @@ export function StoriesRow() {
               onClick={() => openStoryViewer(group)}
               data-testid={`story-group-${group.user?.id}`}
             >
-              <div className={`p-0.5 rounded-full ring-2 ${getStoryRingColor(group.storyCount)}`}>
+              <div className="p-0.5 rounded-full ring-2 ring-primary ml-[4px] mr-[4px]">
                 <Avatar className="h-14 w-14 border-2 border-background">
                   <AvatarImage src={group.user?.profileImageUrl || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
@@ -135,7 +135,6 @@ export function StoriesRow() {
           ))
         )}
       </div>
-
       <Dialog open={!!viewingGroup} onOpenChange={() => setViewingGroup(null)}>
         <DialogContent 
           className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 flex flex-col items-center justify-center max-w-[min(400px,90vw)] w-full h-[85vh] max-h-[85vh] p-0 bg-black border-0 rounded-lg overflow-hidden" 
