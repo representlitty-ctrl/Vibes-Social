@@ -83,6 +83,24 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - No mock or placeholder data is used
 - Resources and grants should be added by admins through the platform
 
+## Locked-In Standards (DO NOT VIOLATE)
+These are permanent rules that must always be followed:
+
+### Daily News Summary
+- News MUST come from Google News RSS (free source)
+- News MUST NOT be older than 24 hours
+- Categories: Crypto, AI, Finance, Politics ONLY (no tech)
+- NO hashtags (# symbols) anywhere
+- NO markdown headers (# or ##) - use **bold** for titles
+- Only include headlines with real, specific information
+- Posts autonomously at 8:00 AM daily
+
+### Text Formatting
+- Double asterisks (**text**) MUST render as visible bold text (not show raw asterisks)
+- Triple dashes (---) MUST render as horizontal divider lines
+- renderFormattedText function handles this in both post-card.tsx and post-detail.tsx
+- Preview text strips formatting markers for clean display
+
 ## User Preferences
 - Light blue primary color (hue 200)
 - Facebook-style social media aesthetic with light gray background

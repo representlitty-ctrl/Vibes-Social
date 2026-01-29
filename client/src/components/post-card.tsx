@@ -348,15 +348,17 @@ export function PostCard({ post }: PostCardProps) {
                 // News bot posts: show only title + preview
                 <div>
                   {(() => {
-                    const lines = post.content.split('\n').filter(l => l.trim());
+                    const lines = post.content.split('\n').filter(l => l.trim() && l.trim() !== '---');
                     const title = lines[0] || '';
-                    const preview = lines.slice(1, 3).join(' ').slice(0, 150);
+                    // Get preview lines and strip bold markers for clean display
+                    const previewLines = lines.slice(1, 3).join(' ').slice(0, 150);
+                    const cleanPreview = previewLines.replace(/\*\*/g, '');
                     return (
                       <>
                         <p className="font-semibold">{renderFormattedText(title)}</p>
-                        {preview && (
+                        {cleanPreview && (
                           <p className="text-muted-foreground mt-1 line-clamp-2">
-                            {preview}{preview.length >= 150 ? '...' : ''}
+                            {cleanPreview}{previewLines.length >= 150 ? '...' : ''}
                           </p>
                         )}
                         <span className="text-primary text-sm mt-2 inline-block">Read more</span>
@@ -365,7 +367,7 @@ export function PostCard({ post }: PostCardProps) {
                   })()}
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap">{renderFormattedText(post.content)}</p>
+                <div className="whitespace-pre-wrap">{renderFormattedText(post.content)}</div>
               )}
             </div>
           )}
