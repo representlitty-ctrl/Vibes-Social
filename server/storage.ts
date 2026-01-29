@@ -150,6 +150,8 @@ export interface IStorage {
   getGrantById(id: string, currentUserId?: string): Promise<any>;
   getGrantsByUser(userId: string): Promise<any[]>;
   getGrantSubmissions(grantId: string, userId: string): Promise<any[]>;
+  getGrantSubmission(submissionId: string): Promise<GrantSubmission | undefined>;
+  setGrantWinner(grantId: string, submissionId: string): Promise<void>;
   createGrant(userId: string, data: InsertGrant): Promise<Grant>;
   updateGrant(id: string, userId: string, data: Partial<InsertGrant>): Promise<Grant>;
   deleteGrant(id: string, userId: string): Promise<void>;
@@ -259,6 +261,9 @@ export interface IStorage {
   createCommunity(userId: string, data: InsertCommunity): Promise<Community>;
   joinCommunity(communityId: string, userId: string): Promise<void>;
   leaveCommunity(communityId: string, userId: string): Promise<void>;
+  updateCommunity(id: string, data: Partial<InsertCommunity>): Promise<Community | undefined>;
+  deleteCommunity(id: string): Promise<void>;
+  getCommunity(id: string): Promise<Community | undefined>;
   getJoinedCommunities(userId: string): Promise<any[]>;
   getCommunityPosts(communityId: string, currentUserId?: string): Promise<any[]>;
   addPostToCommunity(communityId: string, postId: string): Promise<void>;
@@ -938,6 +943,25 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
+  }
+
+  async getGrantSubmission(submissionId: string): Promise<GrantSubmission | undefined> {
+    const [submission] = await db.select().from(grantSubmissions).where(eq(grantSubmissions.id, submissionId));
+    return submission || undefined;
+  }
+
+  async setGrantWinner(grantId: string, submissionId: string): Promise<void> {
+    await db.update(grantSubmissions)
+      .set({ isWinner: false })
+      .where(eq(grantSubmissions.grantId, grantId));
+    
+    await db.update(grantSubmissions)
+      .set({ isWinner: true, status: "approved" })
+      .where(eq(grantSubmissions.id, submissionId));
+      
+    await db.update(grants)
+      .set({ status: "closed" })
+      .where(eq(grants.id, grantId));
   }
 
   async submitToGrant(grantId: string, projectId: string, userId: string): Promise<GrantSubmission> {
@@ -2447,6 +2471,31 @@ export class DatabaseStorage implements IStorage {
       eq(communityMembers.communityId, communityId),
       eq(communityMembers.userId, userId)
     ));
+    
+    // Auto-delete community if no members left
+    const remaining = await db.select({ count: count() }).from(communityMembers).where(eq(communityMembers.communityId, communityId));
+    if (remaining[0].count === 0) {
+      await this.deleteCommunity(communityId);
+    }
+  }
+
+  async getCommunity(id: string): Promise<Community | undefined> {
+    const [community] = await db.select().from(communities).where(eq(communities.id, id));
+    return community || undefined;
+  }
+
+  async updateCommunity(id: string, data: Partial<InsertCommunity>): Promise<Community | undefined> {
+    const [updated] = await db.update(communities).set(data).where(eq(communities.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCommunity(id: string): Promise<void> {
+    // Delete all community members first
+    await db.delete(communityMembers).where(eq(communityMembers.communityId, id));
+    // Delete community posts
+    await db.delete(communityPosts).where(eq(communityPosts.communityId, id));
+    // Delete the community
+    await db.delete(communities).where(eq(communities.id, id));
   }
 
   async getJoinedCommunities(userId: string): Promise<any[]> {

@@ -827,6 +827,42 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/grants/:id/submissions/:submissionId/winner", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { id: grantId, submissionId } = req.params;
+      
+      const grant = await storage.getGrant(grantId);
+      if (!grant) {
+        return res.status(404).json({ message: "Grant not found" });
+      }
+      
+      if (grant.userId !== userId) {
+        return res.status(403).json({ message: "Only the grant owner can select a winner" });
+      }
+
+      await storage.setGrantWinner(grantId, submissionId);
+      
+      const submission = await storage.getGrantSubmission(submissionId);
+      if (submission) {
+        await storage.createNotification(
+          submission.userId,
+          userId,
+          "grant_winner",
+          `Congratulations! Your submission won the grant "${grant.title}"`,
+          `/grants`
+        );
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error selecting grant winner:", error);
+      res.status(500).json({ message: "Failed to select winner" });
+    }
+  });
+
   app.get("/api/applications/mine", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -1273,7 +1309,7 @@ export async function registerRoutes(
       const userId = getUserId(req);
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-      const { content, voiceNoteUrl, media } = req.body;
+      const { content, voiceNoteUrl, media, communityIds } = req.body;
       
       if (!content && !voiceNoteUrl && (!media || media.length === 0)) {
         return res.status(400).json({ message: "Post must have content, voice note, or media" });
@@ -1285,6 +1321,12 @@ export async function registerRoutes(
         for (let i = 0; i < media.length; i++) {
           const m = media[i];
           await storage.addPostMedia(post.id, m.mediaType, m.mediaUrl, m.previewUrl, m.aspectRatio, i);
+        }
+      }
+
+      if (communityIds && Array.isArray(communityIds) && communityIds.length > 0) {
+        for (const communityId of communityIds) {
+          await storage.addPostToCommunity(communityId, post.id);
         }
       }
 
@@ -1917,6 +1959,48 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error leaving community:", error);
       res.status(500).json({ message: "Failed to leave community" });
+    }
+  });
+
+  app.put("/api/communities/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const community = await storage.getCommunity(req.params.id);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      if (community.createdBy !== userId) {
+        return res.status(403).json({ message: "You can only edit your own communities" });
+      }
+
+      const updated = await storage.updateCommunity(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating community:", error);
+      res.status(500).json({ message: "Failed to update community" });
+    }
+  });
+
+  app.delete("/api/communities/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const community = await storage.getCommunity(req.params.id);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      if (community.createdBy !== userId) {
+        return res.status(403).json({ message: "You can only delete your own communities" });
+      }
+
+      await storage.deleteCommunity(req.params.id);
+      res.status(200).json({ message: "Community deleted" });
+    } catch (error) {
+      console.error("Error deleting community:", error);
+      res.status(500).json({ message: "Failed to delete community" });
     }
   });
 

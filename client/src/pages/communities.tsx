@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,8 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Users, User as UserIcon, Search } from "lucide-react";
+import { Plus, Users, User as UserIcon, Search, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
+import { useFeed } from "@/contexts/feed-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Community } from "@shared/schema";
@@ -58,6 +65,8 @@ const CATEGORIES = [
 export default function CommunitiesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const { setFeedType } = useFeed();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -66,6 +75,11 @@ export default function CommunitiesPage() {
     description: "",
     category: "",
   });
+
+  const handleNavigateToCommunityFeed = (communityId: string) => {
+    setFeedType(communityId);
+    navigate("/");
+  };
 
   const { data: communities, isLoading } = useQuery<CommunityWithDetails[]>({
     queryKey: ["/api/communities"],
@@ -108,6 +122,59 @@ export default function CommunitiesPage() {
       toast({ title: "Left community" });
     },
   });
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingCommunity, setEditingCommunity] = useState<CommunityWithDetails | null>(null);
+  const [editCommunity, setEditCommunity] = useState({
+    name: "",
+    description: "",
+    category: "",
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof editCommunity }) => {
+      return apiRequest("PUT", `/api/communities/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/joined"] });
+      setIsEditOpen(false);
+      setEditingCommunity(null);
+      toast({ title: "Community updated successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update community", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (communityId: string) => {
+      return apiRequest("DELETE", `/api/communities/${communityId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/joined"] });
+      toast({ title: "Community deleted successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete community", variant: "destructive" });
+    },
+  });
+
+  const handleEditCommunity = (community: CommunityWithDetails) => {
+    setEditingCommunity(community);
+    setEditCommunity({
+      name: community.name,
+      description: community.description || "",
+      category: community.category,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingCommunity || !editCommunity.name || !editCommunity.category) return;
+    editMutation.mutate({ id: editingCommunity.id, data: editCommunity });
+  };
 
   const filteredCommunities = communities?.filter((community) => {
     const matchesSearch =
@@ -224,6 +291,76 @@ export default function CommunitiesPage() {
         )}
       </div>
 
+      {/* Edit Community Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2">
+          <DialogHeader>
+            <DialogTitle>Edit Community</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Community Name</Label>
+              <Input
+                id="edit-name"
+                placeholder="My Awesome Community"
+                value={editCommunity.name}
+                onChange={(e) =>
+                  setEditCommunity({ ...editCommunity, name: e.target.value })
+                }
+                data-testid="input-edit-community-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Select
+                value={editCommunity.category}
+                onValueChange={(value) =>
+                  setEditCommunity({ ...editCommunity, category: value })
+                }
+              >
+                <SelectTrigger data-testid="select-edit-community-category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="What is this community about?"
+                value={editCommunity.description}
+                onChange={(e) =>
+                  setEditCommunity({
+                    ...editCommunity,
+                    description: e.target.value,
+                  })
+                }
+                data-testid="input-edit-community-description"
+              />
+            </div>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={
+                !editCommunity.name ||
+                !editCommunity.category ||
+                editMutation.isPending
+              }
+              className="w-full"
+              data-testid="button-save-community"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex gap-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -277,6 +414,9 @@ export default function CommunitiesPage() {
                   onJoin={() => joinMutation.mutate(community.id)}
                   onLeave={() => leaveMutation.mutate(community.id)}
                   isPending={joinMutation.isPending || leaveMutation.isPending}
+                  onEdit={() => handleEditCommunity(community)}
+                  onDelete={() => deleteMutation.mutate(community.id)}
+                  onNavigate={() => handleNavigateToCommunityFeed(community.id)}
                 />
               ))}
             </div>
@@ -292,6 +432,9 @@ export default function CommunitiesPage() {
               onJoin={() => joinMutation.mutate(community.id)}
               onLeave={() => leaveMutation.mutate(community.id)}
               isPending={joinMutation.isPending || leaveMutation.isPending}
+              onEdit={() => handleEditCommunity(community)}
+              onDelete={() => deleteMutation.mutate(community.id)}
+              onNavigate={() => handleNavigateToCommunityFeed(community.id)}
             />
           ))}
         </div>
@@ -318,15 +461,56 @@ function CommunityCard({
   onJoin,
   onLeave,
   isPending,
+  onEdit,
+  onDelete,
+  onNavigate,
 }: {
   community: CommunityWithDetails;
   user: any;
   onJoin: () => void;
   onLeave: () => void;
   isPending: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onNavigate: () => void;
 }) {
+  const isCreator = user && community.creator && user.id === community.creator.id;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('[role="button"]')) {
+      return;
+    }
+    onNavigate();
+  };
+
   return (
-    <Card className="hover-elevate" data-testid={`community-card-${community.id}`}>
+    <Card 
+      className="hover-elevate relative cursor-pointer" 
+      data-testid={`community-card-${community.id}`}
+      onClick={handleCardClick}
+    >
+      {isCreator && (
+        <div className="absolute right-2 top-2 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-options-community-${community.id}`}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit} data-testid={`button-edit-community-${community.id}`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Community
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-destructive" data-testid={`button-delete-community-${community.id}`}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Community
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div>

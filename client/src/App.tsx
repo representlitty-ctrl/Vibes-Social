@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,6 +29,8 @@ import CourseDetailPage from "@/pages/course-detail";
 import CommunitiesPage from "@/pages/communities";
 import LearnVibecodingPage from "@/pages/learn-vibecoding";
 import SettingsPage from "@/pages/settings";
+import EditProjectPage from "@/pages/edit-project";
+import EditGrantPage from "@/pages/edit-grant";
 import { FeedProvider } from "@/contexts/feed-context";
 import { FeedTabs } from "@/components/feed-tabs";
 
@@ -53,10 +55,10 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                   <SidebarTrigger data-testid="button-sidebar-toggle" />
                   <ThemeToggle />
                 </div>
-                <div className="flex items-center gap-1" data-testid="text-brand-name">
+                <Link href="/" className="flex items-center gap-1" data-testid="text-brand-name">
                   <VibesLogo className="h-5" />
                   <h1 className="text-xl text-foreground font-bold ml-[-13px] mr-[-13px]">Vibes</h1>
-                </div>
+                </Link>
                 <div className="w-16" />
               </div>
               <div className="px-4 py-1 overflow-hidden min-w-0">
@@ -122,6 +124,7 @@ function Router() {
         <Route path="/courses/:id" component={CourseDetailPage} />
         <Route path="/grants" component={GrantsPage} />
         <Route path="/grants/create" component={CreateGrantPage} />
+        <Route path="/grants/:id/edit" component={EditGrantPage} />
         <Route path="/notifications" component={NotificationsPage} />
         <Route path="/messages" component={MessagesPage} />
         <Route path="/profile/edit" component={ProfileEditPage} />
@@ -132,6 +135,7 @@ function Router() {
         }} />
         <Route path="/submit" component={SubmitProjectPage} />
         <Route path="/projects/:id" component={ProjectDetailPage} />
+        <Route path="/projects/:id/edit" component={EditProjectPage} />
         <Route path="/posts/:id" component={PostDetailPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />

@@ -48,6 +48,7 @@ import {
   MoreHorizontal,
   Trash2,
   AlertTriangle,
+  Pencil,
   Undo2,
   Flame,
   TrendingUp,
@@ -329,9 +330,31 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
     },
   });
 
+  const pickWinnerMutation = useMutation({
+    mutationFn: async (submissionId: string) => {
+      return apiRequest("POST", `/api/grants/${grant.id}/submissions/${submissionId}/winner`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/grants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/grants", grant.id, "submissions"] });
+      toast({
+        title: "Winner selected!",
+        description: "The submission has been marked as the winner.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to select winner. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const isOpen = grant.status === "open";
   const isPastDeadline = grant.deadline && new Date(grant.deadline) < new Date();
   const isScheduledForDeletion = grant.scheduledDeletionAt;
+  const hasWinner = submissions?.some(s => s.isWinner);
   const deletionTime = grant.scheduledDeletionAt ? new Date(grant.scheduledDeletionAt) : null;
 
   const getStatusBadge = () => {
@@ -426,6 +449,12 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <Link href={`/grants/${grant.id}/edit`}>
+                <DropdownMenuItem data-testid={`button-edit-grant-${grant.id}`}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Grant
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem
                 onClick={() => setShowSubmissions(true)}
                 data-testid={`button-view-submissions-${grant.id}`}
@@ -465,6 +494,13 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
       <p className="mt-4 flex-1 text-sm text-muted-foreground line-clamp-3">
         {grant.description}
       </p>
+
+      {grant.requirements && (
+        <div className="mt-3 rounded-md bg-muted/50 p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-1">Requirements</p>
+          <p className="text-sm line-clamp-2">{grant.requirements}</p>
+        </div>
+      )}
 
       {/* Creator info */}
       {grant.user && (
@@ -660,10 +696,29 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
                           </div>
                         </Link>
                       )}
-                      <div className="mt-2">
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <Badge variant={submission.status === "pending" ? "outline" : submission.isWinner ? "default" : "secondary"}>
                           {submission.isWinner ? "Winner" : submission.status}
                         </Badge>
+                        {isCreator && isPastDeadline && !hasWinner && !submission.isWinner && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to select "${submission.project?.title}" as the winner?`)) {
+                                pickWinnerMutation.mutate(submission.id);
+                              }
+                            }}
+                            disabled={pickWinnerMutation.isPending}
+                            data-testid={`button-pick-winner-${submission.id}`}
+                          >
+                            {pickWinnerMutation.isPending ? (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trophy className="mr-1 h-3 w-3" />
+                            )}
+                            Pick Winner
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

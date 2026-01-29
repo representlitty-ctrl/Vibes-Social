@@ -286,6 +286,13 @@ export default function ProjectDetailPage() {
             <p className="whitespace-pre-wrap text-muted-foreground">{project.description}</p>
           </div>
 
+          {project.voiceNoteUrl && (
+            <div className="rounded-lg bg-muted/50 p-4">
+              <p className="text-sm font-medium mb-2">Voice Note</p>
+              <audio src={project.voiceNoteUrl} controls className="w-full h-10" />
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-3">
             {project.demoUrl && (
               <a href={project.demoUrl} target="_blank" rel="noopener noreferrer">
