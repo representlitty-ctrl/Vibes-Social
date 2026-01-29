@@ -296,16 +296,20 @@ export function PostCard({ post }: PostCardProps) {
           className="cursor-pointer" 
           onClick={(e) => handleAvatarClick(e, post.userId)}
         >
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={post.user?.profileImageUrl || undefined} />
-            <AvatarFallback>
-              {post.user?.isNewsBot ? (
-                <Bot className="h-5 w-5 text-muted-foreground" />
-              ) : (
+          {post.user?.isNewsBot ? (
+            <div className="h-10 w-10 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="h-10 w-10 fill-primary">
+                <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/>
+              </svg>
+            </div>
+          ) : (
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.user?.profileImageUrl || undefined} />
+              <AvatarFallback>
                 <User className="h-5 w-5 text-muted-foreground" />
-              )}
-            </AvatarFallback>
-          </Avatar>
+              </AvatarFallback>
+            </Avatar>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">

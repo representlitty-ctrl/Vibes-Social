@@ -236,22 +236,26 @@ export default function ProfilePage() {
           <div 
             className="cursor-pointer"
             onClick={() => {
-              if (profile.profileImageUrl || profile.user.profileImageUrl) {
+              if (!profile.isNewsBot && (profile.profileImageUrl || profile.user.profileImageUrl)) {
                 setShowProfilePicture(true);
               }
             }}
             data-testid="avatar-profile-clickable"
           >
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
-              <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
-              <AvatarFallback>
-                {profile.isNewsBot ? (
-                  <Bot className="h-12 w-12 text-muted-foreground" />
-                ) : (
+            {profile.isNewsBot ? (
+              <div className="h-24 w-24 sm:h-32 sm:w-32 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="h-24 w-24 sm:h-32 sm:w-32 fill-primary">
+                  <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/>
+                </svg>
+              </div>
+            ) : (
+              <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
+                <AvatarImage src={profile.profileImageUrl || profile.user.profileImageUrl || undefined} />
+                <AvatarFallback>
                   <UserIcon className="h-12 w-12 text-muted-foreground" />
-                )}
-              </AvatarFallback>
-            </Avatar>
+                </AvatarFallback>
+              </Avatar>
+            )}
           </div>
 
           <Dialog open={showProfilePicture} onOpenChange={setShowProfilePicture}>

@@ -86,6 +86,13 @@ Vibes is a social community platform built for vibecoders - creative developers 
 ## Locked-In Standards (DO NOT VIOLATE)
 These are permanent rules that must always be followed:
 
+### Automated Accounts
+- Automated accounts (isNewsBot=true) MUST use a star shape as their profile picture
+- Star shape MUST use the current theme's primary color (fill-primary)
+- Star MUST be consistent across: Feed page, Global page, expanded post view, Profile page
+- "Automated" badge label MUST always be displayed next to the account name
+- Star SVG path: M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z
+
 ### Daily News Summary
 - News MUST come from Google News RSS (free source)
 - News MUST NOT be older than 24 hours
