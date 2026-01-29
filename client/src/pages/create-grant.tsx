@@ -22,6 +22,7 @@ import { useUpload } from "@/hooks/use-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { ArrowLeft, Loader2, ImagePlus, X } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
+import { ImageCropper } from "@/components/image-cropper";
 
 const createGrantSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters").max(100),
@@ -39,6 +40,8 @@ export default function CreateGrantPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { uploadFile, isUploading: isUploadingImage } = useUpload({
@@ -77,8 +80,21 @@ export default function CreateGrantPage() {
         });
         return;
       }
-      await uploadFile(file);
+      // Show cropper for 16:9 aspect ratio
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result as string);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false);
+    setImageToCrop(null);
+    const file = new File([croppedBlob], "cover.jpg", { type: "image/jpeg" });
+    await uploadFile(file);
   };
 
   useEffect(() => {
@@ -328,6 +344,26 @@ export default function CreateGrantPage() {
           </Form>
         </CardContent>
       </Card>
+
+      {/* 16:9 Cover Image Cropper */}
+      {imageToCrop && (
+        <ImageCropper
+          open={showCropper}
+          onOpenChange={(open) => {
+            setShowCropper(open);
+            if (!open) {
+              setImageToCrop(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }
+          }}
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          aspectRatio={16 / 9}
+          isLoading={isUploadingImage}
+        />
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Loader2, User, Share2, X, ChevronLeft, ChevronRight, Repeat2, Bot, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -450,11 +450,8 @@ export function PostCard({ post }: PostCardProps) {
                 e.preventDefault();
                 e.stopPropagation();
                 const url = `${window.location.origin}/posts/${post.id}`;
-                const shareData = {
-                  title: `Post by ${displayName}`,
-                  text: post.content?.substring(0, 100) || "Check out this post on Vibes",
-                  url: url,
-                };
+                // Share only the URL - no pre-message text
+                const shareData = { url };
                 
                 if (navigator.share && navigator.canShare?.(shareData)) {
                   try {
@@ -612,12 +609,12 @@ export function PostCard({ post }: PostCardProps) {
 
             {/* Media content */}
             {post.media && post.media[selectedMediaIndex] && (
-              <div className="w-full flex items-center justify-center p-4">
+              <div className="w-full flex flex-col items-center justify-center p-4">
                 {post.media[selectedMediaIndex].mediaType === "image" ? (
                   <img
                     src={post.media[selectedMediaIndex].mediaUrl}
                     alt=""
-                    className="max-w-full max-h-[80vh] object-contain"
+                    className="max-w-full max-h-[70vh] object-contain"
                     data-testid="img-media-modal"
                   />
                 ) : (
@@ -625,10 +622,49 @@ export function PostCard({ post }: PostCardProps) {
                     src={post.media[selectedMediaIndex].mediaUrl}
                     controls
                     autoPlay
-                    className="max-w-full max-h-[80vh]"
+                    className="max-w-full max-h-[70vh]"
                     data-testid="video-media-modal"
                   />
                 )}
+                {/* Save button */}
+                <Button
+                  variant="secondary"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const mediaUrl = post.media[selectedMediaIndex].mediaUrl;
+                    const mediaType = post.media[selectedMediaIndex].mediaType;
+                    const extension = mediaType === "image" ? "jpg" : "mp4";
+                    const filename = `vibes-media-${post.id}-${selectedMediaIndex + 1}.${extension}`;
+                    
+                    try {
+                      const response = await fetch(mediaUrl);
+                      if (!response.ok) throw new Error("Failed to fetch");
+                      const blob = await response.blob();
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                      toast({
+                        title: "Downloaded",
+                        description: `${mediaType === "image" ? "Image" : "Video"} saved successfully`,
+                      });
+                    } catch {
+                      window.open(mediaUrl, '_blank');
+                      toast({
+                        title: "Opened in new tab",
+                        description: "Right-click and save to download",
+                      });
+                    }
+                  }}
+                  data-testid="button-save-media"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Save {post.media[selectedMediaIndex].mediaType === "image" ? "Image" : "Video"}
+                </Button>
               </div>
             )}
 

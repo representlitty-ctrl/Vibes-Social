@@ -335,11 +335,8 @@ export default function ProjectDetailPage() {
               className="w-full mt-4 gap-2"
               onClick={async () => {
                 const url = `${window.location.origin}/projects/${project.id}`;
-                const shareData = {
-                  title: project.title,
-                  text: project.description || `Check out ${project.title} on Vibes`,
-                  url: url,
-                };
+                // Share only the URL - no pre-message text
+                const shareData = { url };
                 
                 if (navigator.share && navigator.canShare?.(shareData)) {
                   try {

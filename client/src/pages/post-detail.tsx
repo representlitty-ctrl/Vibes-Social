@@ -359,11 +359,8 @@ export default function PostDetailPage() {
             size="icon"
             onClick={async () => {
               const url = `${window.location.origin}/posts/${post.id}`;
-              const shareData = {
-                title: "Post on Vibes",
-                text: post.content?.substring(0, 100) || "Check out this post on Vibes",
-                url: url,
-              };
+              // Share only the URL - no pre-message text
+              const shareData = { url };
               
               if (navigator.share && navigator.canShare?.(shareData)) {
                 try {

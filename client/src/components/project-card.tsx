@@ -257,11 +257,8 @@ export function ProjectCard({ project, rank, featured }: ProjectCardProps) {
                     e.preventDefault();
                     e.stopPropagation();
                     const url = `${window.location.origin}/projects/${project.id}`;
-                    const shareData = {
-                      title: project.name,
-                      text: project.tagline || `Check out ${project.name} on Vibes`,
-                      url: url,
-                    };
+                    // Share only the URL - no pre-message text
+                    const shareData = { url };
                     
                     if (navigator.share && navigator.canShare?.(shareData)) {
                       try {

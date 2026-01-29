@@ -101,11 +101,47 @@ These are permanent rules that must always be followed:
 - renderFormattedText function handles this in both post-card.tsx and post-detail.tsx
 - Preview text strips formatting markers for clean display
 
+### Image Viewing
+- Images MUST be viewable inline without redirecting to a new page
+- Image modal MUST include a download/save button
+- Support gallery navigation (left/right) for multiple images
+
+### Sharing
+- Share function MUST only include the URL - no pre-message text
+- Copy to clipboard as fallback if Web Share API is not available
+- Consistent across all share buttons (posts, projects, detail pages)
+
+### Cover Art Uploads
+- Project and grant cover art MUST use 16:9 aspect ratio cropping
+- ImageCropper component used for consistent cropping experience
+- Cropping dialog appears before upload is finalized
+
+### Profile Tabs
+- Non-automated profiles MUST show Posts, Projects, and Learning tabs
+- Automated profiles (isNewsBot) ONLY show Posts tab
+- Profile statistics section hidden for automated accounts
+
+### Profile Pictures
+- Profile pictures MUST display as thumbnails everywhere:
+  - Project cards, grant submissions, posts, comments, notifications, messages
+- All avatars MUST be clickable to navigate to user profile
+- Use Avatar component with AvatarFallback for missing images
+
+### Post Design Consistency
+- Same PostCard component MUST be used for all posts (feed and global)
+- Automated account posts use same design as regular user posts
+- Bot icon distinguishes automated accounts in avatar slot
+
+### Data Policy
+- NO mock data or placeholder statistics
+- All numbers MUST reflect real database counts
+- Resources and grants added by admins only
+
 ## User Preferences
-- Light blue primary color (hue 200)
+- Red primary color (hue 0) with 5 theme options available
 - Facebook-style social media aesthetic with light gray background
-- Pure black dark mode with elevated cards
-- Light blue gradient accents for key elements
+- Pure black dark mode as default with elevated cards
+- Red gradient accents for key elements
 - Inter font family for sans-serif
 - Clean, card-based layout with subtle shadows
 - White sidebar/nav with white cards on gray background
