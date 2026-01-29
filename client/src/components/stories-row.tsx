@@ -120,7 +120,7 @@ export function StoriesRow() {
               onClick={() => openStoryViewer(group)}
               data-testid={`story-group-${group.user?.id}`}
             >
-              <div className="p-0.5 rounded-full ring-2 ring-primary ml-[4px] mr-[4px]">
+              <div className="p-0.5 rounded-full ring-2 ring-primary ml-[5px] mr-[5px]">
                 <Avatar className="h-14 w-14 border-2 border-background">
                   <AvatarImage src={group.user?.profileImageUrl || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
