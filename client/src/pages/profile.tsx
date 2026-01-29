@@ -244,7 +244,7 @@ export default function ProfilePage() {
           >
             {profile.isNewsBot ? (
               <div className="h-24 w-24 sm:h-32 sm:w-32 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="h-24 w-24 sm:h-32 sm:w-32 fill-primary">
+                <svg viewBox="0 0 24 24" className="h-20 w-20 sm:h-28 sm:w-28 fill-primary">
                   <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/>
                 </svg>
               </div>

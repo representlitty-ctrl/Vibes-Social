@@ -1878,6 +1878,7 @@ export class DatabaseStorage implements IStorage {
         email: user.email,
         profileImageUrl: profile?.profileImageUrl || user.profileImageUrl,
         username: profile?.username,
+        isNewsBot: profile?.isNewsBot || false,
       } : null,
       media,
       likeCount: likeCount?.count || 0,

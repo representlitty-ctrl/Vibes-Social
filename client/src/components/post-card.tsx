@@ -298,7 +298,7 @@ export function PostCard({ post }: PostCardProps) {
         >
           {post.user?.isNewsBot ? (
             <div className="h-10 w-10 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="h-10 w-10 fill-primary">
+              <svg viewBox="0 0 24 24" className="h-8 w-8 fill-primary">
                 <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/>
               </svg>
             </div>
