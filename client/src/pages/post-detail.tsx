@@ -243,16 +243,16 @@ export default function PostDetailPage() {
         <div className="flex items-start justify-between gap-4">
           <Link href={`/profile/${post.userId}`}>
             <div className="flex items-center gap-3 hover-elevate rounded-full pr-3">
-              {post.user?.isNewsBot ? (
-                <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-                  <Bot className="h-6 w-6 text-primary-foreground" />
-                </div>
-              ) : (
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={post.user?.profileImageUrl || undefined} />
-                  <AvatarFallback><UserIcon className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
-                </Avatar>
-              )}
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={post.user?.profileImageUrl || undefined} />
+                <AvatarFallback>
+                  {post.user?.isNewsBot ? (
+                    <Bot className="h-6 w-6 text-muted-foreground" />
+                  ) : (
+                    <UserIcon className="h-6 w-6 text-muted-foreground" />
+                  )}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{displayName}</span>
