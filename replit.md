@@ -93,6 +93,18 @@ Vibes is a social community platform built for vibecoders - creative developers 
 - White sidebar/nav with white cards on gray background
 
 ## Recent Changes
+- **Performance Optimizations**: Super-fast app experience
+  - Instant theme switching (dark/light mode with no transition delay)
+  - 50ms button/interaction transitions for snappy feedback
+  - GPU acceleration for smooth animations
+  - Instant click feedback with scale transform
+  - Fast modal/dropdown animations (80-100ms)
+- **Daily News Summary**: Vibesnews bot posts one daily summary
+  - Uses Google News RSS (free) to gather real news from past 24 hours
+  - AI-powered summarization using Replit AI integration
+  - Categories: Crypto, Tech, AI, Finance, Politics
+  - Appears in all users' feeds automatically
+  - Posts once per day at 8 AM (and on app startup)
 - Added posts feature with text, images, videos, and voice notes support
 - Added stories feature with 24-hour expiry and circular profile previews
 - Added unified feed combining posts and projects from followed users

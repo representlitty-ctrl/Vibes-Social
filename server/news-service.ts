@@ -1,327 +1,316 @@
 import { db } from "./db";
-import { newsArticles, posts, users, profiles } from "@shared/schema";
-import { eq, isNull, desc } from "drizzle-orm";
+import { posts, users, profiles } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
+import OpenAI from "openai";
 
 const NEWS_CATEGORIES = ["crypto", "tech", "politics", "finance", "ai"] as const;
 type NewsCategory = typeof NEWS_CATEGORIES[number];
 
-const NEWS_BOT_EMAIL = "newsbot@vibes.app";
-let newsBotUserId: string | null = null;
+const NEWS_BOT_USER_ID = "6df3ace0-03f7-4987-9a43-8078f4d1487f";
 
-async function ensureNewsBotUser(): Promise<string> {
-  if (newsBotUserId) return newsBotUserId;
-
-  const [existingUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, NEWS_BOT_EMAIL));
-
-  if (existingUser) {
-    newsBotUserId = existingUser.id;
-    return existingUser.id;
-  }
-
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      email: NEWS_BOT_EMAIL,
-      firstName: "Vibes",
-      lastName: "News",
-      profileImageUrl: null,
-    })
-    .returning();
-
-  await db
-    .insert(profiles)
-    .values({
-      userId: newUser.id,
-      username: "vibesnews",
-      bio: "Official Vibes news bot bringing you the latest updates in crypto, tech, politics, finance, and AI.",
-      isStaff: true,
-      isNewsBot: true,
-    })
-    .onConflictDoNothing();
-
-  newsBotUserId = newUser.id;
-  return newUser.id;
-}
-
-interface NewsAPIArticle {
+interface RSSNewsItem {
   title: string;
-  description: string;
-  url: string;
-  urlToImage: string | null;
-  publishedAt: string;
-  source: { name: string };
+  link: string;
+  pubDate: string;
+  source: string;
+  category: NewsCategory;
 }
 
-interface NewsAPIResponse {
-  status: string;
-  totalResults: number;
-  articles: NewsAPIArticle[];
+function isWithin24Hours(pubDate: string): boolean {
+  try {
+    const articleDate = new Date(pubDate);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - articleDate.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  } catch {
+    return false;
+  }
 }
 
-function categorizeArticle(title: string, description: string): NewsCategory {
-  const text = `${title} ${description}`.toLowerCase();
-  
-  if (text.includes("bitcoin") || text.includes("crypto") || text.includes("blockchain") || 
-      text.includes("ethereum") || text.includes("nft") || text.includes("defi")) {
-    return "crypto";
-  }
-  if (text.includes("artificial intelligence") || text.includes(" ai ") || text.includes("chatgpt") || 
-      text.includes("machine learning") || text.includes("openai") || text.includes("claude") ||
-      text.includes("llm") || text.includes("neural")) {
-    return "ai";
-  }
-  if (text.includes("stock") || text.includes("market") || text.includes("economy") || 
-      text.includes("fed") || text.includes("inflation") || text.includes("bank") ||
-      text.includes("invest") || text.includes("earnings")) {
-    return "finance";
-  }
-  if (text.includes("congress") || text.includes("president") || text.includes("election") || 
-      text.includes("senate") || text.includes("government") || text.includes("policy") ||
-      text.includes("vote") || text.includes("political")) {
-    return "politics";
-  }
+function categorizeBySearchTerm(searchTerm: string): NewsCategory {
+  const term = searchTerm.toLowerCase();
+  if (term.includes("crypto") || term.includes("bitcoin") || term.includes("blockchain")) return "crypto";
+  if (term.includes("ai") || term.includes("artificial intelligence") || term.includes("machine learning")) return "ai";
+  if (term.includes("politics") || term.includes("election") || term.includes("government")) return "politics";
+  if (term.includes("finance") || term.includes("stock") || term.includes("economy") || term.includes("market")) return "finance";
   return "tech";
 }
 
-function isWithin24Hours(publishedAt: string): boolean {
-  const articleDate = new Date(publishedAt);
-  const now = new Date();
-  const hoursDiff = (now.getTime() - articleDate.getTime()) / (1000 * 60 * 60);
-  return hoursDiff <= 24;
+function parseRSSDate(dateString: string): Date {
+  return new Date(dateString);
 }
 
-async function fetchRealNews(): Promise<Array<{ title: string; summary: string; category: NewsCategory; sourceUrl: string; sourceName: string }>> {
-  const apiKey = process.env.NEWS_API_KEY;
-  
-  if (!apiKey) {
-    console.log("[NewsService] NEWS_API_KEY not set, skipping real news fetch");
-    return [];
-  }
+function decodeHTMLEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/<[^>]*>/g, "");
+}
 
+async function fetchGoogleNewsRSS(query: string, category: NewsCategory): Promise<RSSNewsItem[]> {
   try {
-    // Get yesterday's date for the from parameter (NewsAPI free tier limit)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const fromDate = yesterday.toISOString().split('T')[0];
+    const encodedQuery = encodeURIComponent(query);
+    const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
     
-    const categories = ["technology", "business", "science"];
-    const allArticles: Array<{ title: string; summary: string; category: NewsCategory; sourceUrl: string; sourceName: string }> = [];
+    const response = await fetch(rssUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; VibesNewsBot/1.0)",
+      },
+    });
     
-    for (const category of categories) {
-      try {
-        const url = `https://newsapi.org/v2/top-headlines?category=${category}&language=en&pageSize=5&apiKey=${apiKey}`;
-        const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`[NewsService] RSS fetch failed for ${query}:`, response.status);
+      return [];
+    }
+    
+    const xmlText = await response.text();
+    const items: RSSNewsItem[] = [];
+    
+    const itemMatches = xmlText.match(/<item>([\s\S]*?)<\/item>/g) || [];
+    
+    for (const itemXml of itemMatches.slice(0, 10)) {
+      const titleMatch = itemXml.match(/<title>([\s\S]*?)<\/title>/);
+      const linkMatch = itemXml.match(/<link>([\s\S]*?)<\/link>/);
+      const pubDateMatch = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+      const sourceMatch = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+      
+      if (titleMatch && linkMatch && pubDateMatch) {
+        const pubDate = pubDateMatch[1].trim();
         
-        if (!response.ok) {
-          console.error(`[NewsService] NewsAPI error for ${category}:`, response.status, response.statusText);
-          continue;
-        }
-        
-        const data: NewsAPIResponse = await response.json();
-        
-        if (data.status !== "ok") {
-          console.error(`[NewsService] NewsAPI returned non-ok status for ${category}`);
-          continue;
-        }
-        
-        for (const article of data.articles) {
-          // Skip articles without proper content
-          if (!article.title || !article.description || article.title === "[Removed]") {
-            continue;
-          }
-          
-          // Only include articles from the last 24 hours
-          if (!isWithin24Hours(article.publishedAt)) {
-            continue;
-          }
-          
-          const newsCategory = categorizeArticle(article.title, article.description);
-          
-          allArticles.push({
-            title: article.title,
-            summary: article.description,
-            category: newsCategory,
-            sourceUrl: article.url,
-            sourceName: article.source.name,
+        if (isWithin24Hours(pubDate)) {
+          items.push({
+            title: decodeHTMLEntities(titleMatch[1].trim()),
+            link: linkMatch[1].trim(),
+            pubDate,
+            source: sourceMatch ? decodeHTMLEntities(sourceMatch[1].trim()) : "Unknown",
+            category,
           });
         }
-      } catch (error) {
-        console.error(`[NewsService] Error fetching ${category} news:`, error);
       }
     }
     
-    // Deduplicate by title
-    const seen = new Set<string>();
-    const uniqueArticles = allArticles.filter(article => {
-      if (seen.has(article.title)) return false;
-      seen.add(article.title);
-      return true;
-    });
-    
-    console.log(`[NewsService] Fetched ${uniqueArticles.length} real news articles from last 24 hours`);
-    return uniqueArticles.slice(0, 10);
+    return items;
   } catch (error) {
-    console.error("[NewsService] Error fetching real news:", error);
+    console.error(`[NewsService] Error fetching RSS for ${query}:`, error);
     return [];
   }
 }
 
-async function createNewsPost(
-  userId: string,
-  title: string,
-  summary: string,
-  category: NewsCategory,
-  sourceUrl?: string,
-  sourceName?: string
-): Promise<string | null> {
+async function fetchAllCategoryNews(): Promise<RSSNewsItem[]> {
+  const searchQueries: { query: string; category: NewsCategory }[] = [
+    { query: "cryptocurrency bitcoin blockchain", category: "crypto" },
+    { query: "artificial intelligence AI machine learning", category: "ai" },
+    { query: "technology startup innovation", category: "tech" },
+    { query: "stock market finance economy", category: "finance" },
+    { query: "US politics government election", category: "politics" },
+  ];
+  
+  const allNews: RSSNewsItem[] = [];
+  
+  for (const { query, category } of searchQueries) {
+    const news = await fetchGoogleNewsRSS(query, category);
+    allNews.push(...news);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  const seen = new Set<string>();
+  return allNews.filter(item => {
+    const key = item.title.toLowerCase().substring(0, 50);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function summarizeNewsWithAI(newsItems: RSSNewsItem[]): Promise<string> {
+  if (newsItems.length === 0) {
+    return "";
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+
+  const groupedNews: Record<NewsCategory, RSSNewsItem[]> = {
+    crypto: [],
+    ai: [],
+    tech: [],
+    finance: [],
+    politics: [],
+  };
+
+  for (const item of newsItems) {
+    groupedNews[item.category].push(item);
+  }
+
+  const newsListText = NEWS_CATEGORIES.map(cat => {
+    const items = groupedNews[cat].slice(0, 5);
+    if (items.length === 0) return "";
+    return `\n${cat.toUpperCase()}:\n${items.map(i => `- ${i.title} (${i.source})`).join("\n")}`;
+  }).filter(Boolean).join("\n");
+
   try {
-    const categoryLabels: Record<NewsCategory, string> = {
-      crypto: "CRYPTO",
-      tech: "TECH",
-      politics: "POLITICS",
-      finance: "FINANCE",
-      ai: "AI",
-    };
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a professional news curator for Vibes, a social platform for tech-savvy developers. Write a concise, engaging daily news summary. Format the summary with clear category sections. Use markdown formatting. Keep each category to 2-3 key headlines with brief context. Make it informative but easy to scan. Total length should be 400-600 words.`
+        },
+        {
+          role: "user",
+          content: `Create a daily news summary for today (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}) from these headlines:\n${newsListText}\n\nFormat with clear section headers for each category (use the category name in caps) and bullet points for headlines. End with a brief takeaway or trend observation. Do not use emoji icons.`
+        }
+      ],
+      max_tokens: 1000,
+    });
 
-    let content = `**${categoryLabels[category]} UPDATE**
-
-${title}
-
-${summary}`;
-
-    if (sourceName) {
-      content += `
-
-Source: ${sourceName}`;
+    return response.choices[0]?.message?.content || "";
+  } catch (error) {
+    console.error("[NewsService] AI summarization failed:", error instanceof Error ? error.message : error);
+    
+    let fallbackSummary = `**Daily News Roundup** - ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n\n`;
+    
+    for (const cat of NEWS_CATEGORIES) {
+      const items = groupedNews[cat].slice(0, 3);
+      if (items.length > 0) {
+        const emoji = cat === "crypto" ? "₿" : cat === "ai" ? "🤖" : cat === "tech" ? "💻" : cat === "finance" ? "📈" : "🏛";
+        fallbackSummary += `**${emoji} ${cat.toUpperCase()}**\n`;
+        for (const item of items) {
+          fallbackSummary += `• ${item.title}\n`;
+        }
+        fallbackSummary += "\n";
+      }
     }
+    
+    return fallbackSummary;
+  }
+}
 
+async function hasPostedToday(): Promise<boolean> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const recentPosts = await db
+    .select()
+    .from(posts)
+    .where(eq(posts.userId, NEWS_BOT_USER_ID))
+    .orderBy(desc(posts.createdAt))
+    .limit(1);
+  
+  if (recentPosts.length === 0) return false;
+  
+  const createdAt = recentPosts[0].createdAt;
+  if (!createdAt) return false;
+  
+  const lastPostDate = new Date(createdAt);
+  lastPostDate.setHours(0, 0, 0, 0);
+  
+  return lastPostDate.getTime() === today.getTime();
+}
+
+async function createDailySummaryPost(content: string): Promise<string | null> {
+  try {
     const [post] = await db
       .insert(posts)
       .values({
-        userId,
+        userId: NEWS_BOT_USER_ID,
         content,
-        sourceUrl: sourceUrl || null,
       })
       .returning();
 
+    console.log("[NewsService] Created daily summary post:", post.id);
     return post.id;
   } catch (error) {
-    console.error("[NewsService] Error creating news post:", error);
+    console.error("[NewsService] Error creating daily summary post:", error);
     return null;
   }
 }
 
-export async function fetchAndStoreNews(): Promise<number> {
-  console.log("[NewsService] Fetching real news...");
+export async function generateDailyNewsSummary(): Promise<boolean> {
+  console.log("[NewsService] Checking if daily summary needed...");
   
-  const userId = await ensureNewsBotUser();
-  const newsItems = await fetchRealNews();
+  if (await hasPostedToday()) {
+    console.log("[NewsService] Already posted today, skipping");
+    return false;
+  }
+  
+  console.log("[NewsService] Fetching news from Google News RSS...");
+  const newsItems = await fetchAllCategoryNews();
   
   if (newsItems.length === 0) {
-    console.log("[NewsService] No new articles to store");
-    return 0;
+    console.log("[NewsService] No news items found");
+    return false;
   }
   
-  let storedCount = 0;
+  console.log(`[NewsService] Found ${newsItems.length} news items from last 24 hours`);
   
-  for (const item of newsItems) {
-    try {
-      // Check if article with same title already exists
-      const [existing] = await db
-        .select()
-        .from(newsArticles)
-        .where(eq(newsArticles.title, item.title));
-      
-      if (existing) continue;
-
-      await db.insert(newsArticles).values({
-        title: item.title,
-        summary: item.summary,
-        category: item.category,
-        sourceUrl: item.sourceUrl,
-      });
-      
-      storedCount++;
-    } catch (error) {
-      console.error("[NewsService] Error storing news article:", error);
-    }
+  console.log("[NewsService] Generating AI summary...");
+  const summary = await summarizeNewsWithAI(newsItems);
+  
+  if (!summary) {
+    console.log("[NewsService] Failed to generate summary");
+    return false;
   }
   
-  console.log(`[NewsService] Stored ${storedCount} new real articles`);
-  return storedCount;
+  const postId = await createDailySummaryPost(summary);
+  return postId !== null;
 }
 
-export async function postPendingNews(): Promise<number> {
-  const userId = await ensureNewsBotUser();
-  
-  const pendingArticles = await db
-    .select()
-    .from(newsArticles)
-    .where(isNull(newsArticles.postedAt))
-    .orderBy(desc(newsArticles.fetchedAt))
-    .limit(3);
-  
-  let postedCount = 0;
-  
-  for (const article of pendingArticles) {
-    const postId = await createNewsPost(
-      userId,
-      article.title,
-      article.summary,
-      article.category as NewsCategory,
-      article.sourceUrl || undefined,
-      article.sourceUrl ? new URL(article.sourceUrl).hostname.replace('www.', '') : undefined
-    );
-    
-    if (postId) {
-      await db
-        .update(newsArticles)
-        .set({ postId, postedAt: new Date() })
-        .where(eq(newsArticles.id, article.id));
-      
-      postedCount++;
-    }
-  }
-  
-  console.log(`[NewsService] Posted ${postedCount} news articles`);
-  return postedCount;
-}
-
-let newsInterval: NodeJS.Timeout | null = null;
-let postInterval: NodeJS.Timeout | null = null;
+let dailyCheckInterval: NodeJS.Timeout | null = null;
 
 export function startNewsService() {
-  console.log("[NewsService] Starting news service...");
+  console.log("[NewsService] Starting daily news summary service...");
   
-  // Initial fetch and post
-  fetchAndStoreNews().then(() => {
-    postPendingNews();
+  generateDailyNewsSummary().then(posted => {
+    if (posted) {
+      console.log("[NewsService] Initial daily summary posted successfully");
+    }
   });
   
-  // Fetch new articles every 2 hours
-  newsInterval = setInterval(() => {
-    fetchAndStoreNews();
-  }, 2 * 60 * 60 * 1000);
+  dailyCheckInterval = setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 8 && now.getMinutes() < 5) {
+      generateDailyNewsSummary();
+    }
+  }, 5 * 60 * 1000);
   
-  // Post pending articles every 30 minutes
-  postInterval = setInterval(() => {
-    postPendingNews();
-  }, 30 * 60 * 1000);
-  
-  console.log("[NewsService] News service started - fetching real news every 2 hours, posting every 30 minutes");
+  console.log("[NewsService] Daily news service started - checks at 8 AM");
 }
 
 export function stopNewsService() {
-  if (newsInterval) {
-    clearInterval(newsInterval);
-    newsInterval = null;
-  }
-  if (postInterval) {
-    clearInterval(postInterval);
-    postInterval = null;
+  if (dailyCheckInterval) {
+    clearInterval(dailyCheckInterval);
+    dailyCheckInterval = null;
   }
   console.log("[NewsService] News service stopped");
+}
+
+export async function forceGenerateNewsSummary(): Promise<boolean> {
+  console.log("[NewsService] Force generating daily summary...");
+  
+  await db.delete(posts).where(eq(posts.userId, NEWS_BOT_USER_ID));
+  
+  const newsItems = await fetchAllCategoryNews();
+  
+  if (newsItems.length === 0) {
+    console.log("[NewsService] No news items found");
+    return false;
+  }
+  
+  console.log(`[NewsService] Found ${newsItems.length} news items`);
+  
+  const summary = await summarizeNewsWithAI(newsItems);
+  
+  if (!summary) {
+    return false;
+  }
+  
+  const postId = await createDailySummaryPost(summary);
+  return postId !== null;
 }
