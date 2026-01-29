@@ -56,7 +56,7 @@ export default function DiscoverPage() {
     : [];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 px-2 py-4 md:px-4">
+    <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 md:px-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
         <p className="text-muted-foreground">Explore vibecoded projects from the community</p>

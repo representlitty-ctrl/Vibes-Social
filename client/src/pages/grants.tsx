@@ -115,7 +115,7 @@ export default function GrantsPage() {
     : [];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-2 py-4 md:px-4">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-5 md:px-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Grants</h1>

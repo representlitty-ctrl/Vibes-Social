@@ -230,7 +230,7 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.id === userId;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 px-2 py-4 md:px-4">
+    <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 md:px-6">
       <Card className="p-6">
         <div className="flex flex-col items-start gap-6 sm:flex-row">
           <div 
