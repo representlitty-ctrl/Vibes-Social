@@ -218,3 +218,10 @@ These are permanent rules that must always be followed:
   - **Server-Side Validation**: Quiz answers validated server-side, prevents cheating
   - **Certificate & Badge**: Earned upon completing all 23 lessons and passing all 5 quizzes
   - Database tables: vibecodingProgress, vibecodingQuizProgress, vibecodingCertificates
+- **Layout Standardization**: Consistent page layouts with centered content
+  - Feed pages (home, discover, grants): mx-auto max-w-4xl p-4
+  - Wide content pages (learn, communities): mx-auto max-w-5xl p-4
+  - Form/settings pages (notifications, settings): mx-auto max-w-2xl p-4
+  - Profile page: mx-auto max-w-4xl p-4
+  - Stories dialog: Proper centered modal with 9:16 aspect ratio, max-w-[min(400px,90vw)]
+  - All dialogs/popups use Radix UI primitives for proper positioning

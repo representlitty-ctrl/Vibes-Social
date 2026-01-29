@@ -137,12 +137,12 @@ export function StoriesRow() {
       </div>
 
       <Dialog open={!!viewingGroup} onOpenChange={() => setViewingGroup(null)}>
-        <DialogContent className="max-w-full sm:max-w-md md:max-w-lg p-0 bg-black border-0 h-[100dvh] sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-lg">
+        <DialogContent className="max-w-[min(400px,90vw)] w-full p-0 bg-black border-0 aspect-[9/16] max-h-[85vh] rounded-lg overflow-hidden">
           <VisuallyHidden>
             <DialogTitle>Story Viewer</DialogTitle>
           </VisuallyHidden>
           {currentStory && viewingGroup && (
-            <div className="relative w-full h-full sm:aspect-[9/16] sm:max-h-[85vh] flex flex-col">
+            <div className="relative w-full h-full flex flex-col">
               <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2 pt-3">
                 {viewingGroup.stories.map((_, i) => (
                   <div
@@ -226,20 +226,20 @@ export function StoriesRow() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12 hidden sm:flex"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10"
                   onClick={prevStory}
                 >
-                  <ChevronLeft className="h-8 w-8" />
+                  <ChevronLeft className="h-6 w-6" />
                 </Button>
               )}
               {currentStoryIndex < viewingGroup.stories.length - 1 && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12 hidden sm:flex"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10"
                   onClick={nextStory}
                 >
-                  <ChevronRight className="h-8 w-8" />
+                  <ChevronRight className="h-6 w-6" />
                 </Button>
               )}
             </div>
