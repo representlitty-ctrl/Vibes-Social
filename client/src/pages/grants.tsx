@@ -521,7 +521,7 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
                   Apply Now
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 max-w-md">
                 <DialogHeader>
                   <DialogTitle>Apply to {grant.title}</DialogTitle>
                   <DialogDescription>
@@ -621,7 +621,7 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
 
       {/* Submissions Dialog for Grant Creator */}
       <Dialog open={showSubmissions} onOpenChange={setShowSubmissions}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Submissions for {grant.title}</DialogTitle>
             <DialogDescription>

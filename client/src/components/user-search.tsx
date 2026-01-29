@@ -68,7 +68,7 @@ export function UserSearch() {
           <Search className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Search Users</DialogTitle>
         </DialogHeader>

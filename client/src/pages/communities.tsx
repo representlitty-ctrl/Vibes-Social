@@ -154,7 +154,7 @@ export default function CommunitiesPage() {
                 Create Community
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2">
               <DialogHeader>
                 <DialogTitle>Create a Community</DialogTitle>
               </DialogHeader>

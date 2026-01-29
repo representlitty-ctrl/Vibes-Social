@@ -1964,7 +1964,7 @@ export default function LearnVibecodingPage() {
       </div>
 
       <Dialog open={!!selectedLesson} onOpenChange={(open) => !open && setSelectedLesson(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -2104,7 +2104,7 @@ export default function LearnVibecodingPage() {
 
       {/* Quiz Dialog */}
       <Dialog open={!!selectedQuizModule} onOpenChange={(open) => !open && closeQuiz()}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <Star className="h-5 w-5 text-primary" />
