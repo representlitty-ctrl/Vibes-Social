@@ -137,7 +137,7 @@ export function StoriesRow() {
       </div>
 
       <Dialog open={!!viewingGroup} onOpenChange={() => setViewingGroup(null)}>
-        <DialogContent className="max-w-[min(400px,90vw)] w-full p-0 bg-black border-0 aspect-[9/16] max-h-[85vh] rounded-lg overflow-hidden">
+        <DialogContent className="max-w-[min(400px,90vw)] w-full p-0 bg-black border-0 aspect-[9/16] max-h-[85vh] rounded-lg overflow-hidden" hideCloseButton>
           <VisuallyHidden>
             <DialogTitle>Story Viewer</DialogTitle>
           </VisuallyHidden>

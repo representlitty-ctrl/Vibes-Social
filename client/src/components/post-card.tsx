@@ -560,6 +560,7 @@ export function PostCard({ post }: PostCardProps) {
         <DialogContent 
           className="max-w-4xl w-full p-0 bg-black/95 border-none"
           onClick={(e) => e.stopPropagation()}
+          hideCloseButton
         >
           <div className="relative flex items-center justify-center min-h-[50vh]">
             {/* Close button */}
