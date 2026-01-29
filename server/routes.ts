@@ -2261,5 +2261,28 @@ export async function registerRoutes(
     }
   });
 
+  // Admin endpoint to delete all old news bot posts
+  app.delete("/api/admin/news-posts", async (req, res) => {
+    const adminKey = req.headers["x-admin-key"] || req.body.adminKey;
+    
+    if (adminKey !== "vibes-admin-2024") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const NEWS_BOT_USER_ID = "6df3ace0-03f7-4987-9a43-8078f4d1487f";
+      const { posts } = await import("@shared/schema");
+      
+      // Delete all posts by the news bot
+      const result = await db.delete(posts).where(eq(posts.userId, NEWS_BOT_USER_ID));
+      
+      console.log("[Admin] Deleted news bot posts");
+      res.json({ success: true, message: "All news bot posts deleted" });
+    } catch (error) {
+      console.error("[Admin] Error deleting news posts:", error);
+      res.status(500).json({ message: "Failed to delete news posts" });
+    }
+  });
+
   return httpServer;
 }
