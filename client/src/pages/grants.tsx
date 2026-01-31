@@ -30,8 +30,9 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { formatDistanceToNow, format } from "date-fns";
-import { useState } from "react";
+import { formatDistanceToNow, format, differenceInSeconds } from "date-fns";
+import { useState, useEffect } from "react";
+import { Timer } from "lucide-react";
 import {
   Trophy,
   Calendar,
@@ -214,6 +215,48 @@ export default function GrantsPage() {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function CountdownTimer({ deadline }: { deadline: Date }) {
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const diff = differenceInSeconds(deadline, new Date());
+    return Math.max(0, diff);
+  });
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    
+    const timer = setInterval(() => {
+      const diff = differenceInSeconds(deadline, new Date());
+      setTimeLeft(Math.max(0, diff));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [deadline, timeLeft]);
+
+  if (timeLeft <= 0) {
+    return (
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Timer className="h-4 w-4" />
+        <span>Deadline passed</span>
+      </div>
+    );
+  }
+
+  const days = Math.floor(timeLeft / 86400);
+  const hours = Math.floor((timeLeft % 86400) / 3600);
+  const minutes = Math.floor((timeLeft % 3600) / 60);
+  const seconds = timeLeft % 60;
+
+  return (
+    <div className="flex items-center gap-1.5 text-sm font-medium text-primary" data-testid="countdown-timer">
+      <Timer className="h-4 w-4" />
+      <span>
+        {days > 0 && `${days}d `}
+        {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+      </span>
     </div>
   );
 }
@@ -519,12 +562,17 @@ function GrantCard({ grant }: { grant: GrantWithDetails }) {
 
       <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
         {grant.deadline && (
-          <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            {isPastDeadline
-              ? `Ended ${format(new Date(grant.deadline), "MMM d, yyyy")}`
-              : `Ends ${formatDistanceToNow(new Date(grant.deadline), { addSuffix: true })}`}
-          </div>
+          <>
+            <div className="flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              {isPastDeadline
+                ? `Ended ${format(new Date(grant.deadline), "MMM d, yyyy")}`
+                : format(new Date(grant.deadline), "MMM d, yyyy 'at' h:mm a")}
+            </div>
+            {isOpen && !isPastDeadline && (
+              <CountdownTimer deadline={new Date(grant.deadline)} />
+            )}
+          </>
         )}
         <div className="flex items-center gap-1">
           <Send className="h-4 w-4" />

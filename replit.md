@@ -237,3 +237,12 @@ These are permanent rules that must always be followed:
 - **Optional Grant Pitch**: Grant application pitch field is now optional
   - Users can submit applications with just a title
   - Pitch field shows "(optional)" label
+- **Grant Winner Selection**: Grant owners can pick winners after deadline
+  - "Pick Winner" button appears in submissions dialog after deadline passes
+  - Only project submitters (not just applicants) are eligible for selection
+  - Selecting a winner automatically closes the grant
+  - Winner receives notification about their win
+- **Grant Countdown Timer**: Active grants show live countdown to deadline
+  - Format: Xd HH:MM:SS countdown for active grants
+  - Updates in real-time every second
+  - Shows "Deadline passed" after expiry
